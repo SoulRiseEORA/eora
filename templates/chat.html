@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA Chat - AI 채팅 플랫폼</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 1rem;
+            gap: 1rem;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chat-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: rgba(59, 130, 246, 0.2);
+            margin-left: auto;
+            color: white;
+        }
+
+        .message.assistant {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .message.system {
+            background: rgba(239, 68, 68, 0.2);
+            color: white;
+            text-align: center;
+            max-width: 100%;
+        }
+
+        .chat-input {
+            padding: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input textarea {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            resize: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .chat-input button {
+            padding: 0.75rem 1.5rem;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .chat-input button:hover {
+            background: #2563eb;
+        }
+
+        .chat-input button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+
+        .feature-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .feature-button {
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .feature-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .feature-button.active {
+            background: rgba(59, 130, 246, 0.5);
+        }
+
+        .model-selector {
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: white;
+            padding: 1rem;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.2);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚂 EORA Chat - AI 채팅 플랫폼</h1>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="feature-buttons">
+                <button class="feature-button active" onclick="setMode('chat')">💬 채팅</button>
+                <button class="feature-button" onclick="setMode('translate')">🌐 번역</button>
+                <button class="feature-button" onclick="setMode('summarize')">📝 요약</button>
+            </div>
+            
+            <select class="model-selector" id="modelSelector">
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+            </select>
+
+            <button class="feature-button" onclick="clearChat()">🗑️ 대화 지우기</button>
+        </div>
+
+        <div class="chat-container">
+            <div class="error" id="errorMessage"></div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message system">
+                    안녕하세요! EORA Chat AI 어시스턴트입니다. 무엇을 도와드릴까요?
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                AI가 응답을 생성하고 있습니다...
+            </div>
+
+            <div class="chat-input">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="메시지를 입력하세요..." 
+                    rows="3"
+                    onkeydown="handleKeyDown(event)"
+                ></textarea>
+                <button onclick="sendMessage()" id="sendButton">전송</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'chat';
+        let messages = [];
+
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // 버튼 활성화 상태 변경
+            document.querySelectorAll('.feature-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 입력창 플레이스홀더 변경
+            const input = document.getElementById('messageInput');
+            switch(mode) {
+                case 'chat':
+                    input.placeholder = '메시지를 입력하세요...';
+                    break;
+                case 'translate':
+                    input.placeholder = '번역할 텍스트를 입력하세요...';
+                    break;
+                case 'summarize':
+                    input.placeholder = '요약할 텍스트를 입력하세요...';
+                    break;
+            }
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // 사용자 메시지 추가
+            addMessage('user', message);
+            input.value = '';
+            
+            // 로딩 표시
+            showLoading(true);
+            hideError();
+            
+            try {
+                let response;
+                
+                switch(currentMode) {
+                    case 'chat':
+                        response = await chatWithGPT(message);
+                        break;
+                    case 'translate':
+                        response = await translateText(message);
+                        break;
+                    case 'summarize':
+                        response = await summarizeText(message);
+                        break;
+                }
+                
+                addMessage('assistant', response);
+            } catch (error) {
+                showError('오류가 발생했습니다: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function chatWithGPT(message) {
+            messages.push({ role: 'user', content: message });
+            
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messages: messages,
+                    model: document.getElementById('modelSelector').value
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('채팅 요청 실패');
+            }
+            
+            const data = await response.json();
+            messages.push({ role: 'assistant', content: data.response });
+            
+            return data.response;
+        }
+
+        async function translateText(text) {
+            const response = await fetch('/api/translate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: text,
+                    target_language: '한국어'
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('번역 요청 실패');
+            }
+            
+            const data = await response.json();
+            return `번역 결과: ${data.translated_text}`;
+        }
+
+        async function summarizeText(text) {
+            const response = await fetch('/api/summarize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: text,
+                    max_length: 200
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('요약 요청 실패');
+            }
+            
+            const data = await response.json();
+            return `요약: ${data.summary}`;
+        }
+
+        function addMessage(role, content) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            messageDiv.textContent = content;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function clearChat() {
+            messages = [];
+            document.getElementById('chatMessages').innerHTML = 
+                '<div class="message system">대화가 지워졌습니다. 새로운 대화를 시작하세요.</div>';
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            const sendButton = document.getElementById('sendButton');
+            
+            if (show) {
+                loading.classList.add('show');
+                sendButton.disabled = true;
+            } else {
+                loading.classList.remove('show');
+                sendButton.disabled = false;
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('show');
+        }
+    </script>
+</body>
+</html> 

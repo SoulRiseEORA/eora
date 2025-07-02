@@ -1,3 +1,7 @@
 fastapi
 uvicorn[standard]
-python-dotenv 
+python-dotenv
+openai
+python-multipart
+jinja2
+aiofiles 
