@@ -1,15 +1,13 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-import os
 
 # 버전 정보 추가 (캐시 무효화용)
-VERSION = "3.0.0"
+VERSION = "4.0.0"
 
 app = FastAPI(title="EORA Chat API", version=VERSION)
 
 # 시작 시 로그 출력
 print(f"Starting EORA Chat API version {VERSION}")
-print(f"Python version: {os.sys.version}")
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
