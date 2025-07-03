@@ -1561,6 +1561,173 @@ async def admin_system(current_user: dict = Depends(get_current_user)):
             "uptime": "unknown"
         }
 
+# 학습 관련 API 엔드포인트
+@app.post("/api/admin/auto-learning")
+async def auto_learning(request: Request, current_user: dict = Depends(get_current_user)):
+    """자동 학습 API"""
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다")
+    
+    try:
+        form = await request.form()
+        files = form.getlist("files")
+        
+        if not files:
+            raise HTTPException(status_code=400, detail="학습할 파일이 없습니다")
+        
+        results = []
+        for file in files:
+            try:
+                # 파일 내용 읽기
+                content = await file.read()
+                file_content = content.decode('utf-8')
+                
+                # 파일 분석 및 학습 처리
+                chunks = process_file_content(file_content, file.filename)
+                
+                # 메모리에 저장 (실제로는 DB에 저장)
+                for i, chunk in enumerate(chunks):
+                    chunk_data = {
+                        "type": "file_chunk",
+                        "chunk_index": i,
+                        "source": file.filename,
+                        "content": chunk,
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "processed_by": current_user["user_id"]
+                    }
+                    results.append(f"✅ {file.filename} - 청크 {i+1}/{len(chunks)} 처리 완료")
+                
+            except Exception as e:
+                results.append(f"❌ {file.filename} 처리 실패: {str(e)}")
+        
+        return {
+            "message": f"자동 학습 완료!\n" + "\n".join(results),
+            "processed_files": len(files),
+            "total_chunks": len(results)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"자동 학습 실패: {str(e)}")
+
+@app.post("/api/admin/attach-learning")
+async def attach_learning(request: Request, current_user: dict = Depends(get_current_user)):
+    """첨부 학습 API"""
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다")
+    
+    try:
+        form = await request.form()
+        files = form.getlist("files")
+        
+        if not files:
+            raise HTTPException(status_code=400, detail="대화 문서가 없습니다")
+        
+        results = []
+        memos = []
+        
+        for file in files:
+            try:
+                # 파일 내용 읽기
+                content = await file.read()
+                file_content = content.decode('utf-8')
+                
+                # 대화 분석 및 학습 처리
+                conversation_data = process_conversation_content(file_content, file.filename)
+                
+                # EORA 학습 처리
+                for turn in conversation_data:
+                    user_msg = turn.get("user", "")
+                    gpt_msg = turn.get("gpt", "")
+                    
+                    if user_msg and gpt_msg:
+                        # EORA 응답 생성
+                        eora_response = await generate_eora_response(user_msg, current_user["user_id"], request)
+                        
+                        # 메모리에 저장
+                        memory_data = {
+                            "type": "conversation_turn",
+                            "user": user_msg,
+                            "gpt": gpt_msg,
+                            "eora": eora_response,
+                            "source": file.filename,
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "processed_by": current_user["user_id"]
+                        }
+                        
+                        results.append(f"🌀 TURN 처리: {user_msg[:50]}...")
+                        memos.append(f"🧠 EORA: {eora_response[:100]}...")
+                
+            except Exception as e:
+                results.append(f"❌ {file.filename} 처리 실패: {str(e)}")
+        
+        return {
+            "message": f"첨부 학습 완료!\n" + "\n".join(results),
+            "memo": "\n".join(memos),
+            "processed_files": len(files),
+            "total_turns": len(results)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"첨부 학습 실패: {str(e)}")
+
+def process_file_content(content: str, filename: str) -> List[str]:
+    """파일 내용을 청크로 분할"""
+    chunk_size = 500
+    chunks = []
+    
+    # 파일 확장자에 따른 처리
+    if filename.endswith(('.txt', '.md', '.py')):
+        # 텍스트 파일은 직접 청크 분할
+        chunks = [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
+    elif filename.endswith('.docx'):
+        # DOCX 파일은 텍스트 추출 후 청크 분할
+        try:
+            from docx import Document
+            import io
+            doc = Document(io.BytesIO(content.encode()))
+            text = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
+            chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+        except:
+            chunks = [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
+    else:
+        # 기타 파일은 기본 청크 분할
+        chunks = [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
+    
+    return chunks
+
+def process_conversation_content(content: str, filename: str) -> List[Dict]:
+    """대화 내용을 턴으로 분할"""
+    lines = content.split('\n')
+    turns = []
+    current_turn = {}
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # 사용자 메시지 패턴 감지
+        if line.startswith(('사용자:', 'User:', '👤', '나의 말:')):
+            if current_turn:
+                turns.append(current_turn)
+            current_turn = {"user": line.split(':', 1)[1].strip() if ':' in line else line}
+        # GPT 메시지 패턴 감지
+        elif line.startswith(('GPT:', 'ChatGPT:', '🤖', 'ChatGPT의 말:')):
+            if current_turn:
+                current_turn["gpt"] = line.split(':', 1)[1].strip() if ':' in line else line
+        # 기타 메시지는 현재 턴에 추가
+        elif current_turn:
+            if "gpt" in current_turn:
+                current_turn["gpt"] += " " + line
+            else:
+                current_turn["user"] += " " + line
+    
+    # 마지막 턴 추가
+    if current_turn:
+        turns.append(current_turn)
+    
+    return turns
+
 if __name__ == "__main__":
     import traceback
     try:

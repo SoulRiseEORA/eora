@@ -204,6 +204,198 @@
             background: #c0392b;
         }
 
+        /* 학습 관리 스타일 */
+        .learning-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .learning-tab-btn {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .learning-tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .learning-tab-content {
+            display: none;
+        }
+
+        .learning-tab-content.active {
+            display: block;
+        }
+
+        .learning-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .learning-panel h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .file-upload-area {
+            margin-bottom: 20px;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .file-list {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #e9ecef;
+        }
+
+        .file-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .remove-file {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .learning-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .stop-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .stop-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .stop-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .learning-log, .learning-memo {
+            margin-bottom: 20px;
+        }
+
+        .learning-log h4, .learning-memo h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .log-content, .memo-content {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
         @media (max-width: 768px) {
             .admin-content {
                 padding: 20px;
@@ -235,6 +427,7 @@
                 <button class="nav-btn active" onclick="showSection('overview')">📊 개요</button>
                 <button class="nav-btn" onclick="showSection('users')">👥 사용자 관리</button>
                 <button class="nav-btn" onclick="showSection('points')">💰 포인트 관리</button>
+                <button class="nav-btn" onclick="showSection('learning')">🧠 학습 관리</button>
                 <button class="nav-btn" onclick="showSection('system')">⚙️ 시스템</button>
             </div>
 
@@ -310,6 +503,62 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- 학습 관리 섹션 -->
+            <div id="learning-section" class="admin-section">
+                <div class="learning-tabs">
+                    <button class="learning-tab-btn active" onclick="showLearningTab('auto')">🤖 자동 학습</button>
+                    <button class="learning-tab-btn" onclick="showLearningTab('attach')">📎 첨부 학습</button>
+                </div>
+
+                <!-- 자동 학습 탭 -->
+                <div id="auto-learning-tab" class="learning-tab-content active">
+                    <div class="learning-panel">
+                        <h3>🤖 자동 학습</h3>
+                        <div class="file-upload-area">
+                            <input type="file" id="auto-learning-files" multiple accept=".txt,.md,.docx,.py,.xlsx,.xls,.pdf" style="display: none;">
+                            <button class="upload-btn" onclick="document.getElementById('auto-learning-files').click()">
+                                📂 학습할 문서 등록
+                            </button>
+                            <div id="auto-file-list" class="file-list"></div>
+                        </div>
+                        <div class="learning-controls">
+                            <button class="start-btn" onclick="startAutoLearning()">🧠 자동 학습 시작</button>
+                            <button class="stop-btn" onclick="stopAutoLearning()" disabled>⏹️ 중지</button>
+                        </div>
+                        <div class="learning-log">
+                            <h4>📋 학습 로그</h4>
+                            <div id="auto-learning-log" class="log-content"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 첨부 학습 탭 -->
+                <div id="attach-learning-tab" class="learning-tab-content">
+                    <div class="learning-panel">
+                        <h3>📎 첨부 학습</h3>
+                        <div class="file-upload-area">
+                            <input type="file" id="attach-learning-files" multiple accept=".txt,.md,.docx" style="display: none;">
+                            <button class="upload-btn" onclick="document.getElementById('attach-learning-files').click()">
+                                📂 대화 문서 등록
+                            </button>
+                            <div id="attach-file-list" class="file-list"></div>
+                        </div>
+                        <div class="learning-controls">
+                            <button class="start-btn" onclick="startAttachLearning()">🚀 대화 학습 시작</button>
+                            <button class="stop-btn" onclick="stopAttachLearning()" disabled>⏹️ 중지</button>
+                        </div>
+                        <div class="learning-log">
+                            <h4>📋 학습 로그</h4>
+                            <div id="attach-learning-log" class="log-content"></div>
+                        </div>
+                        <div class="learning-memo">
+                            <h4>📝 메모</h4>
+                            <div id="attach-learning-memo" class="memo-content"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -556,6 +805,183 @@
         // 포인트 조정
         function adjustPoints(userId) {
             alert(`사용자 ${userId} 포인트 조정 기능이 곧 추가됩니다!`);
+        }
+
+        // 학습 탭 전환
+        function showLearningTab(tabName) {
+            // 모든 학습 탭 숨기기
+            document.querySelectorAll('.learning-tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 모든 학습 탭 버튼 비활성화
+            document.querySelectorAll('.learning-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 선택된 탭과 버튼 활성화
+            document.getElementById(`${tabName}-learning-tab`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // 파일 업로드 처리
+        let autoLearningFiles = [];
+        let attachLearningFiles = [];
+        let autoLearningRunning = false;
+        let attachLearningRunning = false;
+
+        // 자동 학습 파일 업로드
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('auto-learning-files').addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                autoLearningFiles = files;
+                updateFileList('auto-file-list', files);
+            });
+
+            // 첨부 학습 파일 업로드
+            document.getElementById('attach-learning-files').addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                attachLearningFiles = files;
+                updateFileList('attach-file-list', files);
+            });
+        });
+
+        // 파일 목록 업데이트
+        function updateFileList(containerId, files) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <button class="remove-file" onclick="removeFile('${containerId}', ${index})">❌</button>
+                `;
+                container.appendChild(fileItem);
+            });
+        }
+
+        // 파일 제거
+        function removeFile(containerId, index) {
+            if (containerId === 'auto-file-list') {
+                autoLearningFiles.splice(index, 1);
+                updateFileList(containerId, autoLearningFiles);
+            } else {
+                attachLearningFiles.splice(index, 1);
+                updateFileList(containerId, attachLearningFiles);
+            }
+        }
+
+        // 자동 학습 시작
+        async function startAutoLearning() {
+            if (autoLearningFiles.length === 0) {
+                alert('학습할 파일을 선택해주세요.');
+                return;
+            }
+
+            autoLearningRunning = true;
+            document.querySelector('#auto-learning-tab .start-btn').disabled = true;
+            document.querySelector('#auto-learning-tab .stop-btn').disabled = false;
+            
+            const logContainer = document.getElementById('auto-learning-log');
+            logContainer.textContent = '🚀 자동 학습을 시작합니다...\n';
+
+            try {
+                const formData = new FormData();
+                autoLearningFiles.forEach(file => {
+                    formData.append('files', file);
+                });
+
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/auto-learning', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    logContainer.textContent += result.message + '\n';
+                } else {
+                    const error = await response.json();
+                    logContainer.textContent += `❌ 오류: ${error.detail}\n`;
+                }
+            } catch (error) {
+                logContainer.textContent += `❌ 오류: ${error.message}\n`;
+            } finally {
+                autoLearningRunning = false;
+                document.querySelector('#auto-learning-tab .start-btn').disabled = false;
+                document.querySelector('#auto-learning-tab .stop-btn').disabled = true;
+            }
+        }
+
+        // 자동 학습 중지
+        function stopAutoLearning() {
+            autoLearningRunning = false;
+            document.querySelector('#auto-learning-tab .start-btn').disabled = false;
+            document.querySelector('#auto-learning-tab .stop-btn').disabled = true;
+            document.getElementById('auto-learning-log').textContent += '⏹️ 자동 학습이 중지되었습니다.\n';
+        }
+
+        // 첨부 학습 시작
+        async function startAttachLearning() {
+            if (attachLearningFiles.length === 0) {
+                alert('대화 문서를 선택해주세요.');
+                return;
+            }
+
+            attachLearningRunning = true;
+            document.querySelector('#attach-learning-tab .start-btn').disabled = true;
+            document.querySelector('#attach-learning-tab .stop-btn').disabled = false;
+            
+            const logContainer = document.getElementById('attach-learning-log');
+            const memoContainer = document.getElementById('attach-learning-memo');
+            logContainer.textContent = '🚀 첨부 학습을 시작합니다...\n';
+            memoContainer.textContent = '';
+
+            try {
+                const formData = new FormData();
+                attachLearningFiles.forEach(file => {
+                    formData.append('files', file);
+                });
+
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/attach-learning', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    logContainer.textContent += result.message + '\n';
+                    if (result.memo) {
+                        memoContainer.textContent += result.memo + '\n';
+                    }
+                } else {
+                    const error = await response.json();
+                    logContainer.textContent += `❌ 오류: ${error.detail}\n`;
+                }
+            } catch (error) {
+                logContainer.textContent += `❌ 오류: ${error.message}\n`;
+            } finally {
+                attachLearningRunning = false;
+                document.querySelector('#attach-learning-tab .start-btn').disabled = false;
+                document.querySelector('#attach-learning-tab .stop-btn').disabled = true;
+            }
+        }
+
+        // 첨부 학습 중지
+        function stopAttachLearning() {
+            attachLearningRunning = false;
+            document.querySelector('#attach-learning-tab .start-btn').disabled = false;
+            document.querySelector('#attach-learning-tab .stop-btn').disabled = true;
+            document.getElementById('attach-learning-log').textContent += '⏹️ 첨부 학습이 중지되었습니다.\n';
         }
 
         // 페이지 로드 시 초기화
