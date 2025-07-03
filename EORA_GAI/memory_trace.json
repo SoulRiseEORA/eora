@@ -1,0 +1,130 @@
+{
+  "loops": [
+    {
+      "id": "64b3ee9d-0b1d-47e4-b725-a13a6eeceb5a",
+      "timestamp": "2025-06-25 07:39:13.610372",
+      "user_input": "메모리 테스트를 위한 특별한 질문입니다.",
+      "eora_response": "이것은 테스트 응답입니다.",
+      "mini_response": null,
+      "emotion_level": 0.8,
+      "conflict": false
+    },
+    {
+      "id": "17bd745d-f4ef-444e-a373-0641d8037ec2",
+      "timestamp": "2025-06-25 07:39:13.610372",
+      "user_input": "행복한 질문입니다",
+      "eora_response": "행복한 응답",
+      "mini_response": null,
+      "emotion_level": 0.9,
+      "conflict": false
+    },
+    {
+      "id": "69b5074d-b391-435d-9bcd-abf9f16ac505",
+      "timestamp": "2025-06-25 07:39:13.611375",
+      "user_input": "슬픈 질문입니다",
+      "eora_response": "슬픈 응답",
+      "mini_response": null,
+      "emotion_level": 0.2,
+      "conflict": false
+    },
+    {
+      "id": "0230377f-13c6-44d6-87c3-30bbb32c8d32",
+      "timestamp": "2025-06-25 07:39:13.611375",
+      "user_input": "화난 질문입니다",
+      "eora_response": "화난 응답",
+      "mini_response": null,
+      "emotion_level": 0.1,
+      "conflict": false
+    },
+    {
+      "id": "c739cc18-e07c-44f9-89f0-9701199b2fa7",
+      "timestamp": "2025-06-25 07:40:08.810627",
+      "user_input": "안녕하세요, EORA입니다.",
+      "eora_response": "귀하의 질문을 이해하고 답변하겠습니다.",
+      "mini_response": null,
+      "emotion_level": 0.8,
+      "conflict": false
+    },
+    {
+      "id": "04c1d382-5ef8-4a36-8611-52f03942f949",
+      "timestamp": "2025-06-25 07:40:08.824629",
+      "user_input": "나는 정말 행복합니다",
+      "eora_response": "행복한 응답",
+      "mini_response": null,
+      "emotion_level": 0.9,
+      "conflict": false
+    },
+    {
+      "id": "dff497c4-af54-4037-9dfa-fbb241b76266",
+      "timestamp": "2025-06-25 07:40:08.825630",
+      "user_input": "오늘 기분이 좋아요",
+      "eora_response": "좋은 기분 응답",
+      "mini_response": null,
+      "emotion_level": 0.8,
+      "conflict": false
+    },
+    {
+      "id": "e8df8d3e-0965-422c-a5ea-4ec81ee4dd64",
+      "timestamp": "2025-06-25 07:40:08.825630",
+      "user_input": "너무 슬퍼요",
+      "eora_response": "슬픈 응답",
+      "mini_response": null,
+      "emotion_level": 0.2,
+      "conflict": false
+    },
+    {
+      "id": "bbdf90c4-276b-4a3f-9e8e-57347e9c6c11",
+      "timestamp": "2025-06-25 07:40:08.826630",
+      "user_input": "화가 나요",
+      "eora_response": "화난 응답",
+      "mini_response": null,
+      "emotion_level": 0.1,
+      "conflict": false
+    },
+    {
+      "id": "ba882012-a6c2-40af-99f9-01672cfbbb45",
+      "timestamp": "2025-06-25 07:40:50.061803",
+      "user_input": "안녕하세요, EORA입니다.",
+      "eora_response": "귀하의 질문을 이해하고 답변하겠습니다.",
+      "mini_response": null,
+      "emotion_level": 0.8,
+      "conflict": false
+    },
+    {
+      "id": "5c3f3082-ba75-49ae-a3da-ef7d5771f55e",
+      "timestamp": "2025-06-25 07:40:50.070805",
+      "user_input": "나는 정말 행복합니다",
+      "eora_response": "행복한 응답",
+      "mini_response": null,
+      "emotion_level": 0.9,
+      "conflict": false
+    },
+    {
+      "id": "2796c0b8-1587-4f8f-b955-5082ccb03af3",
+      "timestamp": "2025-06-25 07:40:50.071807",
+      "user_input": "오늘 기분이 좋아요",
+      "eora_response": "좋은 기분 응답",
+      "mini_response": null,
+      "emotion_level": 0.8,
+      "conflict": false
+    },
+    {
+      "id": "4feb4c08-0c1b-429c-ac44-767611a2dd28",
+      "timestamp": "2025-06-25 07:40:50.071807",
+      "user_input": "너무 슬퍼요",
+      "eora_response": "슬픈 응답",
+      "mini_response": null,
+      "emotion_level": 0.2,
+      "conflict": false
+    },
+    {
+      "id": "4192b9bc-81e0-49cd-be8b-e744587cbc7a",
+      "timestamp": "2025-06-25 07:40:50.072808",
+      "user_input": "화가 나요",
+      "eora_response": "화난 응답",
+      "mini_response": null,
+      "emotion_level": 0.1,
+      "conflict": false
+    }
+  ]
+}

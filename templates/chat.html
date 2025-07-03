@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI System - 채팅</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .chat-container {
+            max-width: 1600px;
+            margin: 20px auto;
+            height: calc(100vh - 40px);
+            display: flex;
+            gap: 20px;
+        }
+
+        .chat-sidebar {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .sidebar-header h3 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .session-list {
+            margin-bottom: 20px;
+        }
+
+        .session-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .session-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .session-item.active {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .session-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .session-time {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .sidebar-actions {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .sidebar-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .session-item.selected {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none;
+            min-width: 150px;
+        }
+
+        .context-menu-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .context-menu-item:hover {
+            background: #f5f5f5;
+        }
+
+        .session-checkbox {
+            margin-right: 8px;
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .chat-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .chat-welcome {
+            text-align: center;
+            color: #666;
+            font-size: 18px;
+            margin: 60px 0;
+            line-height: 1.7;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0 12px;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            color: white;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            font-size: 16px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .message.user .message-time {
+            text-align: left;
+        }
+
+        .chat-input-container {
+            background: white;
+            border-radius: 0 0 20px 20px;
+            padding: 20px 30px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input-wrapper:focus-within {
+            border-color: #667eea;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            line-height: 1.5;
+            outline: none;
+            resize: none;
+            min-height: 24px;
+            max-height: 120px;
+            font-family: inherit;
+            padding: 15px;
+            color: #333;
+            vertical-align: top;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 80px;
+            justify-content: center;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .session-info {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .session-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .session-btn {
+            padding: 6px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 6px;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .session-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                margin: 10px;
+                height: calc(100vh - 20px);
+            }
+            
+            .chat-header {
+                padding: 15px 20px;
+            }
+            
+            .chat-title {
+                font-size: 20px;
+            }
+            
+            .chat-messages {
+                padding: 20px;
+            }
+            
+            .message-content {
+                max-width: 85%;
+                font-size: 15px;
+            }
+            
+            .chat-input-container {
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- 사이드바 -->
+        <div class="chat-sidebar">
+            <div class="sidebar-header">
+                <h3>💬 채팅 세션</h3>
+                <p>대화 기록 관리</p>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="session-list" id="sessionList">
+                    <div class="session-item active" data-session-id="session_1">
+                        <input type="checkbox" class="session-checkbox" onchange="toggleSessionSelection(this)">
+                        <div class="session-name">새 세션</div>
+                        <div class="session-time">방금 전</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-actions">
+                <button class="sidebar-btn" onclick="createNewSession()">➕ 새 세션</button>
+                <button class="sidebar-btn" onclick="exportCurrentSession()">📤 내보내기</button>
+                <button class="sidebar-btn" onclick="deleteSelectedSessions()">🗑️ 세션 삭제</button>
+            </div>
+        </div>
+
+        <!-- 메인 채팅 영역 -->
+        <div class="chat-main">
+            <div class="chat-header">
+                <div class="chat-title">💬 EORA AI 채팅</div>
+                <div class="header-actions">
+                    <a href="/dashboard" class="header-btn">대시보드</a>
+                    <a href="/prompts" class="header-btn">프롬프트</a>
+                    <a href="/memory" class="header-btn">기억관리</a>
+                    <button class="header-btn" onclick="clearChat()">채팅 초기화</button>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-welcome">
+                    <h3>🌟 EORA AI에 오신 것을 환영합니다!</h3>
+                    <p>저는 당신의 생각과 대화를 통해 성장하는 AI입니다.</p>
+                    <p>자유롭게 대화를 시작해보세요. 질문, 토론, 창작, 무엇이든 가능합니다.</p>
+                    <br>
+                    <p><strong>💡 팁:</strong> Shift + Enter로 줄바꿈, Enter로 메시지 전송</p>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <textarea 
+                        id="chatInput" 
+                        class="chat-input" 
+                        placeholder="메시지를 입력하세요... (Shift + Enter: 줄바꿈, Enter: 전송)"
+                        rows="1"
+                    ></textarea>
+                    <button id="sendBtn" class="send-btn" onclick="sendMessage()">
+                        <span>전송</span>
+                        <span>➤</span>
+                    </button>
+                </div>
+                
+                <div class="typing-indicator" id="typingIndicator">
+                    <span>EORA AI가 응답을 생성하고 있습니다...</span>
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 컨텍스트 메뉴 -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" onclick="renameSessionFromContext()">✏️ 이름 변경</div>
+        <div class="context-menu-item" onclick="deleteSessionFromContext()">🗑️ 세션 삭제</div>
+        <div class="context-menu-item" onclick="duplicateSessionFromContext()">📋 복제</div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        let isTyping = false;
+
+        // DOM 요소들
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const sessionInfo = document.getElementById('sessionInfo');
+        const sessionName = document.getElementById('sessionName');
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeChat();
+            setupEventListeners();
+        });
+
+        // 채팅 초기화
+        function initializeChat() {
+            // 세션 ID 생성
+            currentSessionId = 'session_' + Date.now();
+            
+            // 입력창 포커스
+            chatInput.focus();
+        }
+
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            // 엔터키 이벤트
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // 입력창 자동 높이 조정
+            chatInput.addEventListener('input', () => {
+                adjustTextareaHeight();
+            });
+
+            // 전송 버튼 활성화/비활성화
+            chatInput.addEventListener('input', () => {
+                sendBtn.disabled = chatInput.value.trim() === '';
+            });
+        }
+
+        // 텍스트 영역 높이 자동 조정
+        function adjustTextareaHeight() {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+        }
+
+        // 메시지 전송
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message || isTyping) return;
+
+            // 사용자 메시지 추가
+            addMessage(message, 'user');
+            chatInput.value = '';
+            adjustTextareaHeight();
+            sendBtn.disabled = true;
+
+            // 타이핑 표시
+            showTyping();
+
+            try {
+                // 서버에 메시지 전송
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: currentSessionId
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    hideTyping();
+                    addMessage(data.response, 'assistant');
+                } else {
+                    hideTyping();
+                    addMessage('죄송합니다. 응답을 생성하는 중 오류가 발생했습니다.', 'assistant');
+                }
+            } catch (error) {
+                console.error('메시지 전송 오류:', error);
+                hideTyping();
+                addMessage('네트워크 오류가 발생했습니다. 다시 시도해주세요.', 'assistant');
+            }
+        }
+
+        // 메시지 추가
+        function addMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? '👤' : '🤖';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.textContent = content;
+            
+            const messageTime = document.createElement('div');
+            messageTime.className = 'message-time';
+            messageTime.textContent = new Date().toLocaleTimeString();
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            messageDiv.appendChild(messageTime);
+            
+            chatMessages.appendChild(messageDiv);
+            
+            // 스크롤을 맨 아래로
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 타이핑 표시
+        function showTyping() {
+            isTyping = true;
+            typingIndicator.style.display = 'flex';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 타이핑 숨김
+        function hideTyping() {
+            isTyping = false;
+            typingIndicator.style.display = 'none';
+        }
+
+        // 채팅 초기화
+        function clearChat() {
+            if (confirm('채팅 기록을 모두 지우시겠습니까?')) {
+                chatMessages.innerHTML = `
+                    <div class="chat-welcome">
+                        <h3>🌟 EORA AI에 오신 것을 환영합니다!</h3>
+                        <p>저는 당신의 생각과 대화를 통해 성장하는 AI입니다.</p>
+                        <p>자유롭게 대화를 시작해보세요. 질문, 토론, 창작, 무엇이든 가능합니다.</p>
+                        <br>
+                        <p><strong>💡 팁:</strong> Shift + Enter로 줄바꿈, Enter로 메시지 전송</p>
+                    </div>
+                `;
+                currentSessionId = 'session_' + Date.now();
+                sessionName.textContent = '새 세션';
+            }
+        }
+
+        // 세션 관리 함수들
+        function createNewSession() {
+            const sessionList = document.getElementById('sessionList');
+            const sessionId = 'session_' + Date.now();
+            const newSession = document.createElement('div');
+            newSession.className = 'session-item';
+            newSession.setAttribute('data-session-id', sessionId);
+            newSession.innerHTML = `
+                <input type="checkbox" class="session-checkbox" onchange="toggleSessionSelection(this)">
+                <div class="session-name">새 세션 ${sessionList.children.length + 1}</div>
+                <div class="session-time">방금 전</div>
+            `;
+            sessionList.appendChild(newSession);
+            document.querySelectorAll('.session-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            newSession.classList.add('active');
+            // 채팅창만 초기화 (팝업 없이)
+            chatMessages.innerHTML = `
+                <div class="chat-welcome">
+                    <h3>🌟 EORA AI에 오신 것을 환영합니다!</h3>
+                    <p>저는 당신의 생각과 대화를 통해 성장하는 AI입니다.</p>
+                    <p>자유롭게 대화를 시작해보세요. 질문, 토론, 창작, 무엇이든 가능합니다.</p>
+                    <br>
+                    <p><strong>💡 팁:</strong> Shift + Enter로 줄바꿈, Enter로 메시지 전송</p>
+                </div>
+            `;
+            currentSessionId = sessionId;
+            chatInput.value = '';
+            adjustTextareaHeight();
+            sendBtn.disabled = true;
+        }
+
+        function exportCurrentSession() {
+            const messages = document.querySelectorAll('.message');
+            let exportText = 'EORA AI 채팅 기록\n\n';
+            
+            messages.forEach(message => {
+                const isUser = message.classList.contains('user');
+                const content = message.querySelector('.message-content').textContent;
+                const time = message.querySelector('.message-time').textContent;
+                exportText += `[${time}] ${isUser ? '사용자' : 'EORA AI'}: ${content}\n\n`;
+            });
+            
+            const blob = new Blob([exportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `eora-chat-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function deleteSelectedSessions() {
+            const selectedSessions = document.querySelectorAll('.session-item .session-checkbox:checked');
+            if (selectedSessions.length === 0) {
+                alert('삭제할 세션을 선택해주세요.');
+                return;
+            }
+            
+            if (confirm(`선택한 ${selectedSessions.length}개의 세션을 삭제하시겠습니까?`)) {
+                selectedSessions.forEach(checkbox => {
+                    const sessionItem = checkbox.closest('.session-item');
+                    if (sessionItem.classList.contains('active')) {
+                        // 활성 세션이 삭제되는 경우 첫 번째 세션을 활성화
+                        const firstSession = document.querySelector('.session-item');
+                        if (firstSession && firstSession !== sessionItem) {
+                            firstSession.classList.add('active');
+                        }
+                    }
+                    sessionItem.remove();
+                });
+                
+                // 세션이 없으면 기본 세션 생성
+                if (document.querySelectorAll('.session-item').length === 0) {
+                    createNewSession();
+                }
+            }
+        }
+
+        function toggleSessionSelection(checkbox) {
+            const sessionItem = checkbox.closest('.session-item');
+            if (checkbox.checked) {
+                sessionItem.classList.add('selected');
+            } else {
+                sessionItem.classList.remove('selected');
+            }
+        }
+
+        // 컨텍스트 메뉴 관련 변수
+        let contextMenuTarget = null;
+
+        // 우클릭 이벤트 처리
+        document.addEventListener('contextmenu', function(e) {
+            if (e.target.closest('.session-item')) {
+                e.preventDefault();
+                const sessionItem = e.target.closest('.session-item');
+                contextMenuTarget = sessionItem;
+                
+                const contextMenu = document.getElementById('contextMenu');
+                contextMenu.style.display = 'block';
+                contextMenu.style.left = e.pageX + 'px';
+                contextMenu.style.top = e.pageY + 'px';
+            }
+        });
+
+        // 컨텍스트 메뉴 숨기기
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.context-menu')) {
+                document.getElementById('contextMenu').style.display = 'none';
+            }
+        });
+
+        // 컨텍스트 메뉴 함수들
+        function renameSessionFromContext() {
+            if (contextMenuTarget) {
+                const currentName = contextMenuTarget.querySelector('.session-name').textContent;
+                const newName = prompt('세션 이름을 입력하세요:', currentName);
+                if (newName && newName.trim()) {
+                    contextMenuTarget.querySelector('.session-name').textContent = newName.trim();
+                }
+            }
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+
+        function deleteSessionFromContext() {
+            if (contextMenuTarget) {
+                if (confirm('이 세션을 삭제하시겠습니까?')) {
+                    if (contextMenuTarget.classList.contains('active')) {
+                        // 활성 세션이 삭제되는 경우 첫 번째 세션을 활성화
+                        const firstSession = document.querySelector('.session-item');
+                        if (firstSession && firstSession !== contextMenuTarget) {
+                            firstSession.classList.add('active');
+                        }
+                    }
+                    contextMenuTarget.remove();
+                    
+                    // 세션이 없으면 기본 세션 생성
+                    if (document.querySelectorAll('.session-item').length === 0) {
+                        createNewSession();
+                    }
+                }
+            }
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+
+        function duplicateSessionFromContext() {
+            if (contextMenuTarget) {
+                const currentName = contextMenuTarget.querySelector('.session-name').textContent;
+                const sessionList = document.getElementById('sessionList');
+                const sessionId = 'session_' + Date.now();
+                const newSession = document.createElement('div');
+                newSession.className = 'session-item';
+                newSession.setAttribute('data-session-id', sessionId);
+                newSession.innerHTML = `
+                    <input type="checkbox" class="session-checkbox" onchange="toggleSessionSelection(this)">
+                    <div class="session-name">${currentName} (복사본)</div>
+                    <div class="session-time">방금 전</div>
+                `;
+                sessionList.appendChild(newSession);
+            }
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+
+        // 세션 클릭 이벤트 (체크박스 클릭 시 제외)
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.session-item') && !e.target.classList.contains('session-checkbox')) {
+                const clickedSession = e.target.closest('.session-item');
+                document.querySelectorAll('.session-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                clickedSession.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html> 

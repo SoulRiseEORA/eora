@@ -1,0 +1,11 @@
+{
+  "total_simulations": 35,
+  "conflict_ratio": 0.2857,
+  "dominant_emotion": "공감",
+  "loop_detected": false,
+  "notes": [
+    "MiniAI는 감정 기반 판단을 수행함",
+    "EORA는 철학 기반 판단을 일관되게 수행함",
+    "SuperEgo 판단자는 공명 + 윤리 기준을 우선 적용함"
+  ]
+}

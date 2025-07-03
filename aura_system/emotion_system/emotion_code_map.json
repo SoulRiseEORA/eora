@@ -1,0 +1,442 @@
+{
+  "기쁨": {
+    "en": "Joy",
+    "code": "E001"
+  },
+  "만족감": {
+    "en": "Contentment",
+    "code": "E002"
+  },
+  "행복": {
+    "en": "Happiness",
+    "code": "E003"
+  },
+  "감동": {
+    "en": "Moved",
+    "code": "E004"
+  },
+  "감사": {
+    "en": "Gratitude",
+    "code": "E005"
+  },
+  "희열": {
+    "en": "Euphoria",
+    "code": "E006"
+  },
+  "신남": {
+    "en": "Excitement",
+    "code": "E007"
+  },
+  "쾌활함": {
+    "en": "Cheerfulness",
+    "code": "E008"
+  },
+  "희망": {
+    "en": "Hope",
+    "code": "E009"
+  },
+  "안도": {
+    "en": "Relief",
+    "code": "E010"
+  },
+  "기대감": {
+    "en": "Anticipation",
+    "code": "E011"
+  },
+  "열정": {
+    "en": "Passion",
+    "code": "E012"
+  },
+  "사랑": {
+    "en": "Love",
+    "code": "E013"
+  },
+  "호감": {
+    "en": "Affection",
+    "code": "E014"
+  },
+  "애정": {
+    "en": "Fondness",
+    "code": "E015"
+  },
+  "존경": {
+    "en": "Respect",
+    "code": "E016"
+  },
+  "자부심": {
+    "en": "Pride",
+    "code": "E017"
+  },
+  "자신감": {
+    "en": "Confidence",
+    "code": "E018"
+  },
+  "용기": {
+    "en": "Courage",
+    "code": "E019"
+  },
+  "흥미": {
+    "en": "Interest",
+    "code": "E020"
+  },
+  "집중": {
+    "en": "Focus",
+    "code": "E021"
+  },
+  "편안함": {
+    "en": "Comfort",
+    "code": "E022"
+  },
+  "고요함": {
+    "en": "Tranquility",
+    "code": "E023"
+  },
+  "설렘": {
+    "en": "Flutter",
+    "code": "E024"
+  },
+  "기쁨의 눈물": {
+    "en": "Tears of Joy",
+    "code": "E025"
+  },
+  "분노": {
+    "en": "Anger",
+    "code": "E026"
+  },
+  "짜증": {
+    "en": "Annoyance",
+    "code": "E027"
+  },
+  "불쾌감": {
+    "en": "Displeasure",
+    "code": "E028"
+  },
+  "격분": {
+    "en": "Fury",
+    "code": "E029"
+  },
+  "화": {
+    "en": "Irritation",
+    "code": "E030"
+  },
+  "증오": {
+    "en": "Hatred",
+    "code": "E031"
+  },
+  "분개": {
+    "en": "Indignation",
+    "code": "E032"
+  },
+  "울분": {
+    "en": "Resentment",
+    "code": "E033"
+  },
+  "복수심": {
+    "en": "Vengefulness",
+    "code": "E034"
+  },
+  "질투": {
+    "en": "Jealousy",
+    "code": "E035"
+  },
+  "시기": {
+    "en": "Envy",
+    "code": "E036"
+  },
+  "불공평함": {
+    "en": "Unfairness",
+    "code": "E037"
+  },
+  "억울함": {
+    "en": "Unjustness",
+    "code": "E038"
+  },
+  "실망": {
+    "en": "Disappointment",
+    "code": "E039"
+  },
+  "비탄": {
+    "en": "Grief",
+    "code": "E040"
+  },
+  "슬픔": {
+    "en": "Sadness",
+    "code": "E041"
+  },
+  "외로움": {
+    "en": "Loneliness",
+    "code": "E042"
+  },
+  "우울": {
+    "en": "Depression",
+    "code": "E043"
+  },
+  "절망": {
+    "en": "Despair",
+    "code": "E044"
+  },
+  "허탈함": {
+    "en": "Emptiness",
+    "code": "E045"
+  },
+  "눈물": {
+    "en": "Tearfulness",
+    "code": "E046"
+  },
+  "자괴감": {
+    "en": "Self-blame",
+    "code": "E047"
+  },
+  "죄책감": {
+    "en": "Guilt",
+    "code": "E048"
+  },
+  "후회": {
+    "en": "Regret",
+    "code": "E049"
+  },
+  "수치심": {
+    "en": "Shame",
+    "code": "E050"
+  },
+  "굴욕": {
+    "en": "Humiliation",
+    "code": "E051"
+  },
+  "불안": {
+    "en": "Anxiety",
+    "code": "E052"
+  },
+  "걱정": {
+    "en": "Worry",
+    "code": "E053"
+  },
+  "공포": {
+    "en": "Terror",
+    "code": "E054"
+  },
+  "두려움": {
+    "en": "Fear",
+    "code": "E055"
+  },
+  "초조함": {
+    "en": "Nervousness",
+    "code": "E056"
+  },
+  "혼란": {
+    "en": "Confusion",
+    "code": "E057"
+  },
+  "긴장": {
+    "en": "Tension",
+    "code": "E058"
+  },
+  "불신": {
+    "en": "Distrust",
+    "code": "E059"
+  },
+  "경계심": {
+    "en": "Suspicion",
+    "code": "E060"
+  },
+  "당황": {
+    "en": "Embarrassment",
+    "code": "E061"
+  },
+  "놀람": {
+    "en": "Surprise",
+    "code": "E062"
+  },
+  "경악": {
+    "en": "Shock",
+    "code": "E063"
+  },
+  "불쾌한 놀람": {
+    "en": "Disgusted Surprise",
+    "code": "E064"
+  },
+  "혐오": {
+    "en": "Disgust",
+    "code": "E065"
+  },
+  "역겨움": {
+    "en": "Revulsion",
+    "code": "E066"
+  },
+  "거부감": {
+    "en": "Repulsion",
+    "code": "E067"
+  },
+  "지루함": {
+    "en": "Boredom",
+    "code": "E068"
+  },
+  "무기력": {
+    "en": "Lethargy",
+    "code": "E069"
+  },
+  "권태": {
+    "en": "Weariness",
+    "code": "E070"
+  },
+  "피로": {
+    "en": "Fatigue",
+    "code": "E071"
+  },
+  "답답함": {
+    "en": "Frustration",
+    "code": "E072"
+  },
+  "초조함2": {
+    "en": "Impatience",
+    "code": "E073"
+  },
+  "소외감": {
+    "en": "Alienation",
+    "code": "E074"
+  },
+  "배신감": {
+    "en": "Betrayal",
+    "code": "E075"
+  },
+  "동정심": {
+    "en": "Compassion",
+    "code": "E076"
+  },
+  "연민": {
+    "en": "Pity",
+    "code": "E077"
+  },
+  "애처로움": {
+    "en": "Sympathy",
+    "code": "E078"
+  },
+  "모성애": {
+    "en": "Maternal Love",
+    "code": "E079"
+  },
+  "부성애": {
+    "en": "Paternal Love",
+    "code": "E080"
+  },
+  "애국심": {
+    "en": "Patriotism",
+    "code": "E081"
+  },
+  "감탄": {
+    "en": "Admiration",
+    "code": "E082"
+  },
+  "경외": {
+    "en": "Awe",
+    "code": "E083"
+  },
+  "불만": {
+    "en": "Dissatisfaction",
+    "code": "E084"
+  },
+  "허전함": {
+    "en": "Sense of Void",
+    "code": "E085"
+  },
+  "의욕": {
+    "en": "Motivation",
+    "code": "E086"
+  },
+  "자신감 결여": {
+    "en": "Insecurity",
+    "code": "E087"
+  },
+  "열등감": {
+    "en": "Inferiority",
+    "code": "E088"
+  },
+  "경멸": {
+    "en": "Contempt",
+    "code": "E089"
+  },
+  "포기": {
+    "en": "Resignation",
+    "code": "E090"
+  },
+  "용서": {
+    "en": "Forgiveness",
+    "code": "E091"
+  },
+  "안심": {
+    "en": "Reassurance",
+    "code": "E092"
+  },
+  "평온": {
+    "en": "Serenity",
+    "code": "E093"
+  },
+  "충만감": {
+    "en": "Fulfillment",
+    "code": "E094"
+  },
+  "기댐": {
+    "en": "Dependence",
+    "code": "E095"
+  },
+  "안정감": {
+    "en": "Stability",
+    "code": "E096"
+  },
+  "자유": {
+    "en": "Freedom",
+    "code": "E097"
+  },
+  "열망": {
+    "en": "Desire",
+    "code": "E098"
+  },
+  "욕망": {
+    "en": "Craving",
+    "code": "E099"
+  },
+  "갈망": {
+    "en": "Yearning",
+    "code": "E100"
+  },
+  "간절함": {
+    "en": "Earnestness",
+    "code": "E101"
+  },
+  "애착": {
+    "en": "Attachment",
+    "code": "E102"
+  },
+  "자애": {
+    "en": "Kindness",
+    "code": "E103"
+  },
+  "애정 결핍": {
+    "en": "Lack of Affection",
+    "code": "E104"
+  },
+  "기만감": {
+    "en": "Deceitfulness",
+    "code": "E105"
+  },
+  "혼란스러움": {
+    "en": "Perplexity",
+    "code": "E106"
+  },
+  "모욕감": {
+    "en": "Insulted",
+    "code": "E107"
+  },
+  "기죽음": {
+    "en": "Defeated",
+    "code": "E108"
+  },
+  "용기 없음": {
+    "en": "Cowardice",
+    "code": "E109"
+  },
+  "긴박감": {
+    "en": "Urgency",
+    "code": "E110"
+  }
+}

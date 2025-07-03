@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI System - 기억 관리</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f3f3fb;
+            color: #ececf1;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.10);
+            padding: 32px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #4a4b53;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #ececf1;
+        }
+
+        .back-btn {
+            padding: 10px 20px;
+            background: #10a37f;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .back-btn:hover {
+            background: #0d8a6f;
+        }
+
+        .memory-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #40414f;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #565869;
+        }
+
+        .stat-title {
+            font-size: 14px;
+            color: #8e8ea0;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ececf1;
+        }
+
+        .memory-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            background: #40414f;
+            border: 1px solid #565869;
+            border-radius: 6px;
+            color: #ececf1;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: #565869;
+        }
+
+        .control-btn.primary {
+            background: #10a37f;
+            border-color: #10a37f;
+        }
+
+        .control-btn.primary:hover {
+            background: #0d8a6f;
+        }
+
+        .memory-list {
+            background: #40414f;
+            border-radius: 8px;
+            border: 1px solid #565869;
+            overflow: hidden;
+        }
+
+        .memory-header {
+            padding: 15px 20px;
+            background: #343541;
+            border-bottom: 1px solid #565869;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .memory-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .search-box {
+            padding: 8px 12px;
+            background: #40414f;
+            border: 1px solid #565869;
+            border-radius: 4px;
+            color: #ececf1;
+            font-size: 14px;
+            width: 250px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #10a37f;
+        }
+
+        .memory-items {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .memory-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #565869;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .memory-item:hover {
+            background: #343541;
+        }
+
+        .memory-item:last-child {
+            border-bottom: none;
+        }
+
+        .memory-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #ececf1;
+            margin-bottom: 5px;
+        }
+
+        .memory-content {
+            font-size: 13px;
+            color: #8e8ea0;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .memory-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #8e8ea0;
+        }
+
+        .memory-type {
+            background: #10a37f;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8e8ea0;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #8e8ea0;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #565869;
+            border-radius: 50%;
+            border-top-color: #10a37f;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .memory-controls {
+                flex-direction: column;
+            }
+
+            .control-btn {
+                text-align: center;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+        }
+
+        .delete-btn {
+            background: #e84a5f;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 16px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .delete-btn:hover {
+            background: #b71c1c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 기억 관리</h1>
+            <button class="back-btn" onclick="window.location.href='/dashboard'">대시보드로 돌아가기</button>
+        </div>
+
+        <div class="memory-stats">
+            <div class="stat-card">
+                <div class="stat-title">총 기억 수</div>
+                <div class="stat-value" id="totalMemories">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">최근 기억</div>
+                <div class="stat-value" id="recentMemories">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">기억 유형</div>
+                <div class="stat-value" id="memoryTypes">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">기억 점수</div>
+                <div class="stat-value" id="memoryScore">0</div>
+            </div>
+        </div>
+
+        <div class="memory-controls">
+            <button class="control-btn primary" onclick="refreshMemories()">새로고침</button>
+            <button class="control-btn" onclick="exportMemories()">내보내기</button>
+            <button class="control-btn" onclick="clearOldMemories()">오래된 기억 정리</button>
+            <button class="control-btn" onclick="optimizeMemories()">기억 최적화</button>
+        </div>
+
+        <div class="memory-list">
+            <div class="memory-header">
+                <h3>기억 목록</h3>
+                <input type="text" class="search-box" id="searchBox" placeholder="기억 검색..." onkeyup="searchMemories()">
+            </div>
+            <div class="memory-items" id="memoryItems">
+                <div class="loading">기억을 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MemoryManager {
+            constructor() {
+                this.memories = [];
+                this.filteredMemories = [];
+                this.init();
+            }
+
+            async init() {
+                await this.loadMemories();
+                this.renderMemories();
+                this.updateStats();
+            }
+
+            async loadMemories() {
+                try {
+                    const res = await fetch('/api/memory');
+                    const data = await res.json();
+                    this.memories = data.memories || [];
+                    this.filteredMemories = [...this.memories];
+                } catch (error) {
+                    console.error('기억 로드 오류:', error);
+                    this.memories = [];
+                    this.filteredMemories = [];
+                }
+            }
+
+            renderMemories() {
+                const memoryItems = document.getElementById('memoryItems');
+                
+                if (this.filteredMemories.length === 0) {
+                    memoryItems.innerHTML = `
+                        <div class="empty-state">
+                            <h3>기억이 없습니다</h3>
+                            <p>아직 저장된 기억이 없습니다. 대화를 통해 새로운 기억이 생성될 것입니다.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                memoryItems.innerHTML = this.filteredMemories.map(memory => `
+                    <div class="memory-item" onclick="memoryManager.viewMemory(${memory.id})">
+                        <div class="memory-title">${memory.title}</div>
+                        <div class="memory-content">${memory.content}</div>
+                        <div class="memory-meta">
+                            <span class="memory-type">${this.getTypeLabel(memory.type)}</span>
+                            <span>중요도: ${Math.round(memory.importance * 100)}%</span>
+                            <span>${this.formatDate(memory.lastAccessed)}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            getTypeLabel(type) {
+                const labels = {
+                    'preference': '선호도',
+                    'pattern': '패턴',
+                    'interest': '관심사',
+                    'style': '스타일',
+                    'approach': '접근법'
+                };
+                return labels[type] || type;
+            }
+
+            formatDate(isoString) {
+                const date = new Date(isoString);
+                const now = new Date();
+                const diff = now - date;
+                
+                if (diff < 60000) return '방금 전';
+                if (diff < 3600000) return Math.floor(diff / 60000) + '분 전';
+                if (diff < 86400000) return Math.floor(diff / 3600000) + '시간 전';
+                return date.toLocaleDateString();
+            }
+
+            updateStats() {
+                document.getElementById('totalMemories').textContent = this.memories.length;
+                document.getElementById('recentMemories').textContent = 
+                    this.memories.filter(m => {
+                        const lastAccessed = new Date(m.lastAccessed);
+                        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                        return lastAccessed > oneDayAgo;
+                    }).length;
+                
+                const types = new Set(this.memories.map(m => m.type));
+                document.getElementById('memoryTypes').textContent = types.size;
+                
+                const avgImportance = this.memories.reduce((sum, m) => sum + m.importance, 0) / this.memories.length;
+                document.getElementById('memoryScore').textContent = Math.round(avgImportance * 100);
+            }
+
+            searchMemories() {
+                const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+                this.filteredMemories = this.memories.filter(memory => 
+                    memory.title.toLowerCase().includes(searchTerm) ||
+                    memory.content.toLowerCase().includes(searchTerm) ||
+                    this.getTypeLabel(memory.type).toLowerCase().includes(searchTerm)
+                );
+                this.renderMemories();
+            }
+
+            viewMemory(id) {
+                const memory = this.memories.find(m => m.id === id);
+                if (memory) {
+                    alert(`기억 상세 정보\n\n제목: ${memory.title}\n내용: ${memory.content}\n유형: ${this.getTypeLabel(memory.type)}\n중요도: ${Math.round(memory.importance * 100)}%\n생성일: ${new Date(memory.createdAt).toLocaleString()}\n최근 접근: ${new Date(memory.lastAccessed).toLocaleString()}`);
+                }
+            }
+        }
+
+        // 전역 함수들
+        function refreshMemories() {
+            memoryManager.loadMemories().then(() => {
+                memoryManager.renderMemories();
+                memoryManager.updateStats();
+            });
+        }
+
+        function exportMemories() {
+            const content = memoryManager.memories.map(memory => 
+                `제목: ${memory.title}\n내용: ${memory.content}\n유형: ${memoryManager.getTypeLabel(memory.type)}\n중요도: ${Math.round(memory.importance * 100)}%\n생성일: ${new Date(memory.createdAt).toLocaleString()}\n\n`
+            ).join('---\n\n');
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `memories_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearOldMemories() {
+            if (confirm('30일 이상 된 기억을 삭제하시겠습니까?')) {
+                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                memoryManager.memories = memoryManager.memories.filter(memory => 
+                    new Date(memory.lastAccessed) > thirtyDaysAgo
+                );
+                memoryManager.filteredMemories = [...memoryManager.memories];
+                memoryManager.renderMemories();
+                memoryManager.updateStats();
+                alert('오래된 기억이 정리되었습니다.');
+            }
+        }
+
+        function optimizeMemories() {
+            if (confirm('중요도가 낮은 기억을 정리하시겠습니까?')) {
+                memoryManager.memories = memoryManager.memories.filter(memory => 
+                    memory.importance > 0.3
+                );
+                memoryManager.filteredMemories = [...memoryManager.memories];
+                memoryManager.renderMemories();
+                memoryManager.updateStats();
+                alert('기억이 최적화되었습니다.');
+            }
+        }
+
+        function searchMemories() {
+            memoryManager.searchMemories();
+        }
+
+        // 메모리 매니저 초기화
+        let memoryManager;
+        document.addEventListener('DOMContentLoaded', () => {
+            memoryManager = new MemoryManager();
+        });
+
+        async function deleteMemory(id) {
+            // 실제 삭제 API가 필요하다면 구현
+            alert('삭제 기능은 추후 구현 예정입니다.');
+        }
+    </script>
+</body>
+</html> 
