@@ -12,14 +12,55 @@ from typing import Dict, List, Any
 import os
 import hashlib
 
-# EORA 시스템 임포트
-from eora_core import EORACore
-from eora_consciousness import EORAConsciousness
-from eora_enhanced_core import EORAEnhancedCore
-from eora_intuition_system import intuition_system, insight_system
-from eora_chain_memory_system import chain_memory_system
-from database import db_manager
-from auth_system import auth_system
+# EORA 시스템 임포트 (선택적)
+try:
+    from eora_core import EORACore
+    EORA_CORE_AVAILABLE = True
+except ImportError:
+    EORA_CORE_AVAILABLE = False
+    logger.info("ℹ️ eora_core 모듈 로드 실패")
+
+try:
+    from eora_consciousness import EORAConsciousness
+    EORA_CONSCIOUSNESS_AVAILABLE = True
+except ImportError:
+    EORA_CONSCIOUSNESS_AVAILABLE = False
+    logger.info("ℹ️ eora_consciousness 모듈 로드 실패")
+
+try:
+    from eora_enhanced_core import EORAEnhancedCore
+    EORA_ENHANCED_AVAILABLE = True
+except ImportError:
+    EORA_ENHANCED_AVAILABLE = False
+    logger.info("ℹ️ eora_enhanced_core 모듈 로드 실패")
+
+try:
+    from eora_intuition_system import intuition_system, insight_system
+    EORA_INTUITION_AVAILABLE = True
+except ImportError:
+    EORA_INTUITION_AVAILABLE = False
+    logger.info("ℹ️ eora_intuition_system 모듈 로드 실패")
+
+try:
+    from eora_chain_memory_system import chain_memory_system
+    EORA_CHAIN_MEMORY_AVAILABLE = True
+except ImportError:
+    EORA_CHAIN_MEMORY_AVAILABLE = False
+    logger.info("ℹ️ eora_chain_memory_system 모듈 로드 실패")
+
+try:
+    from database import db_manager
+    DATABASE_AVAILABLE = True
+except ImportError:
+    DATABASE_AVAILABLE = False
+    logger.info("ℹ️ database 모듈 로드 실패")
+
+try:
+    from auth_system import auth_system
+    AUTH_SYSTEM_AVAILABLE = True
+except ImportError:
+    AUTH_SYSTEM_AVAILABLE = False
+    logger.info("ℹ️ auth_system 모듈 로드 실패")
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -53,10 +94,31 @@ templates = Jinja2Templates(directory="templates")
 users_db = {}
 points_db = {}
 
-# EORA 시스템 초기화
-eora_core = EORACore()
-eora_consciousness = EORAConsciousness()
-eora_enhanced = EORAEnhancedCore()
+# EORA 시스템 초기화 (가능한 경우)
+eora_core = None
+eora_consciousness = None
+eora_enhanced = None
+
+if EORA_CORE_AVAILABLE:
+    try:
+        eora_core = EORACore()
+        logger.info("✅ EORA Core 초기화 완료")
+    except Exception as e:
+        logger.error(f"❌ EORA Core 초기화 실패: {str(e)}")
+
+if EORA_CONSCIOUSNESS_AVAILABLE:
+    try:
+        eora_consciousness = EORAConsciousness()
+        logger.info("✅ EORA Consciousness 초기화 완료")
+    except Exception as e:
+        logger.error(f"❌ EORA Consciousness 초기화 실패: {str(e)}")
+
+if EORA_ENHANCED_AVAILABLE:
+    try:
+        eora_enhanced = EORAEnhancedCore()
+        logger.info("✅ EORA Enhanced Core 초기화 완료")
+    except Exception as e:
+        logger.error(f"❌ EORA Enhanced Core 초기화 실패: {str(e)}")
 
 # EORA_GAI 시스템 초기화 (가능한 경우)
 eora_gai_system = None
@@ -114,16 +176,19 @@ manager = ConnectionManager()
 async def startup_event():
     """애플리케이션 시작 시 실행"""
     try:
-        # MongoDB 연결
-        await db_manager.connect()
-        logger.info("EORA 시스템 시작 - MongoDB 연결 완료")
-        
-        # 시스템 로그 저장
-        await db_manager.log_system_event(
-            "system_startup",
-            "EORA AI 시스템이 시작되었습니다.",
-            "INFO"
-        )
+        # MongoDB 연결 (가능한 경우)
+        if DATABASE_AVAILABLE:
+            await db_manager.connect()
+            logger.info("EORA 시스템 시작 - MongoDB 연결 완료")
+            
+            # 시스템 로그 저장
+            await db_manager.log_system_event(
+                "system_startup",
+                "EORA AI 시스템이 시작되었습니다.",
+                "INFO"
+            )
+        else:
+            logger.info("EORA 시스템 시작 - 메모리 DB 사용")
         
     except Exception as e:
         logger.error(f"시스템 시작 실패: {str(e)}")
@@ -132,9 +197,12 @@ async def startup_event():
 async def shutdown_event():
     """애플리케이션 종료 시 실행"""
     try:
-        # MongoDB 연결 해제
-        await db_manager.disconnect()
-        logger.info("EORA 시스템 종료 - MongoDB 연결 해제")
+        # MongoDB 연결 해제 (가능한 경우)
+        if DATABASE_AVAILABLE:
+            await db_manager.disconnect()
+            logger.info("EORA 시스템 종료 - MongoDB 연결 해제")
+        else:
+            logger.info("EORA 시스템 종료 - 메모리 DB 사용")
         
     except Exception as e:
         logger.error(f"시스템 종료 중 오류: {str(e)}")
