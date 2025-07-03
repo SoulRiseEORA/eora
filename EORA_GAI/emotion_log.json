@@ -1,0 +1,19 @@
+{
+  "log": [
+    {
+      "timestamp": "2025-05-13T14:21:00Z",
+      "emotion": "공감",
+      "source": "MiniAI"
+    },
+    {
+      "timestamp": "2025-05-13T14:23:15Z",
+      "emotion": "유보",
+      "source": "MiniAI"
+    },
+    {
+      "timestamp": "2025-05-13T14:25:10Z",
+      "emotion": "공명",
+      "source": "MiniAI"
+    }
+  ]
+}

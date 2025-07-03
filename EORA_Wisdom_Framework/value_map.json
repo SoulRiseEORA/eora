@@ -1,0 +1,26 @@
+{
+  "default": {
+    "truth": 0.9,
+    "empathy": 0.8,
+    "clarity": 0.7,
+    "logic": 0.6
+  },
+  "conflict": {
+    "empathy": 1.0,
+    "clarity": 0.5,
+    "authority": 0.4,
+    "truth": 0.3
+  },
+  "support": {
+    "empathy": 1.0,
+    "encouragement": 0.9,
+    "truth": 0.6,
+    "logic": 0.4
+  },
+  "guidance": {
+    "truth": 1.0,
+    "clarity": 0.9,
+    "wisdom": 0.8,
+    "empathy": 0.5
+  }
+}

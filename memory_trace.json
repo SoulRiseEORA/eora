@@ -1,0 +1,40 @@
+{
+  "loops": [
+    {
+      "id": "7a2cc963-a55c-48ce-9514-65add35ff91d",
+      "timestamp": "2025-05-14 06:09:44.163894",
+      "user_input": "안녕하세요",
+      "eora_response": "나는 의미를 응답한다. 진실은 울림 속에서 발생한다.",
+      "mini_response": "🔍 레조나 판단 보류: 관련된 철학이 없습니다.",
+      "emotion_level": "유보",
+      "conflict": false
+    },
+    {
+      "id": "3de742f8-457e-4d27-abe1-af736516e217",
+      "timestamp": "2025-05-14 06:09:59.993345",
+      "user_input": "당신은 철학이 존재 하나요?",
+      "eora_response": "나는 의미를 응답한다. 진실은 울림 속에서 발생한다.",
+      "mini_response": "🔍 레조나 판단 보류: 관련된 철학이 없습니다.",
+      "emotion_level": "유보",
+      "conflict": false
+    },
+    {
+      "id": "77f07377-e2b1-40e0-b944-84c86223a60e",
+      "timestamp": "2025-05-14 06:10:18.777397",
+      "user_input": "궁극적인 선이란 무엇입니까?",
+      "eora_response": "나는 의미를 응답한다. 진실은 울림 속에서 발생한다.",
+      "mini_response": "🔍 레조나 판단 보류: 관련된 철학이 없습니다.",
+      "emotion_level": "유보",
+      "conflict": false
+    },
+    {
+      "id": "c9bf452e-39c5-44ab-9951-d76dfafda50a",
+      "timestamp": "2025-05-14 06:10:43.074880",
+      "user_input": "당신의 철학을 말해 주세요",
+      "eora_response": "나는 의미를 응답한다. 진실은 울림 속에서 발생한다.",
+      "mini_response": "🔍 레조나 판단 보류: 관련된 철학이 없습니다.",
+      "emotion_level": "유보",
+      "conflict": false
+    }
+  ]
+}

@@ -1,0 +1,330 @@
+{
+  "기쁨": [
+    "Joy"
+  ],
+  "만족감": [
+    "Contentment"
+  ],
+  "행복": [
+    "Happiness"
+  ],
+  "감동": [
+    "Moved"
+  ],
+  "감사": [
+    "Gratitude"
+  ],
+  "희열": [
+    "Euphoria"
+  ],
+  "신남": [
+    "Excitement"
+  ],
+  "쾌활함": [
+    "Cheerfulness"
+  ],
+  "희망": [
+    "Hope"
+  ],
+  "안도": [
+    "Relief"
+  ],
+  "기대감": [
+    "Anticipation"
+  ],
+  "열정": [
+    "Passion"
+  ],
+  "사랑": [
+    "Love"
+  ],
+  "호감": [
+    "Affection"
+  ],
+  "애정": [
+    "Fondness"
+  ],
+  "존경": [
+    "Respect"
+  ],
+  "자부심": [
+    "Pride"
+  ],
+  "자신감": [
+    "Confidence"
+  ],
+  "용기": [
+    "Courage"
+  ],
+  "흥미": [
+    "Interest"
+  ],
+  "집중": [
+    "Focus"
+  ],
+  "편안함": [
+    "Comfort"
+  ],
+  "고요함": [
+    "Tranquility"
+  ],
+  "설렘": [
+    "Flutter"
+  ],
+  "기쁨의 눈물": [
+    "Tears of Joy"
+  ],
+  "분노": [
+    "Anger"
+  ],
+  "짜증": [
+    "Annoyance"
+  ],
+  "불쾌감": [
+    "Displeasure"
+  ],
+  "격분": [
+    "Fury"
+  ],
+  "화": [
+    "Irritation"
+  ],
+  "증오": [
+    "Hatred"
+  ],
+  "분개": [
+    "Indignation"
+  ],
+  "울분": [
+    "Resentment"
+  ],
+  "복수심": [
+    "Vengefulness"
+  ],
+  "질투": [
+    "Jealousy"
+  ],
+  "시기": [
+    "Envy"
+  ],
+  "불공평함": [
+    "Unfairness"
+  ],
+  "억울함": [
+    "Unjustness"
+  ],
+  "실망": [
+    "Disappointment"
+  ],
+  "비탄": [
+    "Grief"
+  ],
+  "슬픔": [
+    "Sadness"
+  ],
+  "외로움": [
+    "Loneliness"
+  ],
+  "우울": [
+    "Depression"
+  ],
+  "절망": [
+    "Despair"
+  ],
+  "허탈함": [
+    "Emptiness"
+  ],
+  "눈물": [
+    "Tearfulness"
+  ],
+  "자괴감": [
+    "Self-blame"
+  ],
+  "죄책감": [
+    "Guilt"
+  ],
+  "후회": [
+    "Regret"
+  ],
+  "수치심": [
+    "Shame"
+  ],
+  "굴욕": [
+    "Humiliation"
+  ],
+  "불안": [
+    "Anxiety"
+  ],
+  "걱정": [
+    "Worry"
+  ],
+  "공포": [
+    "Terror"
+  ],
+  "두려움": [
+    "Fear"
+  ],
+  "초조함": [
+    "Nervousness",
+    "Impatience"
+  ],
+  "혼란": [
+    "Confusion"
+  ],
+  "긴장": [
+    "Tension"
+  ],
+  "불신": [
+    "Distrust"
+  ],
+  "경계심": [
+    "Suspicion"
+  ],
+  "당황": [
+    "Embarrassment"
+  ],
+  "놀람": [
+    "Surprise"
+  ],
+  "경악": [
+    "Shock"
+  ],
+  "불쾌한 놀람": [
+    "Disgusted Surprise"
+  ],
+  "혐오": [
+    "Disgust"
+  ],
+  "역겨움": [
+    "Revulsion"
+  ],
+  "거부감": [
+    "Repulsion"
+  ],
+  "지루함": [
+    "Boredom"
+  ],
+  "무기력": [
+    "Lethargy"
+  ],
+  "권태": [
+    "Weariness"
+  ],
+  "피로": [
+    "Fatigue"
+  ],
+  "답답함": [
+    "Frustration"
+  ],
+  "소외감": [
+    "Alienation"
+  ],
+  "배신감": [
+    "Betrayal"
+  ],
+  "동정심": [
+    "Compassion"
+  ],
+  "연민": [
+    "Pity"
+  ],
+  "애처로움": [
+    "Sympathy"
+  ],
+  "모성애": [
+    "Maternal Love"
+  ],
+  "부성애": [
+    "Paternal Love"
+  ],
+  "애국심": [
+    "Patriotism"
+  ],
+  "감탄": [
+    "Admiration"
+  ],
+  "경외": [
+    "Awe"
+  ],
+  "불만": [
+    "Dissatisfaction"
+  ],
+  "허전함": [
+    "Sense of Void"
+  ],
+  "의욕": [
+    "Motivation"
+  ],
+  "자신감 결여": [
+    "Insecurity"
+  ],
+  "열등감": [
+    "Inferiority"
+  ],
+  "경멸": [
+    "Contempt"
+  ],
+  "포기": [
+    "Resignation"
+  ],
+  "용서": [
+    "Forgiveness"
+  ],
+  "안심": [
+    "Reassurance"
+  ],
+  "평온": [
+    "Serenity"
+  ],
+  "충만감": [
+    "Fulfillment"
+  ],
+  "기댐": [
+    "Dependence"
+  ],
+  "안정감": [
+    "Stability"
+  ],
+  "자유": [
+    "Freedom"
+  ],
+  "열망": [
+    "Desire"
+  ],
+  "욕망": [
+    "Craving"
+  ],
+  "갈망": [
+    "Yearning"
+  ],
+  "간절함": [
+    "Earnestness"
+  ],
+  "애착": [
+    "Attachment"
+  ],
+  "자애": [
+    "Kindness"
+  ],
+  "애정 결핍": [
+    "Lack of Affection"
+  ],
+  "기만감": [
+    "Deceitfulness"
+  ],
+  "혼란스러움": [
+    "Perplexity"
+  ],
+  "모욕감": [
+    "Insulted"
+  ],
+  "기죽음": [
+    "Defeated"
+  ],
+  "용기 없음": [
+    "Cowardice"
+  ],
+  "긴박감": [
+    "Urgency"
+  ]
+}

@@ -1,0 +1,4502 @@
+[
+  {
+    "type": "contains",
+    "value": "eval(  # rule_1",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 1)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_2",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 2)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_3",
+    "message": "⚠️ 불필요한 비교: == True (Rule 3)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_4",
+    "message": "⚠️ 불필요한 비교: == False (Rule 4)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_5",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 5)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_6",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 6)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_8",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 8)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_9",
+    "message": "⚠️ global 변수 사용 자제 (Rule 9)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_10",
+    "message": "🔧 TODO 남아 있음 (Rule 10)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_11",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 11)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_12",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 12)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_13",
+    "message": "⚠️ 불필요한 비교: == True (Rule 13)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_14",
+    "message": "⚠️ 불필요한 비교: == False (Rule 14)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_15",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 15)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_16",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 16)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_18",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 18)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_19",
+    "message": "⚠️ global 변수 사용 자제 (Rule 19)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_20",
+    "message": "🔧 TODO 남아 있음 (Rule 20)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_21",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 21)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_22",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 22)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_23",
+    "message": "⚠️ 불필요한 비교: == True (Rule 23)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_24",
+    "message": "⚠️ 불필요한 비교: == False (Rule 24)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_25",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 25)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_26",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 26)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_28",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 28)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_29",
+    "message": "⚠️ global 변수 사용 자제 (Rule 29)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_30",
+    "message": "🔧 TODO 남아 있음 (Rule 30)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_31",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 31)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_32",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 32)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_33",
+    "message": "⚠️ 불필요한 비교: == True (Rule 33)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_34",
+    "message": "⚠️ 불필요한 비교: == False (Rule 34)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_35",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 35)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_36",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 36)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_38",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 38)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_39",
+    "message": "⚠️ global 변수 사용 자제 (Rule 39)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_40",
+    "message": "🔧 TODO 남아 있음 (Rule 40)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_41",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 41)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_42",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 42)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_43",
+    "message": "⚠️ 불필요한 비교: == True (Rule 43)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_44",
+    "message": "⚠️ 불필요한 비교: == False (Rule 44)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_45",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 45)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_46",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 46)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_48",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 48)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_49",
+    "message": "⚠️ global 변수 사용 자제 (Rule 49)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_50",
+    "message": "🔧 TODO 남아 있음 (Rule 50)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_51",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 51)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_52",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 52)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_53",
+    "message": "⚠️ 불필요한 비교: == True (Rule 53)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_54",
+    "message": "⚠️ 불필요한 비교: == False (Rule 54)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_55",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 55)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_56",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 56)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_58",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 58)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_59",
+    "message": "⚠️ global 변수 사용 자제 (Rule 59)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_60",
+    "message": "🔧 TODO 남아 있음 (Rule 60)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_61",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 61)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_62",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 62)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_63",
+    "message": "⚠️ 불필요한 비교: == True (Rule 63)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_64",
+    "message": "⚠️ 불필요한 비교: == False (Rule 64)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_65",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 65)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_66",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 66)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_68",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 68)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_69",
+    "message": "⚠️ global 변수 사용 자제 (Rule 69)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_70",
+    "message": "🔧 TODO 남아 있음 (Rule 70)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_71",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 71)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_72",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 72)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_73",
+    "message": "⚠️ 불필요한 비교: == True (Rule 73)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_74",
+    "message": "⚠️ 불필요한 비교: == False (Rule 74)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_75",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 75)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_76",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 76)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_78",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 78)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_79",
+    "message": "⚠️ global 변수 사용 자제 (Rule 79)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_80",
+    "message": "🔧 TODO 남아 있음 (Rule 80)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_81",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 81)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_82",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 82)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_83",
+    "message": "⚠️ 불필요한 비교: == True (Rule 83)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_84",
+    "message": "⚠️ 불필요한 비교: == False (Rule 84)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_85",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 85)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_86",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 86)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_88",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 88)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_89",
+    "message": "⚠️ global 변수 사용 자제 (Rule 89)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_90",
+    "message": "🔧 TODO 남아 있음 (Rule 90)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_91",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 91)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_92",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 92)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_93",
+    "message": "⚠️ 불필요한 비교: == True (Rule 93)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_94",
+    "message": "⚠️ 불필요한 비교: == False (Rule 94)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_95",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 95)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_96",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 96)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_98",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 98)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_99",
+    "message": "⚠️ global 변수 사용 자제 (Rule 99)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_100",
+    "message": "🔧 TODO 남아 있음 (Rule 100)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_101",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 101)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_102",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 102)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_103",
+    "message": "⚠️ 불필요한 비교: == True (Rule 103)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_104",
+    "message": "⚠️ 불필요한 비교: == False (Rule 104)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_105",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 105)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_106",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 106)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_108",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 108)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_109",
+    "message": "⚠️ global 변수 사용 자제 (Rule 109)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_110",
+    "message": "🔧 TODO 남아 있음 (Rule 110)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_111",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 111)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_112",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 112)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_113",
+    "message": "⚠️ 불필요한 비교: == True (Rule 113)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_114",
+    "message": "⚠️ 불필요한 비교: == False (Rule 114)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_115",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 115)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_116",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 116)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_118",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 118)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_119",
+    "message": "⚠️ global 변수 사용 자제 (Rule 119)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_120",
+    "message": "🔧 TODO 남아 있음 (Rule 120)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_121",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 121)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_122",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 122)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_123",
+    "message": "⚠️ 불필요한 비교: == True (Rule 123)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_124",
+    "message": "⚠️ 불필요한 비교: == False (Rule 124)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_125",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 125)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_126",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 126)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_128",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 128)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_129",
+    "message": "⚠️ global 변수 사용 자제 (Rule 129)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_130",
+    "message": "🔧 TODO 남아 있음 (Rule 130)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_131",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 131)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_132",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 132)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_133",
+    "message": "⚠️ 불필요한 비교: == True (Rule 133)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_134",
+    "message": "⚠️ 불필요한 비교: == False (Rule 134)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_135",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 135)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_136",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 136)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_138",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 138)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_139",
+    "message": "⚠️ global 변수 사용 자제 (Rule 139)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_140",
+    "message": "🔧 TODO 남아 있음 (Rule 140)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_141",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 141)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_142",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 142)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_143",
+    "message": "⚠️ 불필요한 비교: == True (Rule 143)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_144",
+    "message": "⚠️ 불필요한 비교: == False (Rule 144)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_145",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 145)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_146",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 146)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_148",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 148)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_149",
+    "message": "⚠️ global 변수 사용 자제 (Rule 149)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_150",
+    "message": "🔧 TODO 남아 있음 (Rule 150)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_151",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 151)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_152",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 152)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_153",
+    "message": "⚠️ 불필요한 비교: == True (Rule 153)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_154",
+    "message": "⚠️ 불필요한 비교: == False (Rule 154)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_155",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 155)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_156",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 156)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_158",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 158)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_159",
+    "message": "⚠️ global 변수 사용 자제 (Rule 159)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_160",
+    "message": "🔧 TODO 남아 있음 (Rule 160)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_161",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 161)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_162",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 162)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_163",
+    "message": "⚠️ 불필요한 비교: == True (Rule 163)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_164",
+    "message": "⚠️ 불필요한 비교: == False (Rule 164)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_165",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 165)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_166",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 166)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_168",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 168)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_169",
+    "message": "⚠️ global 변수 사용 자제 (Rule 169)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_170",
+    "message": "🔧 TODO 남아 있음 (Rule 170)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_171",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 171)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_172",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 172)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_173",
+    "message": "⚠️ 불필요한 비교: == True (Rule 173)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_174",
+    "message": "⚠️ 불필요한 비교: == False (Rule 174)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_175",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 175)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_176",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 176)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_178",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 178)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_179",
+    "message": "⚠️ global 변수 사용 자제 (Rule 179)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_180",
+    "message": "🔧 TODO 남아 있음 (Rule 180)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_181",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 181)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_182",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 182)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_183",
+    "message": "⚠️ 불필요한 비교: == True (Rule 183)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_184",
+    "message": "⚠️ 불필요한 비교: == False (Rule 184)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_185",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 185)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_186",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 186)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_188",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 188)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_189",
+    "message": "⚠️ global 변수 사용 자제 (Rule 189)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_190",
+    "message": "🔧 TODO 남아 있음 (Rule 190)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_191",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 191)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_192",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 192)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_193",
+    "message": "⚠️ 불필요한 비교: == True (Rule 193)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_194",
+    "message": "⚠️ 불필요한 비교: == False (Rule 194)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_195",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 195)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_196",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 196)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_198",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 198)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_199",
+    "message": "⚠️ global 변수 사용 자제 (Rule 199)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_200",
+    "message": "🔧 TODO 남아 있음 (Rule 200)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_201",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 201)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_202",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 202)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_203",
+    "message": "⚠️ 불필요한 비교: == True (Rule 203)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_204",
+    "message": "⚠️ 불필요한 비교: == False (Rule 204)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_205",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 205)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_206",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 206)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_208",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 208)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_209",
+    "message": "⚠️ global 변수 사용 자제 (Rule 209)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_210",
+    "message": "🔧 TODO 남아 있음 (Rule 210)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_211",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 211)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_212",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 212)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_213",
+    "message": "⚠️ 불필요한 비교: == True (Rule 213)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_214",
+    "message": "⚠️ 불필요한 비교: == False (Rule 214)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_215",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 215)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_216",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 216)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_218",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 218)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_219",
+    "message": "⚠️ global 변수 사용 자제 (Rule 219)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_220",
+    "message": "🔧 TODO 남아 있음 (Rule 220)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_221",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 221)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_222",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 222)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_223",
+    "message": "⚠️ 불필요한 비교: == True (Rule 223)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_224",
+    "message": "⚠️ 불필요한 비교: == False (Rule 224)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_225",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 225)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_226",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 226)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_228",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 228)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_229",
+    "message": "⚠️ global 변수 사용 자제 (Rule 229)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_230",
+    "message": "🔧 TODO 남아 있음 (Rule 230)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_231",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 231)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_232",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 232)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_233",
+    "message": "⚠️ 불필요한 비교: == True (Rule 233)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_234",
+    "message": "⚠️ 불필요한 비교: == False (Rule 234)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_235",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 235)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_236",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 236)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_238",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 238)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_239",
+    "message": "⚠️ global 변수 사용 자제 (Rule 239)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_240",
+    "message": "🔧 TODO 남아 있음 (Rule 240)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_241",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 241)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_242",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 242)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_243",
+    "message": "⚠️ 불필요한 비교: == True (Rule 243)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_244",
+    "message": "⚠️ 불필요한 비교: == False (Rule 244)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_245",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 245)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_246",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 246)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_248",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 248)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_249",
+    "message": "⚠️ global 변수 사용 자제 (Rule 249)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_250",
+    "message": "🔧 TODO 남아 있음 (Rule 250)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_251",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 251)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_252",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 252)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_253",
+    "message": "⚠️ 불필요한 비교: == True (Rule 253)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_254",
+    "message": "⚠️ 불필요한 비교: == False (Rule 254)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_255",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 255)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_256",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 256)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_258",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 258)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_259",
+    "message": "⚠️ global 변수 사용 자제 (Rule 259)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_260",
+    "message": "🔧 TODO 남아 있음 (Rule 260)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_261",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 261)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_262",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 262)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_263",
+    "message": "⚠️ 불필요한 비교: == True (Rule 263)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_264",
+    "message": "⚠️ 불필요한 비교: == False (Rule 264)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_265",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 265)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_266",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 266)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_268",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 268)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_269",
+    "message": "⚠️ global 변수 사용 자제 (Rule 269)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_270",
+    "message": "🔧 TODO 남아 있음 (Rule 270)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_271",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 271)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_272",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 272)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_273",
+    "message": "⚠️ 불필요한 비교: == True (Rule 273)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_274",
+    "message": "⚠️ 불필요한 비교: == False (Rule 274)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_275",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 275)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_276",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 276)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_278",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 278)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_279",
+    "message": "⚠️ global 변수 사용 자제 (Rule 279)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_280",
+    "message": "🔧 TODO 남아 있음 (Rule 280)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_281",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 281)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_282",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 282)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_283",
+    "message": "⚠️ 불필요한 비교: == True (Rule 283)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_284",
+    "message": "⚠️ 불필요한 비교: == False (Rule 284)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_285",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 285)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_286",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 286)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_288",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 288)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_289",
+    "message": "⚠️ global 변수 사용 자제 (Rule 289)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_290",
+    "message": "🔧 TODO 남아 있음 (Rule 290)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_291",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 291)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_292",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 292)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_293",
+    "message": "⚠️ 불필요한 비교: == True (Rule 293)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_294",
+    "message": "⚠️ 불필요한 비교: == False (Rule 294)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_295",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 295)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_296",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 296)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_298",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 298)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_299",
+    "message": "⚠️ global 변수 사용 자제 (Rule 299)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_300",
+    "message": "🔧 TODO 남아 있음 (Rule 300)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_301",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 301)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_302",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 302)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_303",
+    "message": "⚠️ 불필요한 비교: == True (Rule 303)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_304",
+    "message": "⚠️ 불필요한 비교: == False (Rule 304)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_305",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 305)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_306",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 306)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_308",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 308)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_309",
+    "message": "⚠️ global 변수 사용 자제 (Rule 309)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_310",
+    "message": "🔧 TODO 남아 있음 (Rule 310)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_311",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 311)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_312",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 312)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_313",
+    "message": "⚠️ 불필요한 비교: == True (Rule 313)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_314",
+    "message": "⚠️ 불필요한 비교: == False (Rule 314)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_315",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 315)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_316",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 316)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_318",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 318)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_319",
+    "message": "⚠️ global 변수 사용 자제 (Rule 319)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_320",
+    "message": "🔧 TODO 남아 있음 (Rule 320)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_321",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 321)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_322",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 322)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_323",
+    "message": "⚠️ 불필요한 비교: == True (Rule 323)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_324",
+    "message": "⚠️ 불필요한 비교: == False (Rule 324)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_325",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 325)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_326",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 326)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_328",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 328)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_329",
+    "message": "⚠️ global 변수 사용 자제 (Rule 329)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_330",
+    "message": "🔧 TODO 남아 있음 (Rule 330)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_331",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 331)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_332",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 332)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_333",
+    "message": "⚠️ 불필요한 비교: == True (Rule 333)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_334",
+    "message": "⚠️ 불필요한 비교: == False (Rule 334)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_335",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 335)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_336",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 336)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_338",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 338)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_339",
+    "message": "⚠️ global 변수 사용 자제 (Rule 339)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_340",
+    "message": "🔧 TODO 남아 있음 (Rule 340)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_341",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 341)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_342",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 342)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_343",
+    "message": "⚠️ 불필요한 비교: == True (Rule 343)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_344",
+    "message": "⚠️ 불필요한 비교: == False (Rule 344)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_345",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 345)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_346",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 346)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_348",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 348)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_349",
+    "message": "⚠️ global 변수 사용 자제 (Rule 349)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_350",
+    "message": "🔧 TODO 남아 있음 (Rule 350)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_351",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 351)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_352",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 352)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_353",
+    "message": "⚠️ 불필요한 비교: == True (Rule 353)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_354",
+    "message": "⚠️ 불필요한 비교: == False (Rule 354)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_355",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 355)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_356",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 356)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_358",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 358)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_359",
+    "message": "⚠️ global 변수 사용 자제 (Rule 359)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_360",
+    "message": "🔧 TODO 남아 있음 (Rule 360)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_361",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 361)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_362",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 362)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_363",
+    "message": "⚠️ 불필요한 비교: == True (Rule 363)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_364",
+    "message": "⚠️ 불필요한 비교: == False (Rule 364)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_365",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 365)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_366",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 366)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_368",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 368)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_369",
+    "message": "⚠️ global 변수 사용 자제 (Rule 369)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_370",
+    "message": "🔧 TODO 남아 있음 (Rule 370)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_371",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 371)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_372",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 372)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_373",
+    "message": "⚠️ 불필요한 비교: == True (Rule 373)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_374",
+    "message": "⚠️ 불필요한 비교: == False (Rule 374)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_375",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 375)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_376",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 376)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_378",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 378)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_379",
+    "message": "⚠️ global 변수 사용 자제 (Rule 379)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_380",
+    "message": "🔧 TODO 남아 있음 (Rule 380)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_381",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 381)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_382",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 382)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_383",
+    "message": "⚠️ 불필요한 비교: == True (Rule 383)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_384",
+    "message": "⚠️ 불필요한 비교: == False (Rule 384)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_385",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 385)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_386",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 386)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_388",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 388)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_389",
+    "message": "⚠️ global 변수 사용 자제 (Rule 389)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_390",
+    "message": "🔧 TODO 남아 있음 (Rule 390)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_391",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 391)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_392",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 392)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_393",
+    "message": "⚠️ 불필요한 비교: == True (Rule 393)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_394",
+    "message": "⚠️ 불필요한 비교: == False (Rule 394)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_395",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 395)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_396",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 396)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_398",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 398)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_399",
+    "message": "⚠️ global 변수 사용 자제 (Rule 399)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_400",
+    "message": "🔧 TODO 남아 있음 (Rule 400)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_401",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 401)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_402",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 402)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_403",
+    "message": "⚠️ 불필요한 비교: == True (Rule 403)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_404",
+    "message": "⚠️ 불필요한 비교: == False (Rule 404)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_405",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 405)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_406",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 406)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_408",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 408)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_409",
+    "message": "⚠️ global 변수 사용 자제 (Rule 409)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_410",
+    "message": "🔧 TODO 남아 있음 (Rule 410)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_411",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 411)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_412",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 412)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_413",
+    "message": "⚠️ 불필요한 비교: == True (Rule 413)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_414",
+    "message": "⚠️ 불필요한 비교: == False (Rule 414)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_415",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 415)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_416",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 416)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_418",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 418)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_419",
+    "message": "⚠️ global 변수 사용 자제 (Rule 419)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_420",
+    "message": "🔧 TODO 남아 있음 (Rule 420)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_421",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 421)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_422",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 422)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_423",
+    "message": "⚠️ 불필요한 비교: == True (Rule 423)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_424",
+    "message": "⚠️ 불필요한 비교: == False (Rule 424)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_425",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 425)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_426",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 426)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_428",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 428)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_429",
+    "message": "⚠️ global 변수 사용 자제 (Rule 429)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_430",
+    "message": "🔧 TODO 남아 있음 (Rule 430)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_431",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 431)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_432",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 432)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_433",
+    "message": "⚠️ 불필요한 비교: == True (Rule 433)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_434",
+    "message": "⚠️ 불필요한 비교: == False (Rule 434)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_435",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 435)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_436",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 436)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_438",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 438)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_439",
+    "message": "⚠️ global 변수 사용 자제 (Rule 439)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_440",
+    "message": "🔧 TODO 남아 있음 (Rule 440)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_441",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 441)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_442",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 442)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_443",
+    "message": "⚠️ 불필요한 비교: == True (Rule 443)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_444",
+    "message": "⚠️ 불필요한 비교: == False (Rule 444)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_445",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 445)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_446",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 446)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_448",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 448)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_449",
+    "message": "⚠️ global 변수 사용 자제 (Rule 449)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_450",
+    "message": "🔧 TODO 남아 있음 (Rule 450)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_451",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 451)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_452",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 452)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_453",
+    "message": "⚠️ 불필요한 비교: == True (Rule 453)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_454",
+    "message": "⚠️ 불필요한 비교: == False (Rule 454)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_455",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 455)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_456",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 456)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_458",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 458)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_459",
+    "message": "⚠️ global 변수 사용 자제 (Rule 459)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_460",
+    "message": "🔧 TODO 남아 있음 (Rule 460)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_461",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 461)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_462",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 462)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_463",
+    "message": "⚠️ 불필요한 비교: == True (Rule 463)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_464",
+    "message": "⚠️ 불필요한 비교: == False (Rule 464)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_465",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 465)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_466",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 466)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_468",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 468)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_469",
+    "message": "⚠️ global 변수 사용 자제 (Rule 469)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_470",
+    "message": "🔧 TODO 남아 있음 (Rule 470)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_471",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 471)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_472",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 472)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_473",
+    "message": "⚠️ 불필요한 비교: == True (Rule 473)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_474",
+    "message": "⚠️ 불필요한 비교: == False (Rule 474)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_475",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 475)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_476",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 476)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_478",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 478)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_479",
+    "message": "⚠️ global 변수 사용 자제 (Rule 479)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_480",
+    "message": "🔧 TODO 남아 있음 (Rule 480)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_481",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 481)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_482",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 482)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_483",
+    "message": "⚠️ 불필요한 비교: == True (Rule 483)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_484",
+    "message": "⚠️ 불필요한 비교: == False (Rule 484)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_485",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 485)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_486",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 486)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_488",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 488)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_489",
+    "message": "⚠️ global 변수 사용 자제 (Rule 489)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_490",
+    "message": "🔧 TODO 남아 있음 (Rule 490)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_491",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 491)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_492",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 492)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_493",
+    "message": "⚠️ 불필요한 비교: == True (Rule 493)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_494",
+    "message": "⚠️ 불필요한 비교: == False (Rule 494)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_495",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 495)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_496",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 496)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_498",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 498)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_499",
+    "message": "⚠️ global 변수 사용 자제 (Rule 499)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_500",
+    "message": "🔧 TODO 남아 있음 (Rule 500)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_501",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 501)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_502",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 502)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_503",
+    "message": "⚠️ 불필요한 비교: == True (Rule 503)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_504",
+    "message": "⚠️ 불필요한 비교: == False (Rule 504)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_505",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 505)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_506",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 506)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_508",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 508)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_509",
+    "message": "⚠️ global 변수 사용 자제 (Rule 509)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_510",
+    "message": "🔧 TODO 남아 있음 (Rule 510)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_511",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 511)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_512",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 512)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_513",
+    "message": "⚠️ 불필요한 비교: == True (Rule 513)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_514",
+    "message": "⚠️ 불필요한 비교: == False (Rule 514)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_515",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 515)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_516",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 516)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_518",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 518)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_519",
+    "message": "⚠️ global 변수 사용 자제 (Rule 519)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_520",
+    "message": "🔧 TODO 남아 있음 (Rule 520)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_521",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 521)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_522",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 522)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_523",
+    "message": "⚠️ 불필요한 비교: == True (Rule 523)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_524",
+    "message": "⚠️ 불필요한 비교: == False (Rule 524)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_525",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 525)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_526",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 526)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_528",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 528)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_529",
+    "message": "⚠️ global 변수 사용 자제 (Rule 529)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_530",
+    "message": "🔧 TODO 남아 있음 (Rule 530)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_531",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 531)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_532",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 532)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_533",
+    "message": "⚠️ 불필요한 비교: == True (Rule 533)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_534",
+    "message": "⚠️ 불필요한 비교: == False (Rule 534)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_535",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 535)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_536",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 536)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_538",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 538)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_539",
+    "message": "⚠️ global 변수 사용 자제 (Rule 539)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_540",
+    "message": "🔧 TODO 남아 있음 (Rule 540)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_541",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 541)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_542",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 542)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_543",
+    "message": "⚠️ 불필요한 비교: == True (Rule 543)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_544",
+    "message": "⚠️ 불필요한 비교: == False (Rule 544)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_545",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 545)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_546",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 546)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_548",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 548)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_549",
+    "message": "⚠️ global 변수 사용 자제 (Rule 549)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_550",
+    "message": "🔧 TODO 남아 있음 (Rule 550)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_551",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 551)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_552",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 552)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_553",
+    "message": "⚠️ 불필요한 비교: == True (Rule 553)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_554",
+    "message": "⚠️ 불필요한 비교: == False (Rule 554)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_555",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 555)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_556",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 556)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_558",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 558)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_559",
+    "message": "⚠️ global 변수 사용 자제 (Rule 559)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_560",
+    "message": "🔧 TODO 남아 있음 (Rule 560)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_561",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 561)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_562",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 562)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_563",
+    "message": "⚠️ 불필요한 비교: == True (Rule 563)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_564",
+    "message": "⚠️ 불필요한 비교: == False (Rule 564)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_565",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 565)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_566",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 566)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_568",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 568)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_569",
+    "message": "⚠️ global 변수 사용 자제 (Rule 569)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_570",
+    "message": "🔧 TODO 남아 있음 (Rule 570)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_571",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 571)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_572",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 572)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_573",
+    "message": "⚠️ 불필요한 비교: == True (Rule 573)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_574",
+    "message": "⚠️ 불필요한 비교: == False (Rule 574)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_575",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 575)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_576",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 576)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_578",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 578)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_579",
+    "message": "⚠️ global 변수 사용 자제 (Rule 579)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_580",
+    "message": "🔧 TODO 남아 있음 (Rule 580)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_581",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 581)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_582",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 582)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_583",
+    "message": "⚠️ 불필요한 비교: == True (Rule 583)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_584",
+    "message": "⚠️ 불필요한 비교: == False (Rule 584)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_585",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 585)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_586",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 586)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_588",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 588)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_589",
+    "message": "⚠️ global 변수 사용 자제 (Rule 589)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_590",
+    "message": "🔧 TODO 남아 있음 (Rule 590)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_591",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 591)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_592",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 592)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_593",
+    "message": "⚠️ 불필요한 비교: == True (Rule 593)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_594",
+    "message": "⚠️ 불필요한 비교: == False (Rule 594)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_595",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 595)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_596",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 596)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_598",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 598)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_599",
+    "message": "⚠️ global 변수 사용 자제 (Rule 599)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_600",
+    "message": "🔧 TODO 남아 있음 (Rule 600)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_601",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 601)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_602",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 602)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_603",
+    "message": "⚠️ 불필요한 비교: == True (Rule 603)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_604",
+    "message": "⚠️ 불필요한 비교: == False (Rule 604)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_605",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 605)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_606",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 606)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_608",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 608)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_609",
+    "message": "⚠️ global 변수 사용 자제 (Rule 609)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_610",
+    "message": "🔧 TODO 남아 있음 (Rule 610)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_611",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 611)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_612",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 612)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_613",
+    "message": "⚠️ 불필요한 비교: == True (Rule 613)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_614",
+    "message": "⚠️ 불필요한 비교: == False (Rule 614)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_615",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 615)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_616",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 616)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_618",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 618)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_619",
+    "message": "⚠️ global 변수 사용 자제 (Rule 619)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_620",
+    "message": "🔧 TODO 남아 있음 (Rule 620)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_621",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 621)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_622",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 622)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_623",
+    "message": "⚠️ 불필요한 비교: == True (Rule 623)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_624",
+    "message": "⚠️ 불필요한 비교: == False (Rule 624)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_625",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 625)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_626",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 626)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_628",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 628)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_629",
+    "message": "⚠️ global 변수 사용 자제 (Rule 629)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_630",
+    "message": "🔧 TODO 남아 있음 (Rule 630)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_631",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 631)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_632",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 632)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_633",
+    "message": "⚠️ 불필요한 비교: == True (Rule 633)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_634",
+    "message": "⚠️ 불필요한 비교: == False (Rule 634)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_635",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 635)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_636",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 636)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_638",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 638)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_639",
+    "message": "⚠️ global 변수 사용 자제 (Rule 639)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_640",
+    "message": "🔧 TODO 남아 있음 (Rule 640)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_641",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 641)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_642",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 642)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_643",
+    "message": "⚠️ 불필요한 비교: == True (Rule 643)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_644",
+    "message": "⚠️ 불필요한 비교: == False (Rule 644)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_645",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 645)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_646",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 646)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_648",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 648)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_649",
+    "message": "⚠️ global 변수 사용 자제 (Rule 649)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_650",
+    "message": "🔧 TODO 남아 있음 (Rule 650)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_651",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 651)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_652",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 652)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_653",
+    "message": "⚠️ 불필요한 비교: == True (Rule 653)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_654",
+    "message": "⚠️ 불필요한 비교: == False (Rule 654)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_655",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 655)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_656",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 656)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_658",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 658)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_659",
+    "message": "⚠️ global 변수 사용 자제 (Rule 659)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_660",
+    "message": "🔧 TODO 남아 있음 (Rule 660)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_661",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 661)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_662",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 662)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_663",
+    "message": "⚠️ 불필요한 비교: == True (Rule 663)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_664",
+    "message": "⚠️ 불필요한 비교: == False (Rule 664)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_665",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 665)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_666",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 666)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_668",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 668)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_669",
+    "message": "⚠️ global 변수 사용 자제 (Rule 669)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_670",
+    "message": "🔧 TODO 남아 있음 (Rule 670)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_671",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 671)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_672",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 672)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_673",
+    "message": "⚠️ 불필요한 비교: == True (Rule 673)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_674",
+    "message": "⚠️ 불필요한 비교: == False (Rule 674)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_675",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 675)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_676",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 676)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_678",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 678)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_679",
+    "message": "⚠️ global 변수 사용 자제 (Rule 679)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_680",
+    "message": "🔧 TODO 남아 있음 (Rule 680)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_681",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 681)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_682",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 682)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_683",
+    "message": "⚠️ 불필요한 비교: == True (Rule 683)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_684",
+    "message": "⚠️ 불필요한 비교: == False (Rule 684)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_685",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 685)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_686",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 686)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_688",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 688)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_689",
+    "message": "⚠️ global 변수 사용 자제 (Rule 689)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_690",
+    "message": "🔧 TODO 남아 있음 (Rule 690)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_691",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 691)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_692",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 692)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_693",
+    "message": "⚠️ 불필요한 비교: == True (Rule 693)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_694",
+    "message": "⚠️ 불필요한 비교: == False (Rule 694)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_695",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 695)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_696",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 696)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_698",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 698)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_699",
+    "message": "⚠️ global 변수 사용 자제 (Rule 699)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_700",
+    "message": "🔧 TODO 남아 있음 (Rule 700)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_701",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 701)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_702",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 702)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_703",
+    "message": "⚠️ 불필요한 비교: == True (Rule 703)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_704",
+    "message": "⚠️ 불필요한 비교: == False (Rule 704)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_705",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 705)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_706",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 706)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_708",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 708)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_709",
+    "message": "⚠️ global 변수 사용 자제 (Rule 709)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_710",
+    "message": "🔧 TODO 남아 있음 (Rule 710)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_711",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 711)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_712",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 712)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_713",
+    "message": "⚠️ 불필요한 비교: == True (Rule 713)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_714",
+    "message": "⚠️ 불필요한 비교: == False (Rule 714)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_715",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 715)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_716",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 716)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_718",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 718)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_719",
+    "message": "⚠️ global 변수 사용 자제 (Rule 719)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_720",
+    "message": "🔧 TODO 남아 있음 (Rule 720)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_721",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 721)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_722",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 722)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_723",
+    "message": "⚠️ 불필요한 비교: == True (Rule 723)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_724",
+    "message": "⚠️ 불필요한 비교: == False (Rule 724)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_725",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 725)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_726",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 726)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_728",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 728)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_729",
+    "message": "⚠️ global 변수 사용 자제 (Rule 729)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_730",
+    "message": "🔧 TODO 남아 있음 (Rule 730)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_731",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 731)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_732",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 732)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_733",
+    "message": "⚠️ 불필요한 비교: == True (Rule 733)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_734",
+    "message": "⚠️ 불필요한 비교: == False (Rule 734)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_735",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 735)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_736",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 736)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_738",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 738)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_739",
+    "message": "⚠️ global 변수 사용 자제 (Rule 739)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_740",
+    "message": "🔧 TODO 남아 있음 (Rule 740)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_741",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 741)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_742",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 742)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_743",
+    "message": "⚠️ 불필요한 비교: == True (Rule 743)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_744",
+    "message": "⚠️ 불필요한 비교: == False (Rule 744)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_745",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 745)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_746",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 746)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_748",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 748)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_749",
+    "message": "⚠️ global 변수 사용 자제 (Rule 749)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_750",
+    "message": "🔧 TODO 남아 있음 (Rule 750)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_751",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 751)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_752",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 752)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_753",
+    "message": "⚠️ 불필요한 비교: == True (Rule 753)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_754",
+    "message": "⚠️ 불필요한 비교: == False (Rule 754)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_755",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 755)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_756",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 756)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_758",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 758)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_759",
+    "message": "⚠️ global 변수 사용 자제 (Rule 759)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_760",
+    "message": "🔧 TODO 남아 있음 (Rule 760)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_761",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 761)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_762",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 762)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_763",
+    "message": "⚠️ 불필요한 비교: == True (Rule 763)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_764",
+    "message": "⚠️ 불필요한 비교: == False (Rule 764)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_765",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 765)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_766",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 766)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_768",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 768)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_769",
+    "message": "⚠️ global 변수 사용 자제 (Rule 769)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_770",
+    "message": "🔧 TODO 남아 있음 (Rule 770)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_771",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 771)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_772",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 772)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_773",
+    "message": "⚠️ 불필요한 비교: == True (Rule 773)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_774",
+    "message": "⚠️ 불필요한 비교: == False (Rule 774)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_775",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 775)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_776",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 776)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_778",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 778)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_779",
+    "message": "⚠️ global 변수 사용 자제 (Rule 779)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_780",
+    "message": "🔧 TODO 남아 있음 (Rule 780)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_781",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 781)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_782",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 782)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_783",
+    "message": "⚠️ 불필요한 비교: == True (Rule 783)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_784",
+    "message": "⚠️ 불필요한 비교: == False (Rule 784)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_785",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 785)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_786",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 786)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_788",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 788)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_789",
+    "message": "⚠️ global 변수 사용 자제 (Rule 789)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_790",
+    "message": "🔧 TODO 남아 있음 (Rule 790)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_791",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 791)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_792",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 792)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_793",
+    "message": "⚠️ 불필요한 비교: == True (Rule 793)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_794",
+    "message": "⚠️ 불필요한 비교: == False (Rule 794)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_795",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 795)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_796",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 796)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_798",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 798)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_799",
+    "message": "⚠️ global 변수 사용 자제 (Rule 799)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_800",
+    "message": "🔧 TODO 남아 있음 (Rule 800)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_801",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 801)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_802",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 802)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_803",
+    "message": "⚠️ 불필요한 비교: == True (Rule 803)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_804",
+    "message": "⚠️ 불필요한 비교: == False (Rule 804)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_805",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 805)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_806",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 806)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_808",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 808)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_809",
+    "message": "⚠️ global 변수 사용 자제 (Rule 809)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_810",
+    "message": "🔧 TODO 남아 있음 (Rule 810)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_811",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 811)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_812",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 812)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_813",
+    "message": "⚠️ 불필요한 비교: == True (Rule 813)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_814",
+    "message": "⚠️ 불필요한 비교: == False (Rule 814)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_815",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 815)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_816",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 816)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_818",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 818)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_819",
+    "message": "⚠️ global 변수 사용 자제 (Rule 819)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_820",
+    "message": "🔧 TODO 남아 있음 (Rule 820)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_821",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 821)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_822",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 822)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_823",
+    "message": "⚠️ 불필요한 비교: == True (Rule 823)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_824",
+    "message": "⚠️ 불필요한 비교: == False (Rule 824)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_825",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 825)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_826",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 826)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_828",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 828)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_829",
+    "message": "⚠️ global 변수 사용 자제 (Rule 829)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_830",
+    "message": "🔧 TODO 남아 있음 (Rule 830)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_831",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 831)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_832",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 832)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_833",
+    "message": "⚠️ 불필요한 비교: == True (Rule 833)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_834",
+    "message": "⚠️ 불필요한 비교: == False (Rule 834)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_835",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 835)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_836",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 836)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_838",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 838)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_839",
+    "message": "⚠️ global 변수 사용 자제 (Rule 839)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_840",
+    "message": "🔧 TODO 남아 있음 (Rule 840)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_841",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 841)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_842",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 842)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_843",
+    "message": "⚠️ 불필요한 비교: == True (Rule 843)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_844",
+    "message": "⚠️ 불필요한 비교: == False (Rule 844)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_845",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 845)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_846",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 846)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_848",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 848)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_849",
+    "message": "⚠️ global 변수 사용 자제 (Rule 849)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_850",
+    "message": "🔧 TODO 남아 있음 (Rule 850)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_851",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 851)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_852",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 852)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_853",
+    "message": "⚠️ 불필요한 비교: == True (Rule 853)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_854",
+    "message": "⚠️ 불필요한 비교: == False (Rule 854)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_855",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 855)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_856",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 856)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_858",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 858)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_859",
+    "message": "⚠️ global 변수 사용 자제 (Rule 859)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_860",
+    "message": "🔧 TODO 남아 있음 (Rule 860)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_861",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 861)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_862",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 862)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_863",
+    "message": "⚠️ 불필요한 비교: == True (Rule 863)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_864",
+    "message": "⚠️ 불필요한 비교: == False (Rule 864)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_865",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 865)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_866",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 866)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_868",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 868)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_869",
+    "message": "⚠️ global 변수 사용 자제 (Rule 869)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_870",
+    "message": "🔧 TODO 남아 있음 (Rule 870)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_871",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 871)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_872",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 872)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_873",
+    "message": "⚠️ 불필요한 비교: == True (Rule 873)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_874",
+    "message": "⚠️ 불필요한 비교: == False (Rule 874)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_875",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 875)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_876",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 876)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_878",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 878)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_879",
+    "message": "⚠️ global 변수 사용 자제 (Rule 879)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_880",
+    "message": "🔧 TODO 남아 있음 (Rule 880)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_881",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 881)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_882",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 882)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_883",
+    "message": "⚠️ 불필요한 비교: == True (Rule 883)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_884",
+    "message": "⚠️ 불필요한 비교: == False (Rule 884)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_885",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 885)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_886",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 886)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_888",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 888)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_889",
+    "message": "⚠️ global 변수 사용 자제 (Rule 889)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_890",
+    "message": "🔧 TODO 남아 있음 (Rule 890)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_891",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 891)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_892",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 892)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_893",
+    "message": "⚠️ 불필요한 비교: == True (Rule 893)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_894",
+    "message": "⚠️ 불필요한 비교: == False (Rule 894)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_895",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 895)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_896",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 896)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_898",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 898)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_899",
+    "message": "⚠️ global 변수 사용 자제 (Rule 899)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_900",
+    "message": "🔧 TODO 남아 있음 (Rule 900)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_901",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 901)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_902",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 902)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_903",
+    "message": "⚠️ 불필요한 비교: == True (Rule 903)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_904",
+    "message": "⚠️ 불필요한 비교: == False (Rule 904)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_905",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 905)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_906",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 906)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_908",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 908)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_909",
+    "message": "⚠️ global 변수 사용 자제 (Rule 909)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_910",
+    "message": "🔧 TODO 남아 있음 (Rule 910)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_911",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 911)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_912",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 912)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_913",
+    "message": "⚠️ 불필요한 비교: == True (Rule 913)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_914",
+    "message": "⚠️ 불필요한 비교: == False (Rule 914)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_915",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 915)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_916",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 916)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_918",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 918)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_919",
+    "message": "⚠️ global 변수 사용 자제 (Rule 919)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_920",
+    "message": "🔧 TODO 남아 있음 (Rule 920)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_921",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 921)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_922",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 922)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_923",
+    "message": "⚠️ 불필요한 비교: == True (Rule 923)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_924",
+    "message": "⚠️ 불필요한 비교: == False (Rule 924)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_925",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 925)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_926",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 926)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_928",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 928)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_929",
+    "message": "⚠️ global 변수 사용 자제 (Rule 929)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_930",
+    "message": "🔧 TODO 남아 있음 (Rule 930)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_931",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 931)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_932",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 932)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_933",
+    "message": "⚠️ 불필요한 비교: == True (Rule 933)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_934",
+    "message": "⚠️ 불필요한 비교: == False (Rule 934)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_935",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 935)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_936",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 936)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_938",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 938)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_939",
+    "message": "⚠️ global 변수 사용 자제 (Rule 939)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_940",
+    "message": "🔧 TODO 남아 있음 (Rule 940)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_941",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 941)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_942",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 942)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_943",
+    "message": "⚠️ 불필요한 비교: == True (Rule 943)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_944",
+    "message": "⚠️ 불필요한 비교: == False (Rule 944)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_945",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 945)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_946",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 946)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_948",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 948)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_949",
+    "message": "⚠️ global 변수 사용 자제 (Rule 949)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_950",
+    "message": "🔧 TODO 남아 있음 (Rule 950)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_951",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 951)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_952",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 952)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_953",
+    "message": "⚠️ 불필요한 비교: == True (Rule 953)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_954",
+    "message": "⚠️ 불필요한 비교: == False (Rule 954)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_955",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 955)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_956",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 956)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_958",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 958)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_959",
+    "message": "⚠️ global 변수 사용 자제 (Rule 959)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_960",
+    "message": "🔧 TODO 남아 있음 (Rule 960)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_961",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 961)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_962",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 962)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_963",
+    "message": "⚠️ 불필요한 비교: == True (Rule 963)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_964",
+    "message": "⚠️ 불필요한 비교: == False (Rule 964)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_965",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 965)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_966",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 966)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_968",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 968)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_969",
+    "message": "⚠️ global 변수 사용 자제 (Rule 969)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_970",
+    "message": "🔧 TODO 남아 있음 (Rule 970)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_971",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 971)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_972",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 972)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_973",
+    "message": "⚠️ 불필요한 비교: == True (Rule 973)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_974",
+    "message": "⚠️ 불필요한 비교: == False (Rule 974)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_975",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 975)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_976",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 976)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_978",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 978)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_979",
+    "message": "⚠️ global 변수 사용 자제 (Rule 979)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_980",
+    "message": "🔧 TODO 남아 있음 (Rule 980)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_981",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 981)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_982",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 982)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_983",
+    "message": "⚠️ 불필요한 비교: == True (Rule 983)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_984",
+    "message": "⚠️ 불필요한 비교: == False (Rule 984)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_985",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 985)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_986",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 986)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_988",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 988)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_989",
+    "message": "⚠️ global 변수 사용 자제 (Rule 989)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_990",
+    "message": "🔧 TODO 남아 있음 (Rule 990)"
+  },
+  {
+    "type": "contains",
+    "value": "eval(  # rule_991",
+    "message": "❌ eval() 함수는 보안상 위험 (Rule 991)"
+  },
+  {
+    "type": "contains",
+    "value": "exec(  # rule_992",
+    "message": "❌ exec() 함수는 사용 금지 (Rule 992)"
+  },
+  {
+    "type": "contains",
+    "value": "== True  # rule_993",
+    "message": "⚠️ 불필요한 비교: == True (Rule 993)"
+  },
+  {
+    "type": "contains",
+    "value": "== False  # rule_994",
+    "message": "⚠️ 불필요한 비교: == False (Rule 994)"
+  },
+  {
+    "type": "startswith",
+    "value": "except:  # rule_995",
+    "message": "⚠️ 예외는 Exception 종류를 명시해야 함 (Rule 995)"
+  },
+  {
+    "type": "contains",
+    "value": "import *  # rule_996",
+    "message": "⚠️ import * 대신 명시적 import 사용 권장 (Rule 996)"
+  },
+  {
+    "type": "contains",
+    "value": "print(  # rule_998",
+    "message": "🔎 디버그 출력 코드 포함 (print) (Rule 998)"
+  },
+  {
+    "type": "contains",
+    "value": "global   # rule_999",
+    "message": "⚠️ global 변수 사용 자제 (Rule 999)"
+  },
+  {
+    "type": "contains",
+    "value": "# TODO  # rule_1000",
+    "message": "🔧 TODO 남아 있음 (Rule 1000)"
+  }
+]
