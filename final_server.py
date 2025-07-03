@@ -138,8 +138,18 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 # JWT 토큰 검증 (PyJWT 또는 기본 방식)
 def verify_token(token: str):
+    if not token:
+        print("토큰이 없습니다")
+        return None
+        
+    # 토큰 형식 검증
     if JWT_AVAILABLE:
         try:
+            # 토큰 세그먼트 확인
+            if token.count('.') != 2:
+                print(f"JWT 토큰 형식 오류: {token[:20]}...")
+                return None
+                
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
             return payload
         except jwt.ExpiredSignatureError:
@@ -154,6 +164,11 @@ def verify_token(token: str):
     else:
         # 기본 Base64 디코딩 방식
         try:
+            # 토큰 형식 검증
+            if '.' not in token:
+                print(f"기본 토큰 형식 오류: {token[:20]}...")
+                return None
+                
             decoded_bytes = base64.b64decode(token.encode())
             payload = json.loads(decoded_bytes.decode())
             
@@ -218,6 +233,9 @@ templates = Jinja2Templates(directory="templates")
 users_db = {}
 points_db = {}
 sessions_db = {}
+
+# 서버 시작 시 관리자 계정 생성
+ensure_admin()
 
 # 웹소켓 연결 관리
 class ConnectionManager:
@@ -1731,7 +1749,6 @@ def process_conversation_content(content: str, filename: str) -> List[Dict]:
 if __name__ == "__main__":
     import traceback
     try:
-        ensure_admin()
         print("🚀 EORA AI 최종 서버를 시작합니다...")
         print("📍 주소: http://localhost:8010")
         print("📋 사용 가능한 페이지:")
