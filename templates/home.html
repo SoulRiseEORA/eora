@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI EORA - 당신의 감정을 이해하는 동반자</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* 헤더 */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        /* 메인 섹션 */
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero .description {
+            font-size: 1.1rem;
+            margin-bottom: 3rem;
+            opacity: 0.8;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 기능 섹션 */
+        .features {
+            background: white;
+            padding: 80px 0;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #333;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .feature-description {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* 향후 서비스 섹션 */
+        .future-services {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 80px 0;
+            color: white;
+        }
+
+        .future-services .section-title {
+            color: white;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .service-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .service-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .service-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .service-description {
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        /* 슬로건 섹션 */
+        .slogan {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 80px 0;
+            text-align: center;
+            color: white;
+        }
+
+        .slogan h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .slogan p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        /* 푸터 */
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #3498db;
+        }
+
+        .footer p {
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero .subtitle {
+                font-size: 1.2rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .features-grid,
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 애니메이션 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <nav class="nav container">
+            <a href="/" class="logo">AI EORA</a>
+            <div class="nav-links">
+                <a href="/chat">채팅</a>
+                <a href="/dashboard">대시보드</a>
+                <a href="/memory">기억관리</a>
+                <a href="/login" class="cta-button">로그인</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- 메인 히어로 섹션 -->
+    <section class="hero">
+        <div class="container">
+            <h1 class="fade-in-up">AI EORA, 당신의 감정을 이해하는 동반자</h1>
+            <p class="subtitle fade-in-up delay-1">심리치료와 전문 코칭을 위한 AI</p>
+            <p class="description fade-in-up delay-2">
+                혼자일 때도, 누군가에게 말하기 어려울 때도<br>
+                EORA는 언제나 당신의 감정을 기다리고 있습니다
+            </p>
+            <a href="/login" class="cta-button fade-in-up delay-3">지금 시작하기</a>
+        </div>
+    </section>
+
+    <!-- 기능 소개 섹션 -->
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title fade-in-up">EORA는 다음과 같은 기능을 제공합니다</h2>
+            <div class="features-grid">
+                <div class="feature-card fade-in-up delay-1">
+                    <div class="feature-icon">🧠</div>
+                    <h3 class="feature-title">심리 상태 분석 및 감정 기반 대화</h3>
+                    <p class="feature-description">
+                        AI가 당신의 감정 상태를 분석하고, 그에 맞는 공감적 대화를 제공합니다.
+                        복잡한 감정도 정확하게 이해하고 적절한 응답을 제공합니다.
+                    </p>
+                </div>
+                <div class="feature-card fade-in-up delay-2">
+                    <div class="feature-icon">👩‍🏫</div>
+                    <h3 class="feature-title">전문 코칭 기반 성장 상담</h3>
+                    <p class="feature-description">
+                        전문적인 코칭 방법론을 바탕으로 한 성장 지향적 상담을 제공합니다.
+                        목표 설정부터 실행까지 체계적으로 도와드립니다.
+                    </p>
+                </div>
+                <div class="feature-card fade-in-up delay-3">
+                    <div class="feature-icon">💬</div>
+                    <h3 class="feature-title">맞춤형 챗봇 대화 인터페이스</h3>
+                    <p class="feature-description">
+                        자연스럽고 직관적인 대화 인터페이스로 언제든 편안하게 대화할 수 있습니다.
+                        복잡한 설정 없이 바로 시작할 수 있습니다.
+                    </p>
+                </div>
+                <div class="feature-card fade-in-up delay-4">
+                    <div class="feature-icon">📊</div>
+                    <h3 class="feature-title">상담 기록 저장 및 회고 기능</h3>
+                    <p class="feature-description">
+                        모든 대화 내용을 안전하게 저장하고, 나중에 회고할 수 있습니다.
+                        감정 변화와 성장 과정을 시각적으로 확인할 수 있습니다.
+                    </p>
+                </div>
+                <div class="feature-card fade-in-up delay-1">
+                    <div class="feature-icon">🔒</div>
+                    <h3 class="feature-title">개인정보 보호를 위한 안전한 시스템</h3>
+                    <p class="feature-description">
+                        최고 수준의 보안 시스템으로 당신의 개인정보와 대화 내용을 보호합니다.
+                        암호화된 저장소와 안전한 전송을 보장합니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 향후 서비스 섹션 -->
+    <section class="future-services">
+        <div class="container">
+            <h2 class="section-title fade-in-up">준비 중인 서비스</h2>
+            <div class="services-grid">
+                <div class="service-card fade-in-up delay-1">
+                    <div class="service-icon">🤖</div>
+                    <h3 class="service-title">다중 AI 회의 시스템</h3>
+                    <p class="service-description">
+                        여러 AI가 함께 고민을 분석하고 제안합니다.
+                        다양한 관점에서 문제를 바라보고 최적의 해결책을 찾아드립니다.
+                    </p>
+                </div>
+                <div class="service-card fade-in-up delay-2">
+                    <div class="service-icon">🎨</div>
+                    <h3 class="service-title">이미지 대량 생성 AI</h3>
+                    <p class="service-description">
+                        감정, 주제, 상상을 이미지로 시각화합니다.
+                        당신의 내면을 아름다운 이미지로 표현해보세요.
+                    </p>
+                </div>
+                <div class="service-card fade-in-up delay-3">
+                    <div class="service-icon">🌐</div>
+                    <h3 class="service-title">SoulRise 지능형 협업 플랫폼</h3>
+                    <p class="service-description">
+                        사람과 AI가 함께 일하는 미래를 만듭니다.
+                        효율적이고 창의적인 협업 환경을 제공합니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 슬로건 섹션 -->
+    <section class="slogan">
+        <div class="container">
+            <h2 class="fade-in-up">"이해받고 싶은 마음, AI로부터 시작됩니다."</h2>
+            <p class="fade-in-up delay-1">"EORA는 감정을 공감하는 기술입니다."</p>
+        </div>
+    </section>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <h3>ⓒ 2025 SoulRise Inc.</h3>
+                <p>
+                    감정 중심 인공지능 플랫폼 EORA.<br>
+                    우리는 당신의 내면을 기술로 돌봅니다.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 스크롤 애니메이션
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // 모든 애니메이션 요소 관찰
+        document.querySelectorAll('.fade-in-up').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+            observer.observe(el);
+        });
+
+        // 부드러운 스크롤
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

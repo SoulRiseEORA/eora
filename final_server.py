@@ -382,7 +382,7 @@ def save_chat_message(user_id: str, message: str, response: str, session_id: str
 @app.get("/", response_class=HTMLResponse)
 async def home_page(request: Request):
     """홈 페이지"""
-    return templates.TemplateResponse("chat.html", {"request": request})
+    return templates.TemplateResponse("home.html", {"request": request})
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
