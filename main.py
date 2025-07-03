@@ -143,7 +143,7 @@ async def shutdown_event():
 @app.get("/", response_class=HTMLResponse)
 async def home_page(request: Request):
     """홈 페이지"""
-    return templates.TemplateResponse("chat.html", {"request": request})
+    return templates.TemplateResponse("home.html", {"request": request})
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -696,6 +696,21 @@ async def search_memories(query: str, user_id: str = None):
 async def health_check():
     """헬스 체크 엔드포인트"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+@app.post("/api/set-language")
+async def set_language(request: Request):
+    """언어 설정 API"""
+    try:
+        body = await request.json()
+        language = body.get("language", "ko")
+        
+        # 쿠키에 언어 설정 저장
+        response = {"success": True, "language": language}
+        
+        return response
+    except Exception as e:
+        logger.error(f"언어 설정 오류: {str(e)}")
+        return {"success": False, "error": str(e)}
 
 @app.get("/api/eora/manifest")
 async def get_eora_manifest():

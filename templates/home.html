@@ -402,6 +402,88 @@
         .delay-2 { animation-delay: 0.2s; }
         .delay-3 { animation-delay: 0.3s; }
         .delay-4 { animation-delay: 0.4s; }
+
+        /* 로그인 폼 스타일 */
+        .login-form-container {
+            margin-top: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .login-form {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            min-width: 320px;
+            max-width: 400px;
+        }
+
+        .login-form h3 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .form-links {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .form-links a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .form-links a:hover {
+            color: #764ba2;
+        }
+
+        .divider {
+            margin: 0 0.5rem;
+            color: #999;
+        }
     </style>
 </head>
 <body>
@@ -446,7 +528,27 @@
                 혼자일 때도, 누군가에게 말하기 어려울 때도<br>
                 EORA는 언제나 당신의 감정을 기다리고 있습니다
             </p>
-            <a href="/login" class="cta-button fade-in-up delay-3" data-i18n="hero.cta">지금 시작하기</a>
+            
+            <!-- 로그인 폼 -->
+            <div class="login-form-container fade-in-up delay-3">
+                <div class="login-form">
+                    <h3 data-i18n="login.title">로그인</h3>
+                    <form id="loginForm" onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <input type="email" id="email" name="email" placeholder="이메일" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="password" name="password" placeholder="비밀번호" required>
+                        </div>
+                        <button type="submit" class="login-btn" data-i18n="login.submit">로그인</button>
+                    </form>
+                    <div class="form-links">
+                        <a href="/login" data-i18n="login.register">회원가입</a>
+                        <span class="divider">|</span>
+                        <a href="/chat" data-i18n="login.guest">게스트로 시작</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -562,6 +664,12 @@
                 "nav.dashboard": "대시보드",
                 "nav.memory": "기억관리",
                 "nav.login": "로그인",
+                
+                // 로그인
+                "login.title": "로그인",
+                "login.submit": "로그인",
+                "login.register": "회원가입",
+                "login.guest": "게스트로 시작",
                 
                 // 히어로 섹션
                 "hero.title": "AI EORA, 당신의 감정을 이해하는 동반자",
@@ -861,6 +969,40 @@
                 }
             });
         });
+
+        // 로그인 처리 함수
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 로그인 성공 시 토큰 저장
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user_info', JSON.stringify(data.user));
+                    
+                    // 대시보드로 리다이렉트
+                    window.location.href = '/dashboard';
+                } else {
+                    alert(data.message || '로그인에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('로그인 중 오류가 발생했습니다.');
+            }
+        }
     </script>
 </body>
 </html> 
