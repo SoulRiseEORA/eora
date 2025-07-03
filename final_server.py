@@ -266,6 +266,7 @@ class ConnectionManager:
                 self.disconnect(connection)
 
 manager = ConnectionManager()
+ensure_admin()
 
 # 관리자 계정 생성 함수 개선
 def ensure_admin():
@@ -1239,10 +1240,34 @@ async def chat_api(request: Request):
         data = await request.json()
         user_message = data.get("message", "")
         session_id = data.get("session_id", "default")
-        user_id = data.get("user_id", "anonymous")
         
         if not user_message:
             raise HTTPException(status_code=400, detail="메시지가 필요합니다.")
+        
+        # 사용자 인증 확인
+        user_id = "anonymous"
+        try:
+            # 쿠키에서 토큰 확인
+            token = request.cookies.get("access_token")
+            
+            # 헤더에서 토큰 확인
+            if not token:
+                auth_header = request.headers.get("Authorization")
+                if auth_header and auth_header.startswith("Bearer "):
+                    token = auth_header[7:]
+            
+            if token:
+                payload = verify_token(token)
+                if payload and payload.get("user_id"):
+                    user_id = payload["user_id"]
+                    print(f"✅ 인증된 사용자 채팅: {user_id}")
+                else:
+                    print("⚠️ 토큰 검증 실패 - 익명 사용자로 처리")
+            else:
+                print("⚠️ 토큰 없음 - 익명 사용자로 처리")
+                
+        except Exception as e:
+            print(f"⚠️ 사용자 인증 처리 오류: {e} - 익명 사용자로 처리")
         
         # GPT-4o 응답 생성
         try:
@@ -1260,6 +1285,7 @@ async def chat_api(request: Request):
         return {
             "response": response,
             "session_id": session_id,
+            "user_id": user_id,
             "timestamp": datetime.now().isoformat()
         }
         
@@ -1347,21 +1373,31 @@ async def generate_eora_response(user_message: str, user_id: str, request: Reque
         lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
         system_prompt = f"{system_prompt}\n\n{lang_instruction}"
         
-        # GPT-4o API 호출
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ],
-            max_tokens=1000,
-            temperature=0.7
-        )
+        # OpenAI API 키 확인
+        if not openai_api_key or openai_api_key == "your-openai-api-key-here":
+            print("⚠️ OpenAI API 키가 설정되지 않음 - 기본 응답 사용")
+            return f"안녕하세요! 저는 EORA AI입니다. 현재 OpenAI API 키가 설정되지 않아 완전한 대화 기능을 제공할 수 없습니다. 하지만 기본적인 응답은 가능합니다.\n\n사용자님의 메시지: '{user_message}'\n\n이 메시지에 대한 제 생각은... 흥미로운 질문이네요! 더 자세한 답변을 원하시면 관리자에게 OpenAI API 키 설정을 요청해주세요."
         
-        return response.choices[0].message.content
+        # GPT-4o API 호출
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message}
+                ],
+                max_tokens=1000,
+                temperature=0.7
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as api_error:
+            print(f"GPT-4o API 호출 실패: {api_error}")
+            return f"죄송합니다. OpenAI API 호출 중 오류가 발생했습니다: {str(api_error)}\n\n대신 기본 응답을 드리겠습니다: '{user_message}'에 대한 답변을 준비 중입니다..."
         
     except Exception as e:
-        print(f"GPT-4o API 오류: {str(e)}")
+        print(f"EORA AI 응답 생성 오류: {str(e)}")
         return "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
 
 # 명령어 처리 함수
