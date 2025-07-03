@@ -29,6 +29,13 @@ except ImportError:
 
 app = FastAPI(title="EORA AI System - Final", version="1.0.0")
 
+# 정적 파일 및 템플릿 설정
+try:
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+except RuntimeError:
+    print("⚠️ static 디렉토리가 없습니다. 정적 파일 서빙을 건너뜁니다.")
+templates = Jinja2Templates(directory="templates")
+
 # JWT 설정
 JWT_SECRET = "eora_ai_secret_key_2024"
 JWT_ALGORITHM = "HS256"
@@ -1221,7 +1228,7 @@ async def chat_api(request: Request):
         
         # GPT-4o 응답 생성
         try:
-            response = await generate_eora_response(user_message, user_id)
+            response = await generate_eora_response(user_message, user_id, request)
         except Exception as e:
             print(f"GPT-4o 응답 생성 실패: {e}")
             response = "죄송합니다. 일시적인 오류가 발생했습니다."
@@ -1261,7 +1268,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 session_id = message_data.get("session_id", client_id)
                 
                 # GPT-4o 응답 생성
-                response = await generate_eora_response(user_message, session_id)
+                response = await generate_eora_response(user_message, session_id, request)
                 
                 # 응답 전송
                 await manager.send_personal_message(json.dumps({
@@ -1275,8 +1282,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         manager.disconnect(websocket)
 
 # EORA AI 응답 생성 함수
-async def generate_eora_response(user_message: str, user_id: str) -> str:
-    """EORA AI 응답 생성 - ai1 프롬프트 적용"""
+async def generate_eora_response(user_message: str, user_id: str, request: Request = None) -> str:
+    """EORA AI 응답 생성 - ai1 프롬프트 적용 + 언어 자동화"""
     try:
         # 명령어 처리
         if user_message.startswith("/"):
@@ -1307,6 +1314,20 @@ async def generate_eora_response(user_message: str, user_id: str) -> str:
         except Exception as e:
             print(f"프롬프트 로드 오류: {str(e)}")
             # 기본 프롬프트 사용
+        
+        # 언어 감지 및 안내문 추가
+        language = "ko"
+        if request is not None:
+            language = request.cookies.get("user_language", "ko")
+        
+        lang_map = {
+            "ko": "모든 답변은 한국어로 해주세요.",
+            "en": "Please answer in English.",
+            "ja": "すべての回答は日本語でお願いします。",
+            "zh": "请用中文回答所有问题。"
+        }
+        lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
+        system_prompt = f"{system_prompt}\n\n{lang_instruction}"
         
         # GPT-4o API 호출
         response = client.chat.completions.create(
@@ -1383,6 +1404,35 @@ async def api_status():
         "users_count": len(users_db),
         "active_sessions": len(manager.active_connections)
     }
+
+@app.post("/api/set-language")
+async def set_language(request: Request):
+    """사용자 언어 설정 저장"""
+    try:
+        data = await request.json()
+        language = data.get("language", "ko")
+        
+        # 지원하는 언어인지 확인
+        supported_languages = ["ko", "en", "ja", "zh"]
+        if language not in supported_languages:
+            language = "ko"
+        
+        # 쿠키에 언어 설정 저장
+        response = JSONResponse({"success": True, "language": language})
+        response.set_cookie(key="user_language", value=language, max_age=365*24*60*60)  # 1년간 유지
+        
+        return response
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+
+@app.get("/api/get-language")
+async def get_language(request: Request):
+    """사용자 언어 설정 조회"""
+    try:
+        language = request.cookies.get("user_language", "ko")
+        return {"language": language}
+    except Exception as e:
+        return {"language": "ko"}
 
 # 관리자 API 엔드포인트들
 @app.get("/api/admin/users")
