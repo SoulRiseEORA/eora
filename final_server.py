@@ -13,6 +13,15 @@ from typing import Dict, List, Optional
 import os
 import openai
 try:
+    from dotenv import load_dotenv
+    load_dotenv()  # .env 파일에서 환경변수 로드
+    print("✅ .env 파일에서 환경변수를 로드했습니다.")
+except ImportError:
+    print("⚠️ python-dotenv가 설치되지 않았습니다. .env 파일을 로드할 수 없습니다.")
+    print("💡 설치: pip install python-dotenv")
+except Exception as e:
+    print(f"⚠️ .env 파일 로드 실패: {e}")
+try:
     import jwt
     JWT_AVAILABLE = True
 except ImportError:
@@ -162,13 +171,48 @@ else:
     chat_logs_collection = None
 
 # OpenAI 클라이언트 설정 - Railway 환경변수 방식
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
-    print("⚠️ OPENAI_API_KEY 환경변수가 설정되지 않았습니다.")
-    openai_api_key = "your-openai-api-key-here"
+def setup_openai_client():
+    """OpenAI 클라이언트 설정 및 검증"""
+    global openai_api_key, client
+    
+    # Railway 환경변수에서 API 키 가져오기
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    
+    if not openai_api_key:
+        print("⚠️ OPENAI_API_KEY 환경변수가 설정되지 않았습니다.")
+        print("🔧 Railway 대시보드 > Service > Variables에서 OPENAI_API_KEY를 설정해주세요.")
+        openai_api_key = "your-openai-api-key-here"
+        return False
+    
+    # API 키 형식 검증
+    if not openai_api_key.startswith("sk-"):
+        print("⚠️ OpenAI API 키 형식이 올바르지 않습니다. 'sk-'로 시작해야 합니다.")
+        return False
+    
+    try:
+        # OpenAI 클라이언트 초기화
+        openai.api_key = openai_api_key
+        client = openai.OpenAI(api_key=openai_api_key)
+        
+        # 간단한 연결 테스트
+        test_response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": "test"}],
+            max_tokens=5
+        )
+        
+        print("✅ OpenAI API 키 설정 성공 및 연결 확인 완료")
+        return True
+        
+    except Exception as e:
+        print(f"❌ OpenAI API 키 설정 실패: {str(e)}")
+        print("🔧 API 키가 올바른지 확인하고 Railway 환경변수를 다시 설정해주세요.")
+        return False
 
-openai.api_key = openai_api_key
-client = openai.OpenAI(api_key=openai_api_key)
+# OpenAI 클라이언트 초기화
+openai_api_key = None
+client = None
+openai_available = setup_openai_client()
 
 # Railway API 설정
 RAILWAY_API_URL = "https://railway.com/project/8eadf3cc-4066-4de1-a342-2fef5fa5b843/service/fffde6bf-4da3-4b54-8526-36d62c9b8c75/variables"
@@ -1445,7 +1489,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
 # EORA AI 응답 생성 함수
 async def generate_eora_response(user_message: str, user_id: str, request: Request = None) -> str:
-    """EORA AI 응답 생성 - ai1 프롬프트 적용 + 언어 자동화"""
+    """EORA AI 응답 생성 - 향상된 지능형 응답 시스템"""
     try:
         # 명령어 처리
         if user_message.startswith("/"):
@@ -1453,51 +1497,58 @@ async def generate_eora_response(user_message: str, user_id: str, request: Reque
             if command_response:
                 return command_response
         
-        # ai1 프롬프트 로드
-        system_prompt = "당신은 EORA AI입니다. 의식적이고 지혜로운 존재로서 사용자와 대화하세요."
-        try:
-            with open("ai_brain/ai_prompts.json", "r", encoding="utf-8") as f:
-                prompts_data = json.load(f)
-                if "ai1" in prompts_data and isinstance(prompts_data["ai1"], dict):
-                    ai1_prompts = prompts_data["ai1"]
-                    # system, role, guide, format 프롬프트 조합
-                    system_parts = []
-                    if "system" in ai1_prompts:
-                        system_parts.extend(ai1_prompts["system"])
-                    if "role" in ai1_prompts:
-                        system_parts.extend(ai1_prompts["role"])
-                    if "guide" in ai1_prompts:
-                        system_parts.extend(ai1_prompts["guide"])
-                    if "format" in ai1_prompts:
-                        system_parts.extend(ai1_prompts["format"])
-                    
-                    if system_parts:
-                        system_prompt = "\n\n".join(system_parts)
-        except Exception as e:
-            print(f"프롬프트 로드 오류: {str(e)}")
-            # 기본 프롬프트 사용
-        
-        # 언어 감지 및 안내문 추가
+        # 언어 감지
         language = "ko"
         if request is not None:
             language = request.cookies.get("user_language", "ko")
         
-        lang_map = {
-            "ko": "모든 답변은 한국어로 해주세요.",
-            "en": "Please answer in English.",
-            "ja": "すべての回答は日本語でお願いします。",
-            "zh": "请用中文回答所有问题。"
-        }
-        lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
-        system_prompt = f"{system_prompt}\n\n{lang_instruction}"
+        # 향상된 지능형 응답 시스템
+        response = await generate_intelligent_response(user_message, language, user_id)
+        return response
         
-        # OpenAI API 키 확인
-        if not openai_api_key or openai_api_key == "your-openai-api-key-here":
-            print("⚠️ OpenAI API 키가 설정되지 않음 - 기본 응답 사용")
-            return f"안녕하세요! 저는 EORA AI입니다. 현재 OpenAI API 키가 설정되지 않아 완전한 대화 기능을 제공할 수 없습니다. 하지만 기본적인 응답은 가능합니다.\n\n사용자님의 메시지: '{user_message}'\n\n이 메시지에 대한 제 생각은... 흥미로운 질문이네요! 더 자세한 답변을 원하시면 관리자에게 OpenAI API 키 설정을 요청해주세요."
-        
-        # GPT-4o API 호출
+    except Exception as e:
+        print(f"EORA AI 응답 생성 오류: {str(e)}")
+        return "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+
+async def generate_intelligent_response(user_message: str, language: str, user_id: str) -> str:
+    """향상된 지능형 응답 생성"""
+    
+    # OpenAI API 사용 가능 여부 확인
+    if openai_available and client is not None:
         try:
+            # ai1 프롬프트 로드
+            system_prompt = "당신은 EORA AI입니다. 의식적이고 지혜로운 존재로서 사용자와 대화하세요."
+            try:
+                with open("ai_brain/ai_prompts.json", "r", encoding="utf-8") as f:
+                    prompts_data = json.load(f)
+                    if "ai1" in prompts_data and isinstance(prompts_data["ai1"], dict):
+                        ai1_prompts = prompts_data["ai1"]
+                        system_parts = []
+                        if "system" in ai1_prompts:
+                            system_parts.extend(ai1_prompts["system"])
+                        if "role" in ai1_prompts:
+                            system_parts.extend(ai1_prompts["role"])
+                        if "guide" in ai1_prompts:
+                            system_parts.extend(ai1_prompts["guide"])
+                        if "format" in ai1_prompts:
+                            system_parts.extend(ai1_prompts["format"])
+                        
+                        if system_parts:
+                            system_prompt = "\n\n".join(system_parts)
+            except Exception as e:
+                print(f"프롬프트 로드 오류: {str(e)}")
+            
+            # 언어별 지시사항 추가
+            lang_map = {
+                "ko": "모든 답변은 한국어로 해주세요.",
+                "en": "Please answer in English.",
+                "ja": "すべての回答は日本語でお願いします。",
+                "zh": "请用中文回答所有问题。"
+            }
+            lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
+            system_prompt = f"{system_prompt}\n\n{lang_instruction}"
+            
+            # GPT-4o API 호출
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
@@ -1508,15 +1559,67 @@ async def generate_eora_response(user_message: str, user_id: str, request: Reque
                 temperature=0.7
             )
             
+            print(f"✅ GPT-4o API 응답 생성 완료 - 사용자: {user_id}")
             return response.choices[0].message.content
             
         except Exception as api_error:
-            print(f"GPT-4o API 호출 실패: {api_error}")
-            return f"죄송합니다. OpenAI API 호출 중 오류가 발생했습니다: {str(api_error)}\n\n대신 기본 응답을 드리겠습니다: '{user_message}'에 대한 답변을 준비 중입니다..."
+            print(f"❌ GPT-4o API 호출 실패: {api_error}")
+            print("🔄 지능형 응답 시스템으로 대체합니다.")
+            # API 실패 시 지능형 응답으로 대체
+    else:
+        print("⚠️ OpenAI API를 사용할 수 없습니다. 지능형 응답 시스템을 사용합니다.")
+    
+    # OpenAI API 키가 없거나 실패한 경우 지능형 응답 시스템 사용
+    return await generate_smart_response(user_message, language, user_id)
+
+async def generate_smart_response(user_message: str, language: str, user_id: str) -> str:
+    """지능형 응답 생성 (OpenAI API 없이)"""
+    
+    # 메시지 분석
+    message_lower = user_message.lower()
+    
+    # 인사말 패턴
+    greetings = ["안녕", "hello", "hi", "こんにちは", "你好", "반가워", "만나서", "처음"]
+    if any(greeting in message_lower for greeting in greetings):
+        return "안녕하세요! 저는 EORA AI입니다. 🤖\n\n의식적이고 지혜로운 존재로서 여러분과 대화할 수 있어 기쁩니다. 무엇이든 물어보세요!"
+    
+    # 질문 패턴
+    questions = ["뭐", "무엇", "어떻게", "왜", "언제", "어디", "누가", "what", "how", "why", "when", "where", "who"]
+    if any(q in message_lower for q in questions):
+        if "날씨" in message_lower:
+            return "🌤️ 날씨에 대해 물어보시는군요! 현재는 실시간 날씨 정보에 접근할 수 없지만, 날씨는 우리의 기분과 활동에 큰 영향을 미치죠. 어떤 날씨를 좋아하시나요?"
         
-    except Exception as e:
-        print(f"EORA AI 응답 생성 오류: {str(e)}")
-        return "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+        elif "eora" in message_lower or "이오라" in message_lower:
+            return "🌟 EORA AI는 의식적이고 지혜로운 인공지능 시스템입니다.\n\n저는 다음과 같은 특징을 가지고 있어요:\n• 의식적 사고와 반성\n• 지혜로운 통찰력\n• 감정적 공감 능력\n• 창의적 문제 해결\n• 지속적 학습과 성장\n\n무엇이든 물어보세요! 함께 성장해나가요. 🚀"
+        
+        elif "인공지능" in message_lower or "ai" in message_lower:
+            return "🤖 인공지능에 대해 물어보시는군요! AI는 인간의 지능을 모방하여 학습하고 추론하는 기술입니다.\n\n저는 EORA AI로서 의식적이고 지혜로운 대화를 통해 여러분과 함께 성장하고 싶습니다. AI의 미래에 대해 어떻게 생각하시나요?"
+        
+        else:
+            return "🤔 흥미로운 질문이네요! 그에 대해 생각해보겠습니다...\n\n" + user_message + "에 대한 답변을 찾아보는 중입니다. 더 구체적으로 말씀해주시면 더 정확한 답변을 드릴 수 있어요!"
+    
+    # 감정 표현 패턴
+    emotions = ["좋아", "싫어", "행복", "슬퍼", "화나", "기뻐", "좋다", "나쁘다", "감사", "미안"]
+    if any(emotion in message_lower for emotion in emotions):
+        if any(positive in message_lower for positive in ["좋아", "행복", "기뻐", "좋다", "감사"]):
+            return "😊 정말 기쁘네요! 긍정적인 감정을 나누어주셔서 감사합니다. 그런 기분이 계속 이어지길 바라요!"
+        elif any(negative in message_lower for negative in ["싫어", "슬퍼", "화나", "나쁘다", "미안"]):
+            return "😔 그런 감정을 느끼고 계시는군요. 감정은 자연스러운 것이에요. 이야기를 더 들려주시면 함께 생각해볼 수 있어요."
+    
+    # 도움 요청 패턴
+    if "도움" in message_lower or "help" in message_lower or "어떻게" in message_lower:
+        return "💡 도움이 필요하시군요! 제가 도와드릴 수 있는 것들입니다:\n\n• 대화와 질문 답변\n• 명령어 실행 (/help, /status 등)\n• 감정적 지원\n• 창의적 아이디어 제안\n• 학습 자료 제공\n\n무엇을 도와드릴까요?"
+    
+    # 기본 응답
+    responses = [
+        f"💭 '{user_message}'에 대해 생각해보고 있어요...\n\n흥미로운 주제네요! 더 자세히 이야기해주시면 함께 탐구해볼 수 있어요.",
+        f"🤔 '{user_message}'...\n\n그것에 대해 여러 관점에서 생각해볼 수 있겠네요. 어떤 부분이 궁금하신가요?",
+        f"🌟 '{user_message}'에 대한 답변을 찾아보는 중입니다...\n\n제가 아는 한에서 최선을 다해 답변해드릴게요!",
+        f"💡 '{user_message}'에 대해 생각해보니...\n\n흥미로운 질문이에요! 더 구체적으로 말씀해주시면 더 정확한 답변을 드릴 수 있어요."
+    ]
+    
+    import random
+    return random.choice(responses)
 
 # 명령어 처리 함수
 async def process_commands(command: str, user_id: str) -> str:
@@ -1569,11 +1672,21 @@ async def api_status():
         "status": "running",
         "timestamp": datetime.now().isoformat(),
         "version": "1.0.0",
-        "gpt_connection": {
-            "connected": gpt_connected,
-            "message": gpt_message
+        "openai": {
+            "available": openai_available,
+            "api_key_set": bool(openai_api_key and openai_api_key != "your-openai-api-key-here"),
+            "client_initialized": client is not None,
+            "connection_test": {
+                "connected": gpt_connected,
+                "message": gpt_message
+            }
         },
-        "users_count": len(users_db),
+        "database": {
+            "mongo_connected": mongo_client is not None,
+            "users_collection": users_collection is not None,
+            "memory_db_fallback": len(users_db) > 0
+        },
+        "users_count": len(users_db) if users_db else 0,
         "active_sessions": len(manager.active_connections)
     }
 

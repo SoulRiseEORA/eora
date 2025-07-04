@@ -25,6 +25,17 @@ def fix_environment_variables():
         "MONGO_INITDB_ROOT_USERNAME"
     ]
     
+    # OpenAI API 키 확인
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if openai_key:
+        if openai_key.startswith("sk-"):
+            print("✅ OpenAI API 키가 올바르게 설정되어 있습니다!")
+        else:
+            print("❌ OpenAI API 키 형식이 올바르지 않습니다. 'sk-'로 시작해야 합니다.")
+    else:
+        print("❌ OPENAI_API_KEY가 설정되지 않았습니다.")
+        print("🔧 Railway 대시보드 > Service > Variables에서 설정해주세요.")
+    
     for var_name in mongo_vars:
         value = os.getenv(var_name, "")
         if value:
