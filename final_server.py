@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect, Depends
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import json
 import hashlib
@@ -12,6 +13,7 @@ import asyncio
 from typing import Dict, List, Optional
 import os
 import openai
+
 try:
     from dotenv import load_dotenv
     load_dotenv()  # .env 파일에서 환경변수 로드
@@ -21,6 +23,7 @@ except ImportError:
     print("💡 설치: pip install python-dotenv")
 except Exception as e:
     print(f"⚠️ .env 파일 로드 실패: {e}")
+
 try:
     import jwt
     JWT_AVAILABLE = True
@@ -28,7 +31,9 @@ except ImportError:
     import base64
     import json
     JWT_AVAILABLE = False
+
 from pydantic import BaseModel
+
 try:
     import pymongo
     from pymongo import MongoClient
@@ -38,12 +43,70 @@ except ImportError:
 
 app = FastAPI(title="EORA AI System - Final", version="1.0.0")
 
+# CORS 미들웨어 추가 - 모든 오리진 허용
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 개발용: 모든 오리진 허용
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # 정적 파일 및 템플릿 설정
-try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-except RuntimeError:
-    print("⚠️ static 디렉토리가 없습니다. 정적 파일 서빙을 건너뜁니다.")
-templates = Jinja2Templates(directory="templates")
+import os
+
+# 현재 작업 디렉토리 확인
+current_dir = os.getcwd()
+static_dir = os.path.join(current_dir, "static")
+templates_dir = os.path.join(current_dir, "templates")
+
+print(f"📁 현재 작업 디렉토리: {current_dir}")
+print(f"📁 정적 파일 디렉토리: {static_dir}")
+print(f"📁 템플릿 디렉토리: {templates_dir}")
+
+# 정적 파일 디렉토리 내용 확인
+if os.path.exists(static_dir):
+    print(f"✅ 정적 파일 디렉토리 존재: {static_dir}")
+    try:
+        static_files = os.listdir(static_dir)
+        print(f"📋 정적 파일 목록: {static_files}")
+        
+        # test_chat_simple.html 파일 존재 확인
+        test_file = os.path.join(static_dir, "test_chat_simple.html")
+        if os.path.exists(test_file):
+            print(f"✅ test_chat_simple.html 파일 존재: {test_file}")
+        else:
+            print(f"❌ test_chat_simple.html 파일 없음: {test_file}")
+            
+        # 정적 파일 마운트
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
+        print("✅ 정적 파일 마운트 성공")
+    except Exception as e:
+        print(f"❌ 정적 파일 마운트 실패: {e}")
+        print("⚠️ 정적 파일 서빙을 건너뜁니다.")
+else:
+    print(f"❌ 정적 파일 디렉토리가 존재하지 않음: {static_dir}")
+    print("⚠️ 정적 파일 서빙을 건너뜁니다.")
+
+# 템플릿 디렉토리 존재 확인
+if os.path.exists(templates_dir):
+    print(f"✅ 템플릿 디렉토리 존재: {templates_dir}")
+    templates = Jinja2Templates(directory=templates_dir)
+else:
+    print(f"❌ 템플릿 디렉토리가 존재하지 않음: {templates_dir}")
+    print("⚠️ 템플릿을 사용할 수 없습니다.")
+
+# 정적 파일 디버깅용 엔드포인트 추가
+@app.get("/debug/static")
+async def debug_static():
+    """정적 파일 디버깅 정보"""
+    return {
+        "current_dir": current_dir,
+        "static_dir": static_dir,
+        "static_dir_exists": os.path.exists(static_dir),
+        "static_files": os.listdir(static_dir) if os.path.exists(static_dir) else [],
+        "test_file_exists": os.path.exists(os.path.join(static_dir, "test_chat_simple.html")) if os.path.exists(static_dir) else False
+    }
 
 # JWT 설정
 JWT_SECRET = "eora_ai_secret_key_2024"
@@ -358,8 +421,7 @@ async def test_gpt4o_connection():
     except Exception as e:
         return False, f"GPT-4o 연결 실패: {str(e)}"
 
-# 정적 파일 및 템플릿 설정
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# 템플릿 설정 (정적 파일은 이미 위에서 마운트됨)
 templates = Jinja2Templates(directory="templates")
 
 # 사용자 저장소 (MongoDB 연결 실패 시 메모리 사용)
@@ -1398,28 +1460,47 @@ async def get_memory():
 @app.post("/api/chat")
 async def chat_api(request: Request):
     """채팅 API 엔드포인트"""
+    print("🔍 /api/chat 엔드포인트 호출됨")
+    
     try:
+        # 요청 데이터 파싱
+        print("📥 요청 데이터 파싱 시작")
         data = await request.json()
+        print(f"📥 파싱된 데이터: {data}")
+        
         user_message = data.get("message", "")
         session_id = data.get("session_id", "default")
         
+        print(f"💬 사용자 메시지: {user_message}")
+        print(f"🆔 세션 ID: {session_id}")
+        
         if not user_message:
+            print("❌ 빈 메시지 - 400 오류 반환")
             raise HTTPException(status_code=400, detail="메시지가 필요합니다.")
         
         # 사용자 인증 확인
         user_id = "anonymous"
+        print("🔐 사용자 인증 확인 시작")
+        
         try:
             # 쿠키에서 토큰 확인
             token = request.cookies.get("access_token")
+            print(f"🍪 쿠키에서 토큰: {token[:20] + '...' if token else 'None'}")
             
             # 헤더에서 토큰 확인
             if not token:
                 auth_header = request.headers.get("Authorization")
+                print(f"📋 Authorization 헤더: {auth_header}")
+                
                 if auth_header and auth_header.startswith("Bearer "):
                     token = auth_header[7:]
+                    print(f"🔑 헤더에서 토큰 추출: {token[:20] + '...' if token else 'None'}")
             
             if token:
+                print("🔍 토큰 검증 시작")
                 payload = verify_token(token)
+                print(f"🔍 토큰 페이로드: {payload}")
+                
                 if payload and payload.get("user_id"):
                     user_id = payload["user_id"]
                     print(f"✅ 인증된 사용자 채팅: {user_id}")
@@ -1432,29 +1513,43 @@ async def chat_api(request: Request):
             print(f"⚠️ 사용자 인증 처리 오류: {e} - 익명 사용자로 처리")
         
         # GPT-4o 응답 생성
+        print("🤖 GPT-4o 응답 생성 시작")
         try:
             response = await generate_eora_response(user_message, user_id, request)
+            print(f"✅ GPT-4o 응답 생성 완료: {response[:100]}...")
         except Exception as e:
-            print(f"GPT-4o 응답 생성 실패: {e}")
+            print(f"❌ GPT-4o 응답 생성 실패: {e}")
             response = "죄송합니다. 일시적인 오류가 발생했습니다."
         
         # 대화 내용 저장
+        print("💾 대화 내용 저장 시작")
         try:
             save_chat_message(user_id, user_message, response, session_id)
+            print("✅ 대화 내용 저장 완료")
         except Exception as e:
-            print(f"대화 저장 실패: {e}")
+            print(f"❌ 대화 저장 실패: {e}")
         
-        return {
+        # 응답 반환
+        response_data = {
             "response": response,
             "session_id": session_id,
             "user_id": user_id,
             "timestamp": datetime.now().isoformat()
         }
         
+        print(f"📤 응답 데이터: {response_data}")
+        print("✅ /api/chat 엔드포인트 처리 완료")
+        
+        return response_data
+        
     except HTTPException:
+        print("❌ HTTPException 발생 - 재발생")
         raise
     except Exception as e:
-        print(f"/api/chat 오류: {e}")
+        print(f"💥 /api/chat 예상치 못한 오류: {e}")
+        print(f"💥 오류 타입: {type(e).__name__}")
+        import traceback
+        print(f"💥 오류 스택: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="/api/chat 처리 중 오류가 발생했습니다.")
 
 # 웹소켓 엔드포인트
@@ -2013,12 +2108,58 @@ def process_conversation_content(content: str, filename: str) -> List[Dict]:
     
     return turns
 
+# 정적 파일 직접 제공 엔드포인트
+@app.get("/static/{file_path:path}")
+async def serve_static_file(file_path: str):
+    """정적 파일 직접 제공"""
+    import os
+    from fastapi.responses import FileResponse
+    
+    static_file_path = os.path.join(static_dir, file_path)
+    
+    print(f"🔍 정적 파일 요청: {file_path}")
+    print(f"📁 전체 경로: {static_file_path}")
+    print(f"📁 파일 존재: {os.path.exists(static_file_path)}")
+    
+    if os.path.exists(static_file_path) and os.path.isfile(static_file_path):
+        print(f"✅ 파일 제공: {static_file_path}")
+        return FileResponse(static_file_path)
+    else:
+        print(f"❌ 파일 없음: {static_file_path}")
+        raise HTTPException(status_code=404, detail=f"파일을 찾을 수 없습니다: {file_path}")
+
+# test_chat_simple.html 직접 제공
+@app.get("/test_chat_simple.html")
+async def serve_test_chat():
+    """테스트 채팅 페이지 직접 제공"""
+    import os
+    from fastapi.responses import FileResponse
+    
+    test_file_path = os.path.join(static_dir, "test_chat_simple.html")
+    
+    print(f"🔍 테스트 채팅 페이지 요청")
+    print(f"📁 파일 경로: {test_file_path}")
+    print(f"📁 파일 존재: {os.path.exists(test_file_path)}")
+    
+    if os.path.exists(test_file_path):
+        print(f"✅ 테스트 페이지 제공: {test_file_path}")
+        return FileResponse(test_file_path)
+    else:
+        print(f"❌ 테스트 페이지 없음: {test_file_path}")
+        raise HTTPException(status_code=404, detail="테스트 페이지를 찾을 수 없습니다")
+
+# 테스트 채팅 페이지 제공
+@app.get("/test-chat")
+async def test_chat_page(request: Request):
+    """테스트 채팅 페이지"""
+    return templates.TemplateResponse("test_chat_simple.html", {"request": request})
+
 if __name__ == "__main__":
     import traceback
     try:
         ensure_admin()
-        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8010
-        port = int(os.getenv("PORT", 8010))
+        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8013
+        port = int(os.getenv("PORT", 8013))
         host = "0.0.0.0" if port == 8080 else "127.0.0.1"
         print("🚀 EORA AI 최종 서버를 시작합니다...")
         print(f"📍 주소: http://{host}:{port}")
@@ -2045,8 +2186,8 @@ if __name__ == "__main__":
         print("   - 패키지 목록: GET /api/points/packages")
         print("   - 포인트 구매: POST /api/points/purchase")
         print("============================================================")
-        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8010
-        port = int(os.getenv("PORT", 8010))
+        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8013
+        port = int(os.getenv("PORT", 8013))
         host = "0.0.0.0" if port == 8080 else "127.0.0.1"
         uvicorn.run(app, host=host, port=port)
     except Exception as e:

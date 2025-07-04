@@ -1,8 +1,15 @@
-# Python
+# 환경변수 파일
+.env
+.env.local
+.env.production
+
+# Python 캐시 파일
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# 배포 파일
 .Python
 build/
 develop-eggs/
@@ -19,138 +26,47 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# celery beat schedule file
-celerybeat-schedule
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
+# 가상환경
 venv/
+env/
 ENV/
-env.bak/
-venv.bak/
 
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# IDE
+# IDE 파일
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
+# 로그 파일
+*.log
+logs/
+
+# 채팅 로그
+chat_logs/
+*.json
+
+# 데이터베이스
+*.db
+*.sqlite3
+
+# 시스템 파일
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Project specific
-*.db
-*.sqlite
-*.sqlite3
-dump.rdb
-*.log
-error_logs.json
-training_log.txt
-*.index
-*.idx
-*.pkl
-*.npy
-*.json.bak
-*.bak
+# 임시 파일
 *.tmp
+*.temp
 
-# Memory and data files
-memory/
-memories/
-vectors/
-chroma_db/
-data/db/
-session_data/
-chat_logs/
-sessions/
+# Redis
+dump.rdb
 
-# Configuration files with sensitive data
-config/ai_config.json
-config/aura_config.json
-eora_config.json
+# MongoDB
+*.lock
 
-# Large files
-*.zip
-*.tar.gz
-*.rar
-
-# Temporary files
-temp/
-tmp/ 
+# 기타
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log* 
