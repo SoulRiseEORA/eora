@@ -196,9 +196,14 @@ async def get_current_user(request: Request, credentials: HTTPAuthorizationCrede
         token = request.cookies.get("access_token")
     if not token:
         raise HTTPException(status_code=401, detail="토큰이 필요합니다")
+    
+    # 토큰 디버깅 정보 추가
+    print(f"토큰 검증 시작: {token[:20]}..." if len(token) > 20 else f"토큰 검증 시작: {token}")
+    
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다")
+    
     # MongoDB에서 사용자 정보 확인
     if mongo_client and users_collection:
         user = users_collection.find_one({"user_id": payload.get("user_id")})
@@ -234,9 +239,6 @@ users_db = {}
 points_db = {}
 sessions_db = {}
 
-# 서버 시작 시 관리자 계정 생성
-ensure_admin()
-
 # 웹소켓 연결 관리
 class ConnectionManager:
     def __init__(self):
@@ -266,7 +268,6 @@ class ConnectionManager:
                 self.disconnect(connection)
 
 manager = ConnectionManager()
-ensure_admin()
 
 # 관리자 계정 생성 함수 개선
 def ensure_admin():
@@ -542,6 +543,11 @@ async def login_user(user_data: UserLogin):
     try:
         user = None
         
+        # 디버깅 정보 추가
+        print(f"🔍 로그인 시도: {user_data.email}")
+        print(f"📊 메모리 DB 사용자 수: {len(users_db)}")
+        print(f"📋 메모리 DB 사용자 목록: {list(users_db.keys())}")
+        
         if mongo_client and users_collection:
             # MongoDB에서 사용자 검색
             user = users_collection.find_one({
@@ -554,13 +560,16 @@ async def login_user(user_data: UserLogin):
         else:
             # 메모리 DB에서 사용자 검색
             for u in users_db.values():
+                print(f"🔍 검색 중: {u.get('email')} vs {user_data.email}")
                 if (u.get("email") == user_data.email or 
                     u.get("user_id_login") == user_data.email or 
                     u.get("user_id") == user_data.email):
                     user = u
+                    print(f"✅ 사용자 찾음: {u.get('email')}")
                     break
         
         if not user:
+            print(f"❌ 사용자를 찾을 수 없음: {user_data.email}")
             raise HTTPException(status_code=400, detail="존재하지 않는 계정입니다.")
         
         # 비밀번호 확인
@@ -1785,6 +1794,7 @@ def process_conversation_content(content: str, filename: str) -> List[Dict]:
 if __name__ == "__main__":
     import traceback
     try:
+        ensure_admin()
         print("🚀 EORA AI 최종 서버를 시작합니다...")
         print("📍 주소: http://localhost:8010")
         print("📋 사용 가능한 페이지:")
