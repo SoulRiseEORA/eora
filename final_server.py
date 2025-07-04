@@ -634,6 +634,7 @@ async def login_user(user_data: UserLogin):
         
         if mongo_client is not None and users_collection is not None:
             # MongoDB에서 사용자 검색
+            print(f"🔍 MongoDB에서 사용자 검색: {user_data.email}")
             user = users_collection.find_one({
                 "$or": [
                     {"email": user_data.email},
@@ -641,15 +642,29 @@ async def login_user(user_data: UserLogin):
                     {"user_id": user_data.email}
                 ]
             })
+            
+            if user:
+                print(f"✅ MongoDB에서 사용자 찾음: {user.get('email')}")
+            else:
+                print(f"❌ MongoDB에서 사용자를 찾을 수 없음: {user_data.email}")
+                # MongoDB에 사용자가 없으면 메모리 DB에서도 확인
+                for u in users_db.values():
+                    print(f"🔍 메모리 DB 검색 중: {u.get('email')} vs {user_data.email}")
+                    if (u.get("email") == user_data.email or 
+                        u.get("user_id_login") == user_data.email or 
+                        u.get("user_id") == user_data.email):
+                        user = u
+                        print(f"✅ 메모리 DB에서 사용자 찾음: {u.get('email')}")
+                        break
         else:
             # 메모리 DB에서 사용자 검색
             for u in users_db.values():
-                print(f"🔍 검색 중: {u.get('email')} vs {user_data.email}")
+                print(f"🔍 메모리 DB 검색 중: {u.get('email')} vs {user_data.email}")
                 if (u.get("email") == user_data.email or 
                     u.get("user_id_login") == user_data.email or 
                     u.get("user_id") == user_data.email):
                     user = u
-                    print(f"✅ 사용자 찾음: {u.get('email')}")
+                    print(f"✅ 메모리 DB에서 사용자 찾음: {u.get('email')}")
                     break
         
         if not user:
@@ -668,12 +683,39 @@ async def login_user(user_data: UserLogin):
         # 마지막 로그인 시간 업데이트
         user["last_login"] = datetime.now().isoformat()
         
-        # MongoDB에 업데이트
+        # MongoDB에 업데이트 또는 저장
         if mongo_client is not None and users_collection is not None:
-            users_collection.update_one(
-                {"user_id": user["user_id"]},
-                {"$set": {"last_login": user["last_login"]}}
-            )
+            # MongoDB에 사용자가 있는지 확인
+            existing_user = users_collection.find_one({"user_id": user["user_id"]})
+            if existing_user:
+                # 기존 사용자 업데이트
+                users_collection.update_one(
+                    {"user_id": user["user_id"]},
+                    {"$set": {"last_login": user["last_login"]}}
+                )
+                print(f"✅ MongoDB 사용자 업데이트: {user['email']}")
+            else:
+                # 새 사용자를 MongoDB에 저장
+                users_collection.insert_one(user)
+                print(f"✅ MongoDB에 새 사용자 저장: {user['email']}")
+                
+                # 포인트 정보도 MongoDB에 저장
+                if points_collection is not None:
+                    user_points = {
+                        "user_id": user["user_id"],
+                        "current_points": 1000,
+                        "total_earned": 1000,
+                        "total_spent": 0,
+                        "last_updated": datetime.now().isoformat(),
+                        "history": [{
+                            "type": "login_bonus",
+                            "amount": 1000,
+                            "description": "로그인 보너스",
+                            "timestamp": datetime.now().isoformat()
+                        }]
+                    }
+                    points_collection.insert_one(user_points)
+                    print(f"✅ MongoDB에 포인트 정보 저장: {user['email']}")
         
         # JWT 토큰 생성
         token_data = {
