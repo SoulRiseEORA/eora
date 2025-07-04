@@ -2017,19 +2017,22 @@ if __name__ == "__main__":
     import traceback
     try:
         ensure_admin()
+        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8010
+        port = int(os.getenv("PORT", 8010))
+        host = "0.0.0.0" if port == 8080 else "127.0.0.1"
         print("🚀 EORA AI 최종 서버를 시작합니다...")
-        print("📍 주소: http://localhost:8010")
+        print(f"📍 주소: http://{host}:{port}")
         print("📋 사용 가능한 페이지:")
-        print("   - 홈: http://localhost:8010/")
-        print("   - 로그인: http://localhost:8010/login")
-        print("   - 대시보드: http://localhost:8010/dashboard")
-        print("   - 채팅: http://localhost:8010/chat")
-        print("   - 포인트: http://localhost:8010/points")
-        print("   - 기억관리: http://localhost:8010/memory")
-        print("   - 프롬프트: http://localhost:8010/prompts")
-        print("   - 관리자: http://localhost:8010/admin")
-        print("   - 상태 확인: http://localhost:8010/health")
-        print("   - API 상태: http://localhost:8010/api/status")
+        print(f"   - 홈: http://{host}:{port}/")
+        print(f"   - 로그인: http://{host}:{port}/login")
+        print(f"   - 대시보드: http://{host}:{port}/dashboard")
+        print(f"   - 채팅: http://{host}:{port}/chat")
+        print(f"   - 포인트: http://{host}:{port}/points")
+        print(f"   - 기억관리: http://{host}:{port}/memory")
+        print(f"   - 프롬프트: http://{host}:{port}/prompts")
+        print(f"   - 관리자: http://{host}:{port}/admin")
+        print(f"   - 상태 확인: http://{host}:{port}/health")
+        print(f"   - API 상태: http://{host}:{port}/api/status")
         print("============================================================")
         print("🔧 API 엔드포인트:")
         print("   - 회원가입: POST /api/auth/register")
@@ -2042,7 +2045,10 @@ if __name__ == "__main__":
         print("   - 패키지 목록: GET /api/points/packages")
         print("   - 포인트 구매: POST /api/points/purchase")
         print("============================================================")
-        uvicorn.run(app, host="127.0.0.1", port=8010)
+        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8010
+        port = int(os.getenv("PORT", 8010))
+        host = "0.0.0.0" if port == 8080 else "127.0.0.1"
+        uvicorn.run(app, host=host, port=port)
     except Exception as e:
         print("서버 실행 중 예외 발생:", e)
         traceback.print_exc() 
