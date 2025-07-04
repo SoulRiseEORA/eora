@@ -29,7 +29,6 @@ def test_speed_optimized():
     print("\n" + "=" * 50)
     
     # 2. 빠른 응답 테스트 (프리로드 응답)
-    print("2️⃣ 프리로드 응답 테스트 (즉시 응답)")
     fast_messages = ["hi", "hello", "안녕", "반가워", "테스트", "test"]
     
     fast_times = []
