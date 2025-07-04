@@ -43,28 +43,106 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 # MongoDB 연결 설정
 def get_mongo_client():
-    """MongoDB 클라이언트 생성"""
+    """MongoDB 클라이언트 생성 및 연결"""
+    global mongo_client, users_collection, points_collection
+    
     if not MONGO_AVAILABLE:
         print("⚠️ PyMongo 라이브러리가 설치되지 않았습니다.")
         return None
     
     try:
-        # Railway 환경변수에서 MongoDB 설정 읽기
-        mongo_user = os.getenv("MONGOUSER", "mongo")
-        mongo_password = os.getenv("MONGOPASSWORD", "HYxotmUHxMxbYAejsOxEnHwrgKpAochC")
-        mongo_host = os.getenv("MONGOHOST", "localhost")
-        mongo_port = os.getenv("MONGOPORT", "27017")
+        # Railway MongoDB 환경변수 확인
+        mongo_public_url = os.getenv("MONGO_PUBLIC_URL", "")
+        mongo_url = os.getenv("MONGO_URL", "")
+        mongo_root_password = os.getenv("MONGO_INITDB_ROOT_PASSWORD", "")
+        mongo_root_username = os.getenv("MONGO_INITDB_ROOT_USERNAME", "")
         
-        # MongoDB 연결 문자열
-        mongo_url = f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}"
+        # 환경변수 값 정리 (쌍따옴표, 공백, 줄바꿈 제거)
+        def clean_env_value(value):
+            if not value:
+                return ""
+            # 쌍따옴표, 공백, 줄바꿈 제거
+            cleaned = value.strip().replace('"', '').replace("'", "").replace('\n', '').replace('\r', '')
+            return cleaned
         
-        client = MongoClient(mongo_url)
-        # 연결 테스트
-        client.admin.command('ping')
-        print(f"✅ MongoDB 연결 성공: {mongo_host}:{mongo_port}")
-        return client
+        mongo_public_url = clean_env_value(mongo_public_url)
+        mongo_url = clean_env_value(mongo_url)
+        mongo_root_password = clean_env_value(mongo_root_password)
+        mongo_root_username = clean_env_value(mongo_root_username)
+        
+        # URL에서 잘못된 형식 수정
+        def fix_mongo_url(url):
+            if not url:
+                return ""
+            
+            # 포트 뒤에 다른 문자가 붙어있는 경우 수정
+            if '"' in url or "'" in url:
+                # 쌍따옴표나 작은따옴표가 포함된 경우 제거
+                url = url.replace('"', '').replace("'", "")
+            
+            # 포트 뒤에 다른 환경변수가 붙어있는 경우 수정
+            if 'MONGO_INITDB_ROOT_PASSWORD=' in url:
+                # 포트 번호까지만 추출
+                import re
+                port_match = re.search(r':(\d+)', url)
+                if port_match:
+                    port = port_match.group(1)
+                    # trolley.proxy.rlwy.net:포트까지만 사용
+                    if 'trolley.proxy.rlwy.net' in url:
+                        url = f"mongodb://mongo:{mongo_root_password}@trolley.proxy.rlwy.net:{port}"
+                    elif 'mongodb.railway.internal' in url:
+                        url = f"mongodb://mongo:{mongo_root_password}@mongodb.railway.internal:27017"
+            
+            return url
+        
+        # URL 수정
+        mongo_public_url = fix_mongo_url(mongo_public_url)
+        mongo_url = fix_mongo_url(mongo_url)
+        
+        # 연결 시도 순서
+        connection_urls = []
+        
+        # 1. 수정된 공개 URL
+        if mongo_public_url and mongo_public_url.startswith("mongodb://"):
+            connection_urls.append(("Railway 공개 URL", mongo_public_url))
+        
+        # 2. 수정된 내부 URL
+        if mongo_url and mongo_url.startswith("mongodb://"):
+            connection_urls.append(("Railway 내부 URL", mongo_url))
+        
+        # 3. 기본 공개 URL (환경변수가 없는 경우)
+        if mongo_root_password and mongo_root_username:
+            default_public_url = f"mongodb://{mongo_root_username}:{mongo_root_password}@trolley.proxy.rlwy.net:26594"
+            connection_urls.append(("기본 공개 URL", default_public_url))
+        
+        # 연결 시도
+        for name, url in connection_urls:
+            try:
+                print(f"🔗 MongoDB 연결 시도: {name}")
+                print(f"📝 연결 URL: {url.replace(mongo_root_password, '***') if mongo_root_password else url}")
+                
+                client = MongoClient(url, serverSelectionTimeoutMS=10000)
+                client.admin.command('ping')
+                
+                # 데이터베이스 및 컬렉션 설정
+                db = client.eora_ai
+                users_collection = db.users
+                points_collection = db.points
+                
+                print(f"✅ MongoDB 연결 성공: {name}")
+                return client
+                
+            except Exception as e:
+                print(f"❌ MongoDB 연결 실패: {e}")
+                print(f"🔍 상세 오류: {type(e).__name__}")
+                continue
+        
+        # 모든 연결 시도 실패
+        print("⚠️ MongoDB 연결 실패 - 메모리 DB 사용")
+        return None
+        
     except Exception as e:
-        print(f"❌ MongoDB 연결 실패: {e}")
+        print(f"❌ MongoDB 클라이언트 생성 실패: {e}")
         return None
 
 # MongoDB 클라이언트 초기화
@@ -205,10 +283,16 @@ async def get_current_user(request: Request, credentials: HTTPAuthorizationCrede
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다")
     
     # MongoDB에서 사용자 정보 확인
-    if mongo_client and users_collection:
+    if mongo_client is not None and users_collection is not None:
+        print(f"[디버그] 토큰 payload: {payload}")
         user = users_collection.find_one({"user_id": payload.get("user_id")})
+        print(f"[디버그] DB에서 찾은 user: {user}")
         if not user:
-            raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다")
+            # 혹시 email로도 찾아보기
+            user = users_collection.find_one({"email": payload.get("email")})
+            print(f"[디버그] email로 찾은 user: {user}")
+            if not user:
+                raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다")
         return user
     else:
         # 메모리 DB 사용
@@ -275,7 +359,7 @@ def ensure_admin():
     admin_email = "admin@eora.ai"
     admin_id = "admin"
     
-    if mongo_client and users_collection:
+    if mongo_client is not None and users_collection is not None:
         # MongoDB에서 관리자 계정 확인
         admin_user = users_collection.find_one({
             "$or": [
@@ -378,7 +462,7 @@ def save_chat_message(user_id: str, message: str, response: str, session_id: str
             "created_at": datetime.now()
         }
         
-        if mongo_client and chat_logs_collection:
+        if mongo_client is not None and chat_logs_collection is not None:
             # MongoDB에 저장
             chat_logs_collection.insert_one(chat_data)
             print(f"✅ 대화 저장 (MongoDB): {user_id}")
@@ -548,7 +632,7 @@ async def login_user(user_data: UserLogin):
         print(f"📊 메모리 DB 사용자 수: {len(users_db)}")
         print(f"📋 메모리 DB 사용자 목록: {list(users_db.keys())}")
         
-        if mongo_client and users_collection:
+        if mongo_client is not None and users_collection is not None:
             # MongoDB에서 사용자 검색
             user = users_collection.find_one({
                 "$or": [
@@ -585,7 +669,7 @@ async def login_user(user_data: UserLogin):
         user["last_login"] = datetime.now().isoformat()
         
         # MongoDB에 업데이트
-        if mongo_client and users_collection:
+        if mongo_client is not None and users_collection is not None:
             users_collection.update_one(
                 {"user_id": user["user_id"]},
                 {"$set": {"last_login": user["last_login"]}}
@@ -880,34 +964,17 @@ async def kakao_login(request: Request):
 
 @app.get("/api/user/info")
 async def get_user_info(current_user: dict = Depends(get_current_user)):
-    """사용자 정보 조회 API"""
-    try:
-        user_id = current_user.get("user_id")
-        if user_id not in users_db:
-            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
-        
-        user = users_db[user_id]
-        
-        # 민감한 정보 제외
-        user_info = {
-            "user_id": user["user_id"],
-            "name": user["name"],
-            "email": user["email"],
-            "created_at": user["created_at"],
-            "last_login": user.get("last_login"),
-            "is_admin": user.get("is_admin", False),
-            "role": user.get("role", "user"),
-            "status": user.get("status", "active"),
-            "profile": user.get("profile", {})
-        }
-        
-        return user_info
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"사용자 정보 조회 오류: {str(e)}")
-        raise HTTPException(status_code=500, detail="사용자 정보 조회 중 오류가 발생했습니다.")
+    print(f"[디버그] /api/user/info current_user: {current_user}")
+    if not current_user:
+        raise HTTPException(status_code=404, detail="사용자 정보를 찾을 수 없습니다")
+    # 필요한 정보만 추려서 반환
+    return {
+        "user_id": current_user.get("user_id"),
+        "email": current_user.get("email"),
+        "name": current_user.get("name"),
+        "is_admin": current_user.get("is_admin", False),
+        "role": current_user.get("role", "user")
+    }
 
 @app.get("/api/user/stats")
 async def get_user_stats(current_user: dict = Depends(get_current_user)):
