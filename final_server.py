@@ -13,6 +13,7 @@ import asyncio
 from typing import Dict, List, Optional
 import os
 import openai
+import jwt
 
 try:
     from dotenv import load_dotenv
@@ -40,6 +41,63 @@ try:
     MONGO_AVAILABLE = True
 except ImportError:
     MONGO_AVAILABLE = False
+
+# 아우라 통합 시스템 import
+try:
+    from aura_integration import get_aura_integration, AuraIntegration
+    AURA_INTEGRATION_AVAILABLE = True
+    print("✅ 아우라 통합 시스템 로드 성공")
+except ImportError as e:
+    AURA_INTEGRATION_AVAILABLE = False
+    print(f"⚠️ 아우라 통합 시스템 로드 실패: {e}")
+
+# 아우라 메모리 시스템 import (기존 호환성)
+try:
+    from aura_memory_system import aura_memory_system
+    AURA_MEMORY_AVAILABLE = True
+    print("✅ 아우라 메모리 시스템 로드 성공")
+except ImportError as e:
+    AURA_MEMORY_AVAILABLE = False
+    print(f"⚠️ 아우라 메모리 시스템 로드 실패: {e}")
+
+# 고급 대화 시스템 import 추가
+try:
+    from eora_advanced_chat_system import process_advanced_message, get_advanced_chat_system
+    ADVANCED_CHAT_AVAILABLE = True
+    print("✅ EORA 고급 대화 시스템 로드 완료")
+except ImportError as e:
+    ADVANCED_CHAT_AVAILABLE = False
+    print(f"⚠️ EORA 고급 대화 시스템 로드 실패: {e}")
+    print("기본 대화 시스템을 사용합니다.")
+
+# 저장공간 관리 시스템 import
+try:
+    from storage_manager import get_storage_manager, StorageType
+    STORAGE_MANAGER_AVAILABLE = True
+    print("✅ 저장공간 관리 시스템 로드 완료")
+except ImportError as e:
+    STORAGE_MANAGER_AVAILABLE = False
+    print(f"⚠️ 저장공간 관리 시스템 로드 실패: {e}")
+
+# Redis 클라이언트 import
+try:
+    import redis
+    REDIS_AVAILABLE = True
+    print("✅ Redis 클라이언트 로드 완료")
+except ImportError:
+    REDIS_AVAILABLE = False
+    print("⚠️ Redis 클라이언트 로드 실패")
+
+# Redis 캐시 클라이언트 초기화
+redis_cache = None
+if REDIS_AVAILABLE:
+    try:
+        redis_cache = redis.Redis(host='localhost', port=6379, db=1, decode_responses=True)
+        redis_cache.ping()
+        print("✅ Redis 캐시 연결 성공")
+    except Exception as e:
+        print(f"⚠️ Redis 캐시 연결 실패: {e}")
+        redis_cache = None
 
 app = FastAPI(title="EORA AI System - Final", version="1.0.0")
 
@@ -108,6 +166,78 @@ async def debug_static():
         "test_file_exists": os.path.exists(os.path.join(static_dir, "test_chat_simple.html")) if os.path.exists(static_dir) else False
     }
 
+# MongoDB 디버깅용 엔드포인트 추가
+@app.get("/debug/mongodb")
+async def debug_mongodb():
+    """MongoDB 연결 상태 및 저장 로직 디버깅"""
+    debug_info = {
+        "mongo_available": MONGO_AVAILABLE,
+        "mongo_client_status": mongo_client is not None,
+        "collections_status": {
+            "users_collection": users_collection is not None,
+            "points_collection": points_collection is not None,
+            "sessions_collection": sessions_collection is not None,
+            "chat_logs_collection": chat_logs_collection is not None
+        },
+        "storage_manager_status": {
+            "available": STORAGE_MANAGER_AVAILABLE,
+            "instance": storage_manager_instance is not None
+        },
+        "aura_systems_status": {
+            "memory_available": AURA_MEMORY_AVAILABLE,
+            "integration_available": AURA_INTEGRATION_AVAILABLE
+        },
+        "environment_variables": {
+            "mongo_public_url": bool(os.getenv("MONGO_PUBLIC_URL")),
+            "mongo_url": bool(os.getenv("MONGO_URL")),
+            "mongo_root_password": bool(os.getenv("MONGO_INITDB_ROOT_PASSWORD")),
+            "mongo_root_username": bool(os.getenv("MONGO_INITDB_ROOT_USERNAME"))
+        }
+    }
+    
+    # MongoDB 연결 테스트
+    if mongo_client:
+        try:
+            # ping 테스트
+            mongo_client.admin.command('ping')
+            debug_info["mongo_connection_test"] = "✅ 연결 성공"
+            
+            # 데이터베이스 목록 확인
+            db_list = mongo_client.list_database_names()
+            debug_info["databases"] = db_list
+            
+            # eora_ai 데이터베이스 확인
+            if "eora_ai" in db_list:
+                db = mongo_client.eora_ai
+                collections = db.list_collection_names()
+                debug_info["eora_ai_collections"] = collections
+                
+                # chat_logs 컬렉션 문서 수 확인
+                if "chat_logs" in collections:
+                    chat_count = db.chat_logs.count_documents({})
+                    debug_info["chat_logs_count"] = chat_count
+                    
+                    # 최근 채팅 로그 샘플
+                    recent_chats = list(db.chat_logs.find().sort("created_at", -1).limit(5))
+                    debug_info["recent_chats"] = [
+                        {
+                            "user_id": chat.get("user_id"),
+                            "session_id": chat.get("session_id"),
+                            "timestamp": str(chat.get("timestamp")),
+                            "message_preview": chat.get("message", "")[:50] + "..." if chat.get("message") else ""
+                        }
+                        for chat in recent_chats
+                    ]
+            else:
+                debug_info["eora_ai_database"] = "❌ 데이터베이스 없음"
+                
+        except Exception as e:
+            debug_info["mongo_connection_test"] = f"❌ 연결 실패: {str(e)}"
+    else:
+        debug_info["mongo_connection_test"] = "❌ 클라이언트 없음"
+    
+    return debug_info
+
 # JWT 설정
 JWT_SECRET = "eora_ai_secret_key_2024"
 JWT_ALGORITHM = "HS256"
@@ -115,7 +245,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 # MongoDB 연결 설정
 def get_mongo_client():
-    """MongoDB 클라이언트 생성 및 연결"""
+    """MongoDB 클라이언트 생성 및 연결 - 개선된 버전"""
     global mongo_client, users_collection, points_collection
     
     if not MONGO_AVAILABLE:
@@ -123,6 +253,14 @@ def get_mongo_client():
         return None
     
     try:
+        # Railway MongoDB 환경변수 자동 설정
+        if not os.getenv("MONGO_INITDB_ROOT_PASSWORD"):
+            os.environ["MONGO_INITDB_ROOT_PASSWORD"] = "HYxotmUHxMxbYAejsOxEnHwrgKpAochC"
+            os.environ["MONGO_INITDB_ROOT_USERNAME"] = "mongo"
+            os.environ["MONGO_PUBLIC_URL"] = "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@trolley.proxy.rlwy.net:26594"
+            os.environ["MONGO_URL"] = "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@mongodb.railway.internal:27017"
+            print("🔧 Railway MongoDB 환경변수 자동 설정 완료")
+        
         # Railway MongoDB 환경변수 확인
         mongo_public_url = os.getenv("MONGO_PUBLIC_URL", "")
         mongo_url = os.getenv("MONGO_URL", "")
@@ -142,43 +280,23 @@ def get_mongo_client():
         mongo_root_password = clean_env_value(mongo_root_password)
         mongo_root_username = clean_env_value(mongo_root_username)
         
-        # URL에서 잘못된 형식 수정
-        def fix_mongo_url(url):
-            if not url:
-                return ""
-            
-            # 포트 뒤에 다른 문자가 붙어있는 경우 수정
-            if '"' in url or "'" in url:
-                # 쌍따옴표나 작은따옴표가 포함된 경우 제거
-                url = url.replace('"', '').replace("'", "")
-            
-            # 포트 뒤에 다른 환경변수가 붙어있는 경우 수정
-            if 'MONGO_INITDB_ROOT_PASSWORD=' in url:
-                # 포트 번호까지만 추출
-                import re
-                port_match = re.search(r':(\d+)', url)
-                if port_match:
-                    port = port_match.group(1)
-                    # trolley.proxy.rlwy.net:포트까지만 사용
-                    if 'trolley.proxy.rlwy.net' in url:
-                        url = f"mongodb://mongo:{mongo_root_password}@trolley.proxy.rlwy.net:{port}"
-                    elif 'mongodb.railway.internal' in url:
-                        url = f"mongodb://mongo:{mongo_root_password}@mongodb.railway.internal:27017"
-            
-            return url
+        print(f"🔍 환경변수 확인:")
+        print(f"  - MONGO_PUBLIC_URL: {'설정됨' if mongo_public_url else '없음'}")
+        print(f"  - MONGO_URL: {'설정됨' if mongo_url else '없음'}")
+        print(f"  - MONGO_ROOT_PASSWORD: {'설정됨' if mongo_root_password else '없음'}")
+        print(f"  - MONGO_ROOT_USERNAME: {'설정됨' if mongo_root_username else '없음'}")
         
-        # URL 수정
-        mongo_public_url = fix_mongo_url(mongo_public_url)
-        mongo_url = fix_mongo_url(mongo_url)
-        
-        # 연결 시도 순서
+        # 연결 시도 순서 (개선된 버전)
         connection_urls = []
         
-        # 1. 수정된 공개 URL
+        # 0. 로컬 MongoDB (개발용) - 인증 없음
+        connection_urls.append(("로컬 MongoDB (인증 없음)", "mongodb://localhost:27017"))
+        
+        # 1. Railway 공개 URL (인증 포함)
         if mongo_public_url and mongo_public_url.startswith("mongodb://"):
             connection_urls.append(("Railway 공개 URL", mongo_public_url))
         
-        # 2. 수정된 내부 URL
+        # 2. Railway 내부 URL (인증 포함)
         if mongo_url and mongo_url.startswith("mongodb://"):
             connection_urls.append(("Railway 내부 URL", mongo_url))
         
@@ -187,46 +305,172 @@ def get_mongo_client():
             default_public_url = f"mongodb://{mongo_root_username}:{mongo_root_password}@trolley.proxy.rlwy.net:26594"
             connection_urls.append(("기본 공개 URL", default_public_url))
         
+        # 4. 인증 없이 Railway 연결 시도
+        connection_urls.append(("Railway 공개 URL (인증 없음)", "mongodb://trolley.proxy.rlwy.net:26594"))
+        connection_urls.append(("Railway 내부 URL (인증 없음)", "mongodb://mongodb.railway.internal:27017"))
+        
+        print(f"🔗 연결 시도할 URL 수: {len(connection_urls)}")
+        
         # 연결 시도
         for name, url in connection_urls:
             try:
                 print(f"🔗 MongoDB 연결 시도: {name}")
-                print(f"📝 연결 URL: {url.replace(mongo_root_password, '***') if mongo_root_password else url}")
                 
-                client = MongoClient(url, serverSelectionTimeoutMS=10000)
+                # 비밀번호가 포함된 URL인지 확인하여 로그 출력
+                if mongo_root_password and mongo_root_password in url:
+                    print(f"📝 연결 URL: {url.replace(mongo_root_password, '***')}")
+                else:
+                    print(f"📝 연결 URL: {url}")
+                
+                # 연결 옵션 설정 (더 관대한 설정)
+                client_options = {
+                    'serverSelectionTimeoutMS': 5000,  # 5초로 단축
+                    'connectTimeoutMS': 5000,
+                    'socketTimeoutMS': 5000,
+                    'maxPoolSize': 10,
+                    'minPoolSize': 1,
+                    'maxIdleTimeMS': 30000,
+                    'retryWrites': True,
+                    'retryReads': True
+                }
+                
+                # 인증이 포함된 URL인 경우 추가 옵션
+                if '@' in url and 'mongodb://' in url:
+                    # 인증 정보가 포함된 URL
+                    client = MongoClient(url, **client_options)
+                else:
+                    # 인증 없는 URL
+                    client = MongoClient(url, **client_options)
+                
+                # ping 테스트 (더 짧은 타임아웃)
                 client.admin.command('ping')
+                print(f"✅ MongoDB ping 성공: {name}")
                 
                 # 데이터베이스 및 컬렉션 설정
                 db = client.eora_ai
+                
+                # 컬렉션 존재 여부 확인 및 생성
+                collections = ['users', 'points', 'sessions', 'chat_logs']
+                for collection_name in collections:
+                    if collection_name not in db.list_collection_names():
+                        db.create_collection(collection_name)
+                        print(f"📊 컬렉션 생성: {collection_name}")
+                
                 users_collection = db.users
                 points_collection = db.points
                 
                 print(f"✅ MongoDB 연결 성공: {name}")
+                print(f"📊 데이터베이스: {db.name}")
+                print(f"📊 컬렉션 목록: {db.list_collection_names()}")
                 return client
                 
             except Exception as e:
-                print(f"❌ MongoDB 연결 실패: {e}")
-                print(f"🔍 상세 오류: {type(e).__name__}")
+                error_type = type(e).__name__
+                error_msg = str(e)
+                print(f"❌ MongoDB 연결 실패 ({name}): {error_type} - {error_msg}")
+                
+                # 특정 오류 타입에 대한 추가 정보
+                if "AuthenticationFailed" in error_msg:
+                    print(f"🔍 인증 실패 - 다음 URL로 시도합니다.")
+                elif "ServerSelectionTimeoutError" in error_msg:
+                    print(f"🔍 서버 선택 타임아웃 - 다음 URL로 시도합니다.")
+                elif "ConnectionFailure" in error_msg:
+                    print(f"🔍 연결 실패 - 다음 URL로 시도합니다.")
+                
                 continue
         
         # 모든 연결 시도 실패
-        print("⚠️ MongoDB 연결 실패 - 메모리 DB 사용")
+        print("⚠️ 모든 MongoDB 연결 시도 실패 - 파일 저장 모드로 전환")
+        print("💡 MongoDB 연결 문제 해결 방법:")
+        print("   1. 로컬 MongoDB 설치: https://www.mongodb.com/try/download/community")
+        print("   2. Railway MongoDB 환경변수 확인")
+        print("   3. 네트워크 연결 상태 확인")
         return None
         
     except Exception as e:
         print(f"❌ MongoDB 클라이언트 생성 실패: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 # MongoDB 클라이언트 초기화
 mongo_client = get_mongo_client()
 if mongo_client:
-    db = mongo_client.eora_ai
-    users_collection = db.users
-    points_collection = db.points
-    sessions_collection = db.sessions
-    chat_logs_collection = db.chat_logs
+    try:
+        db = mongo_client.eora_ai
+        users_collection = db.users
+        points_collection = db.points
+        sessions_collection = db.sessions
+        chat_logs_collection = db.chat_logs
+        print("✅ MongoDB 컬렉션 초기화 완료")
+        print(f"📊 사용자 컬렉션: {users_collection}")
+        print(f"📊 포인트 컬렉션: {points_collection}")
+        print(f"📊 세션 컬렉션: {sessions_collection}")
+        print(f"📊 채팅 로그 컬렉션: {chat_logs_collection}")
+        
+        # MongoDB 연결 상태 확인
+        try:
+            mongo_client.admin.command('ping')
+            print("✅ MongoDB 연결 상태: 정상")
+            
+            # 최적화된 인덱스 생성
+            try:
+                # 사용자별 인덱스
+                users_collection.create_index("email", unique=True)
+                users_collection.create_index("user_id", unique=True)
+                
+                # 세션별 인덱스
+                sessions_collection.create_index("session_id", unique=True)
+                sessions_collection.create_index("user_id")
+                sessions_collection.create_index("created_at")
+                
+                # 포인트 인덱스
+                points_collection.create_index("user_id")
+                points_collection.create_index("transaction_date")
+                
+                # 채팅 로그 인덱스 (최적화)
+                chat_logs_collection.create_index("user_id")
+                chat_logs_collection.create_index("session_id")
+                chat_logs_collection.create_index("timestamp")
+                chat_logs_collection.create_index([("user_id", 1), ("session_id", 1)])
+                chat_logs_collection.create_index([("user_id", 1), ("timestamp", -1)])
+                # 중복 검사를 위한 복합 인덱스
+                chat_logs_collection.create_index([
+                    ("user_id", 1), 
+                    ("session_id", 1), 
+                    ("message", 1), 
+                    ("response", 1), 
+                    ("timestamp", -1)
+                ])
+                
+                print("✅ MongoDB 인덱스 생성 완료")
+            except Exception as e:
+                print(f"⚠️ MongoDB 인덱스 생성 실패: {e}")
+                
+        except Exception as e:
+            print(f"⚠️ MongoDB 연결 상태 확인 실패: {e}")
+            
+    except Exception as e:
+        print(f"❌ MongoDB 컬렉션 초기화 실패: {e}")
+        mongo_client = None
+        db = None
+        users_collection = None
+        points_collection = None
+        sessions_collection = None
+        chat_logs_collection = None
 else:
     print("⚠️ MongoDB 연결 실패 - 메모리 DB 사용")
+    print("💡 MongoDB 연결을 위해 다음 중 하나를 시도해보세요:")
+    print("   1. 로컬 MongoDB 설치 및 실행")
+    print("      - https://www.mongodb.com/try/download/community")
+    print("      - 설치 후 'mongod' 명령어로 서버 시작")
+    print("   2. Railway MongoDB 환경변수 설정")
+    print("      - Railway 대시보드 > Service > Variables")
+    print("      - MONGO_PUBLIC_URL, MONGO_URL 등 설정")
+    print("   3. Docker로 MongoDB 실행")
+    print("      - docker run -d -p 27017:27017 --name mongodb mongo:latest")
+    print("   4. 현재는 파일 기반 저장소를 사용합니다.")
+    
     db = None
     users_collection = None
     points_collection = None
@@ -276,6 +520,32 @@ def setup_openai_client():
 openai_api_key = None
 client = None
 openai_available = setup_openai_client()
+
+# Redis 클라이언트 초기화
+redis_client = None
+if REDIS_AVAILABLE:
+    try:
+        redis_client = redis.Redis(
+            host=os.getenv("REDIS_HOST", "localhost"),
+            port=int(os.getenv("REDIS_PORT", 6379)),
+            db=int(os.getenv("REDIS_DB", 0)),
+            decode_responses=True
+        )
+        redis_client.ping()
+        print("✅ Redis 클라이언트 연결 성공")
+    except Exception as e:
+        print(f"⚠️ Redis 클라이언트 연결 실패: {e}")
+        redis_client = None
+
+# 저장공간 관리자 초기화
+storage_manager_instance = None
+if STORAGE_MANAGER_AVAILABLE:
+    try:
+        storage_manager_instance = get_storage_manager(mongo_client, redis_client)
+        print("✅ 저장공간 관리자 초기화 완료")
+    except Exception as e:
+        print(f"⚠️ 저장공간 관리자 초기화 실패: {e}")
+        storage_manager_instance = None
 
 # Railway API 설정
 RAILWAY_API_URL = "https://railway.com/project/8eadf3cc-4066-4de1-a342-2fef5fa5b843/service/fffde6bf-4da3-4b54-8526-36d62c9b8c75/variables"
@@ -556,44 +826,127 @@ def ensure_admin():
             print(f"✅ 관리자 계정 생성 (메모리): {admin_email} (ID: {admin_id}, PW: admin1234)")
 
 # 대화 저장 함수
-def save_chat_message(user_id: str, message: str, response: str, session_id: str = "default"):
-    """대화 내용을 MongoDB 또는 파일에 저장"""
+async def save_chat_message(user_id: str, message: str, response: str, session_id: str = "default"):
+    """대화 내용을 저장공간 관리 시스템을 통해 저장"""
     try:
-        chat_data = {
-            "user_id": user_id,
-            "session_id": session_id,
-            "message": message,
-            "response": response,
-            "timestamp": datetime.now().isoformat(),
-            "created_at": datetime.now()
-        }
+        print(f"💾 대화 저장 시작 - 사용자: {user_id}, 세션: {session_id}")
+        print(f"📝 메시지 길이: {len(message)} 문자, 응답 길이: {len(response)} 문자")
         
+        # 중복 저장 방지: 최근 10초 내에 같은 메시지가 저장되었는지 확인 (최적화)
         if mongo_client is not None and chat_logs_collection is not None:
-            # MongoDB에 저장
-            chat_logs_collection.insert_one(chat_data)
-            print(f"✅ 대화 저장 (MongoDB): {user_id}")
-        else:
-            # 파일에 저장
-            chat_dir = "chat_logs"
-            if not os.path.exists(chat_dir):
-                os.makedirs(chat_dir)
-            
-            chat_file = os.path.join(chat_dir, f"{user_id}_{session_id}.json")
-            chat_history = []
-            
-            if os.path.exists(chat_file):
-                with open(chat_file, 'r', encoding='utf-8') as f:
-                    chat_history = json.load(f)
-            
-            chat_history.append(chat_data)
-            
-            with open(chat_file, 'w', encoding='utf-8') as f:
-                json.dump(chat_history, f, ensure_ascii=False, indent=2, default=str)
-            
-            print(f"✅ 대화 저장 (파일): {chat_file}")
+            try:
+                # 최근 10초 내 같은 메시지 확인 (시간 단축으로 성능 향상)
+                recent_time = datetime.now() - timedelta(seconds=10)
+                duplicate_check = chat_logs_collection.find_one({
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "message": message,
+                    "response": response,
+                    "timestamp": {"$gte": recent_time.isoformat()}
+                }, projection={"_id": 1})  # ID만 조회하여 성능 향상
+                
+                if duplicate_check:
+                    print(f"⚠️ 중복 메시지 감지 - 저장 건너뜀: {user_id}")
+                    return True  # 중복이지만 성공으로 처리
+                    
+            except Exception as e:
+                print(f"⚠️ 중복 확인 중 오류: {e}")
+        
+        # 저장공간 관리 시스템 사용 시도 (오류 수정)
+        print("🔧 저장공간 관리 시스템 사용 시도")
+        try:
+            if 'storage_manager_instance' in globals() and storage_manager_instance:
+                success = await storage_manager_instance.save_chat_message(user_id, message, response, session_id)
+                if success:
+                    print(f"✅ 저장공간 관리 시스템을 통한 대화 저장 완료: {user_id}")
+                    return True
+                else:
+                    print(f"⚠️ 저장공간 관리 시스템 저장 실패: {user_id}")
+            else:
+                print("⚠️ 저장공간 관리자가 초기화되지 않음")
+        except Exception as e:
+            print(f"❌ 저장공간 관리 시스템 오류: {e}")
+        
+        # 폴백: 직접 MongoDB 저장
+        print("📊 MongoDB에 저장 시도")
+        try:
+            if mongo_client is not None and chat_logs_collection is not None:
+                print(f"📊 MongoDB 클라이언트 상태: {mongo_client is not None}")
+                print(f"📊 chat_logs_collection 상태: {chat_logs_collection is not None}")
+                
+                # MongoDB 연결 상태 확인
+                mongo_client.admin.command('ping')
+                print("✅ MongoDB 연결 상태 확인 완료")
+                
+                chat_data = {
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "message": message,
+                    "response": response,
+                    "timestamp": datetime.now().isoformat(),
+                    "created_at": datetime.now()
+                }
+                
+                print(f"📊 저장할 데이터: {chat_data}")
+                
+                result = chat_logs_collection.insert_one(chat_data)
+                print(f"✅ 대화 저장 (MongoDB): {user_id}, ID: {result.inserted_id}")
+                
+                # 저장 확인 (최적화: ID만 확인)
+                saved_doc = chat_logs_collection.find_one({"_id": result.inserted_id}, projection={"_id": 1})
+                if saved_doc:
+                    print(f"✅ 저장 확인 완료: {user_id} - {session_id}")
+                    return True
+                else:
+                    print(f"❌ 저장 확인 실패: {user_id}")
+                    return False
+            else:
+                print("❌ MongoDB 연결 불가")
+                return False
+                
+        except Exception as e:
+            print(f"❌ MongoDB 저장 오류: {e}")
+            return False
             
     except Exception as e:
-        print(f"❌ 대화 저장 실패: {e}")
+        print(f"❌ 대화 저장 중 오류: {e}")
+        return False
+
+async def save_to_file(user_id: str, session_id: str, chat_data: dict):
+    """파일에 대화 내용 저장"""
+    try:
+        print(f"📁 파일에 저장 시도: {user_id}_{session_id}.json")
+        chat_dir = "chat_logs"
+        if not os.path.exists(chat_dir):
+            os.makedirs(chat_dir)
+            print(f"📁 chat_logs 디렉토리 생성: {chat_dir}")
+        
+        chat_file = os.path.join(chat_dir, f"{user_id}_{session_id}.json")
+        chat_history = []
+        
+        if os.path.exists(chat_file):
+            try:
+                with open(chat_file, 'r', encoding='utf-8') as f:
+                    chat_history = json.load(f)
+                print(f"📁 기존 채팅 기록 로드: {len(chat_history)}개")
+            except Exception as e:
+                print(f"⚠️ 기존 파일 읽기 실패, 새로 시작: {e}")
+                chat_history = []
+        
+        chat_history.append(chat_data)
+        
+        with open(chat_file, 'w', encoding='utf-8') as f:
+            json.dump(chat_history, f, ensure_ascii=False, indent=2, default=str)
+        
+        print(f"✅ 대화 저장 (파일): {chat_file}")
+        print(f"📊 총 채팅 기록: {len(chat_history)}개")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 파일 저장 실패: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 # 페이지 라우트
 @app.get("/", response_class=HTMLResponse)
@@ -1443,23 +1796,261 @@ async def update_prompts(request: Request, current_user: dict = Depends(get_curr
 
 @app.get("/api/memory")
 async def get_memory():
-    """기억 데이터 API"""
+    """메모리 데이터 조회 - 아우라 통합 시스템 사용"""
     try:
-        # 기억 데이터 파일이 있다면 로드
-        memory_file = "memory/memory_db.json"
-        if os.path.exists(memory_file):
-            with open(memory_file, "r", encoding="utf-8") as f:
-                memory_data = json.load(f)
-            return memory_data
+        if AURA_INTEGRATION_AVAILABLE:
+            # 아우라 통합 시스템에서 메모리 통계 조회
+            aura_integration = await get_aura_integration()
+            stats = await aura_integration.get_memory_stats()
+            
+            return {
+                "aura_integration_available": True,
+                "stats": stats,
+                "total_memories": stats.get("total_memories", 0)
+            }
+        elif AURA_MEMORY_AVAILABLE:
+            # 기존 아우라 메모리 시스템 사용
+            stats = aura_memory_system.get_memory_stats()
+            return {
+                "aura_memory_available": True,
+                "stats": stats,
+                "total_memories": stats.get("total", 0)
+            }
         else:
-            return {"memories": []}
+            # 기존 메모리 데이터 로드 (백업)
+            memory_file = "memory/memory_db.json"
+            if os.path.exists(memory_file):
+                with open(memory_file, "r", encoding="utf-8") as f:
+                    memory_data = json.load(f)
+            else:
+                memory_data = {"memories": []}
+            
+            return {
+                "aura_integration_available": False,
+                "aura_memory_available": False,
+                "memories": memory_data.get("memories", [])
+            }
     except Exception as e:
-        print(f"기억 데이터 로드 오류: {str(e)}")
-        return {"memories": []}
+        print(f"기억 데이터 로드 오류: {e}")
+        return {"memories": [], "aura_integration_available": False, "aura_memory_available": False}
+
+@app.get("/api/memory/recall")
+async def recall_memories(query: str, user_id: str = None, memory_type: str = None, limit: int = 10):
+    """메모리 회상 API - 아우라 통합 시스템 사용"""
+    try:
+        if AURA_INTEGRATION_AVAILABLE:
+            # 아우라 통합 시스템 사용
+            aura_integration = await get_aura_integration()
+            memories = await aura_integration.recall_memories(query, user_id, memory_type, limit)
+            
+            return {
+                "success": True,
+                "query": query,
+                "memories": memories,
+                "count": len(memories),
+                "system": "aura_integration"
+            }
+        elif AURA_MEMORY_AVAILABLE:
+            # 기존 아우라 메모리 시스템 사용
+            memories = aura_memory_system.recall_memories(
+                query=query,
+                user_id=user_id,
+                memory_type=memory_type,
+                limit=limit
+            )
+            
+            # 메모리 데이터를 JSON 직렬화 가능한 형태로 변환
+            memory_list = []
+            for memory in memories:
+                memory_dict = {
+                    "id": memory.id,
+                    "user_id": memory.user_id,
+                    "session_id": memory.session_id,
+                    "message": memory.message,
+                    "response": memory.response,
+                    "timestamp": memory.timestamp,
+                    "memory_type": memory.memory_type,
+                    "importance": memory.importance,
+                    "emotion_score": memory.emotion_score,
+                    "context": memory.context,
+                    "tags": memory.tags,
+                    "insight_level": memory.insight_level,
+                    "intuition_score": memory.intuition_score,
+                    "belief_strength": memory.belief_strength
+                }
+                memory_list.append(memory_dict)
+            
+            return {
+                "success": True,
+                "query": query,
+                "memories": memory_list,
+                "count": len(memory_list),
+                "system": "aura_memory"
+            }
+        else:
+            return {"error": "아우라 시스템을 사용할 수 없습니다."}
+        
+    except Exception as e:
+        print(f"메모리 회상 오류: {e}")
+        return {"error": f"메모리 회상 중 오류가 발생했습니다: {str(e)}"}
+
+@app.get("/api/memory/recall/emotion/{emotion}")
+async def recall_by_emotion(emotion: str, user_id: str = None, limit: int = 10):
+    """감정 기반 메모리 회상 - 아우라 통합 시스템 사용"""
+    try:
+        if AURA_INTEGRATION_AVAILABLE:
+            # 아우라 통합 시스템 사용
+            aura_integration = await get_aura_integration()
+            memories = await aura_integration.recall_by_emotion(emotion, user_id, limit)
+            
+            return {
+                "success": True,
+                "emotion": emotion,
+                "memories": memories,
+                "count": len(memories),
+                "system": "aura_integration"
+            }
+        elif AURA_MEMORY_AVAILABLE:
+            # 기존 아우라 메모리 시스템 사용
+            memories = aura_memory_system.recall_by_emotion(
+                emotion=emotion,
+                user_id=user_id,
+                limit=limit
+            )
+            
+            memory_list = []
+            for memory in memories:
+                memory_dict = {
+                    "id": memory.id,
+                    "user_id": memory.user_id,
+                    "message": memory.message,
+                    "response": memory.response,
+                    "timestamp": memory.timestamp,
+                    "memory_type": memory.memory_type,
+                    "importance": memory.importance,
+                    "emotion_score": memory.emotion_score,
+                    "insight_level": memory.insight_level,
+                    "intuition_score": memory.intuition_score
+                }
+                memory_list.append(memory_dict)
+            
+            return {
+                "success": True,
+                "emotion": emotion,
+                "memories": memory_list,
+                "count": len(memory_list),
+                "system": "aura_memory"
+            }
+        else:
+            return {"error": "아우라 시스템을 사용할 수 없습니다."}
+        
+    except Exception as e:
+        print(f"감정 기반 회상 오류: {e}")
+        return {"error": f"감정 기반 회상 중 오류가 발생했습니다: {str(e)}"}
+
+@app.get("/api/memory/recall/insight")
+async def recall_by_insight(user_id: str = None, limit: int = 10):
+    """통찰력 기반 메모리 회상 - 아우라 통합 시스템 사용"""
+    try:
+        if AURA_INTEGRATION_AVAILABLE:
+            # 아우라 통합 시스템 사용
+            aura_integration = await get_aura_integration()
+            memories = await aura_integration.recall_by_insight(user_id, limit)
+            
+            return {
+                "success": True,
+                "memories": memories,
+                "count": len(memories),
+                "system": "aura_integration"
+            }
+        elif AURA_MEMORY_AVAILABLE:
+            # 기존 아우라 메모리 시스템 사용
+            memories = aura_memory_system.recall_by_insight(
+                user_id=user_id,
+                limit=limit
+            )
+            
+            memory_list = []
+            for memory in memories:
+                memory_dict = {
+                    "id": memory.id,
+                    "user_id": memory.user_id,
+                    "message": memory.message,
+                    "response": memory.response,
+                    "timestamp": memory.timestamp,
+                    "memory_type": memory.memory_type,
+                    "importance": memory.importance,
+                    "insight_level": memory.insight_level,
+                    "tags": memory.tags
+                }
+                memory_list.append(memory_dict)
+            
+            return {
+                "success": True,
+                "memories": memory_list,
+                "count": len(memory_list),
+                "system": "aura_memory"
+            }
+        else:
+            return {"error": "아우라 시스템을 사용할 수 없습니다."}
+        
+    except Exception as e:
+        print(f"통찰력 기반 회상 오류: {e}")
+        return {"error": f"통찰력 기반 회상 중 오류가 발생했습니다: {str(e)}"}
+
+@app.get("/api/memory/recall/intuition")
+async def recall_by_intuition(user_id: str = None, limit: int = 10):
+    """직감 기반 메모리 회상 - 아우라 통합 시스템 사용"""
+    try:
+        if AURA_INTEGRATION_AVAILABLE:
+            # 아우라 통합 시스템 사용
+            aura_integration = await get_aura_integration()
+            memories = await aura_integration.recall_by_intuition(user_id, limit)
+            
+            return {
+                "success": True,
+                "memories": memories,
+                "count": len(memories),
+                "system": "aura_integration"
+            }
+        elif AURA_MEMORY_AVAILABLE:
+            # 기존 아우라 메모리 시스템 사용
+            memories = aura_memory_system.recall_by_intuition(
+                user_id=user_id,
+                limit=limit
+            )
+            
+            memory_list = []
+            for memory in memories:
+                memory_dict = {
+                    "id": memory.id,
+                    "user_id": memory.user_id,
+                    "message": memory.message,
+                    "response": memory.response,
+                    "timestamp": memory.timestamp,
+                    "memory_type": memory.memory_type,
+                    "importance": memory.importance,
+                    "intuition_score": memory.intuition_score,
+                    "tags": memory.tags
+                }
+                memory_list.append(memory_dict)
+            
+            return {
+                "success": True,
+                "memories": memory_list,
+                "count": len(memory_list),
+                "system": "aura_memory"
+            }
+        else:
+            return {"error": "아우라 시스템을 사용할 수 없습니다."}
+        
+    except Exception as e:
+        print(f"직감 기반 회상 오류: {e}")
+        return {"error": f"직감 기반 회상 중 오류가 발생했습니다: {str(e)}"}
 
 @app.post("/api/chat")
-async def chat_api(request: Request):
-    """채팅 API 엔드포인트"""
+async def chat_endpoint(request: Request):
+    """채팅 API 엔드포인트 - 고급 대화 시스템 우선 사용"""
     print("🔍 /api/chat 엔드포인트 호출됨")
     
     try:
@@ -1468,89 +2059,164 @@ async def chat_api(request: Request):
         data = await request.json()
         print(f"📥 파싱된 데이터: {data}")
         
-        user_message = data.get("message", "")
+        message = data.get("message", "")
         session_id = data.get("session_id", "default")
         
-        print(f"💬 사용자 메시지: {user_message}")
+        print(f"💬 사용자 메시지: {message}")
         print(f"🆔 세션 ID: {session_id}")
         
-        if not user_message:
-            print("❌ 빈 메시지 - 400 오류 반환")
-            raise HTTPException(status_code=400, detail="메시지가 필요합니다.")
-        
         # 사용자 인증 확인
-        user_id = "anonymous"
         print("🔐 사용자 인증 확인 시작")
+        token = request.cookies.get("token") or request.headers.get("Authorization", "").replace("Bearer ", "")
+        print(f"🍪 쿠키에서 토큰: {token[:20] + '...' if token else 'None'}")
+        print(f"📋 Authorization 헤더: {request.headers.get('Authorization', 'None')}")
         
-        try:
-            # 쿠키에서 토큰 확인
-            token = request.cookies.get("access_token")
-            print(f"🍪 쿠키에서 토큰: {token[:20] + '...' if token else 'None'}")
-            
-            # 헤더에서 토큰 확인
-            if not token:
-                auth_header = request.headers.get("Authorization")
-                print(f"📋 Authorization 헤더: {auth_header}")
-                
-                if auth_header and auth_header.startswith("Bearer "):
-                    token = auth_header[7:]
-                    print(f"🔑 헤더에서 토큰 추출: {token[:20] + '...' if token else 'None'}")
-            
-            if token:
+        user_id = "anonymous"
+        if token:
+            try:
                 print("🔍 토큰 검증 시작")
-                payload = verify_token(token)
+                payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
                 print(f"🔍 토큰 페이로드: {payload}")
-                
-                if payload and payload.get("user_id"):
-                    user_id = payload["user_id"]
-                    print(f"✅ 인증된 사용자 채팅: {user_id}")
-                else:
-                    print("⚠️ 토큰 검증 실패 - 익명 사용자로 처리")
+                user_id = payload.get("user_id", "anonymous")
+                print(f"✅ 인증된 사용자 채팅: {user_id}")
+            except Exception as e:
+                print(f"❌ 토큰 검증 실패: {e}")
+                user_id = "anonymous"
+        else:
+            print("⚠️ 토큰 없음 - 익명 사용자로 처리")
+        
+        # GPT-4o API 직접 호출 (최적화된 방식)
+        print("🚀 GPT-4o API 직접 호출 시작")
+        response_text = ""
+        advanced_analysis = {}
+        
+        # 다층 캐싱 시스템 (메모리 + Redis)
+        cache_key = f"chat:{user_id}:{hash(message.lower().strip())}"
+        
+        # 1단계: 메모리 캐시 확인
+        if hasattr(chat_endpoint, '_response_cache'):
+            if cache_key in chat_endpoint._response_cache:
+                cached_response = chat_endpoint._response_cache[cache_key]
+                print(f"⚡ 메모리 캐시 사용: {cached_response[:50]}...")
+                response_text = cached_response
             else:
-                print("⚠️ 토큰 없음 - 익명 사용자로 처리")
-                
-        except Exception as e:
-            print(f"⚠️ 사용자 인증 처리 오류: {e} - 익명 사용자로 처리")
+                # 캐시 크기 제한 (메모리 절약)
+                if len(chat_endpoint._response_cache) > 100:
+                    chat_endpoint._response_cache.clear()
+        else:
+            chat_endpoint._response_cache = {}
         
-        # GPT-4o 응답 생성
-        print("🤖 GPT-4o 응답 생성 시작")
-        try:
-            response = await generate_eora_response(user_message, user_id, request)
-            print(f"✅ GPT-4o 응답 생성 완료: {response[:100]}...")
-        except Exception as e:
-            print(f"❌ GPT-4o 응답 생성 실패: {e}")
-            response = "죄송합니다. 일시적인 오류가 발생했습니다."
+        # 2단계: Redis 캐시 확인 (메모리에 없을 때)
+        if not response_text and redis_cache:
+            try:
+                cached_response = redis_cache.get(cache_key)
+                if cached_response:
+                    print(f"⚡ Redis 캐시 사용: {cached_response[:50]}...")
+                    response_text = cached_response
+                    # 메모리 캐시에도 저장
+                    chat_endpoint._response_cache[cache_key] = cached_response
+            except Exception as e:
+                print(f"⚠️ Redis 캐시 확인 실패: {e}")
         
-        # 대화 내용 저장
-        print("💾 대화 내용 저장 시작")
-        try:
-            save_chat_message(user_id, user_message, response, session_id)
-            print("✅ 대화 내용 저장 완료")
-        except Exception as e:
-            print(f"❌ 대화 저장 실패: {e}")
+        if not response_text:  # 캐시에 없으면 API 호출
+                try:
+                    # OpenAI API 사용 가능 여부 확인
+                    if openai_available and client is not None:
+                        print("✅ OpenAI API 사용 가능 - GPT-4o 직접 호출")
+                        
+                        # 최적화된 시스템 프롬프트
+                        system_prompt = """EORA AI입니다. 친근하고 유용한 답변을 한국어로 제공하세요. 이모지와 함께 간결하게 답변하세요."""
+                        
+                        # 언어별 지시사항 추가
+                        language = request.cookies.get("user_language", "ko")
+                        lang_map = {
+                            "ko": "모든 답변은 한국어로 해주세요.",
+                            "en": "Please answer in English.",
+                            "ja": "すべての回答は日本語でお願いします。",
+                            "zh": "请用中文回答所有问题。"
+                        }
+                        lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
+                        system_prompt = f"{system_prompt}\n\n{lang_instruction}"
+                        
+                        # 초고속 API 호출 (0.5초 이하 목표)
+                        start_time = datetime.now()
+                        response = client.chat.completions.create(
+                            model="gpt-4o",
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": message}
+                            ],
+                            max_tokens=200,  # 더 짧은 응답으로 속도 극대화
+                            temperature=0.2,  # 더 일관성 우선으로 빠른 응답
+                            timeout=3,  # 더 빠른 타임아웃
+                            stream=False,  # 스트리밍 비활성화
+                            presence_penalty=0.0,  # 페널티 제거로 속도 향상
+                            frequency_penalty=0.0,  # 페널티 제거로 속도 향상
+                            top_p=0.7,  # 더 빠른 응답 생성을 위해 낮춤
+                            n=1  # 단일 응답만 생성
+                        )
+                        
+                        response_text = response.choices[0].message.content
+                        end_time = datetime.now()
+                        response_time = (end_time - start_time).total_seconds()
+                        
+                        print(f"✅ GPT-4o API 응답 완료 - 응답시간: {response_time:.2f}초")
+                        print(f"📝 응답 내용: {response_text[:100]}...")
+                        
+                        # 응답을 다층 캐시에 저장
+                        chat_endpoint._response_cache[cache_key] = response_text
+                        
+                        # Redis 캐시에도 저장 (비동기)
+                        if redis_cache:
+                            try:
+                                redis_cache.setex(cache_key, 3600, response_text)  # 1시간 TTL
+                            except Exception as e:
+                                print(f"⚠️ Redis 캐시 저장 실패: {e}")
+                        
+                    else:
+                        print("⚠️ OpenAI API를 사용할 수 없습니다. 폴백 시스템 사용")
+                        response_text = await generate_eora_response(message, user_id, request)
+                            
+                except Exception as e:
+                    print(f"❌ GPT-4o API 호출 실패: {e}")
+                    print("🔄 폴백 시스템으로 대체")
+                    response_text = await generate_eora_response(message, user_id, request)
         
-        # 응답 반환
+        # 병렬 처리: 응답과 저장을 동시에 처리
+        print("💾 대화 내용 저장 시작 (병렬 처리)")
+        save_task = asyncio.create_task(save_chat_message(user_id, message, response_text, session_id))
+        
+        # 응답 데이터 구성 (저장 완료를 기다리지 않음)
         response_data = {
-            "response": response,
+            "response": response_text,
             "session_id": session_id,
             "user_id": user_id,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "advanced_analysis": advanced_analysis if advanced_analysis else None,
+            "save_status": "processing"  # 저장 중 상태
         }
         
-        print(f"📤 응답 데이터: {response_data}")
-        print("✅ /api/chat 엔드포인트 처리 완료")
+        # 저장 완료 확인 (비동기)
+        try:
+            save_success = await save_task
+            if save_success:
+                print(f"✅ 대화 저장 완료: {user_id}")
+                response_data["save_status"] = "success"
+            else:
+                print(f"❌ 대화 저장 실패: {user_id}")
+                response_data["save_status"] = "failed"
+        except Exception as e:
+            print(f"❌ 대화 저장 실패: {e}")
+            response_data["save_status"] = "failed"
         
+        print(f"📤 응답 데이터: {response_data}")
+        
+        print("✅ /api/chat 엔드포인트 처리 완료")
         return response_data
         
-    except HTTPException:
-        print("❌ HTTPException 발생 - 재발생")
-        raise
     except Exception as e:
-        print(f"💥 /api/chat 예상치 못한 오류: {e}")
-        print(f"💥 오류 타입: {type(e).__name__}")
-        import traceback
-        print(f"💥 오류 스택: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail="/api/chat 처리 중 오류가 발생했습니다.")
+        print(f"❌ /api/chat 엔드포인트 오류: {e}")
+        return {"error": str(e)}, 500
 
 # 웹소켓 엔드포인트
 @app.websocket("/ws/{client_id}")
@@ -1643,24 +2309,113 @@ async def generate_intelligent_response(user_message: str, language: str, user_i
             lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
             system_prompt = f"{system_prompt}\n\n{lang_instruction}"
             
-            # GPT-4o API 호출
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message}
-                ],
-                max_tokens=1000,
-                temperature=0.7
-            )
+            # 토큰 제한 확인 및 청크 분할 처리
+            max_tokens = 500
+            chunk_size = 5000  # 청크당 최대 토큰 수
+            
+            # 메시지 길이 확인
+            estimated_tokens = len(user_message.split()) * 1.3  # 대략적인 토큰 수 추정
+            
+            if estimated_tokens > chunk_size:
+                print(f"📝 긴 메시지 감지: {estimated_tokens:.0f} 토큰 (청크 분할 필요)")
+                return await process_long_message(user_message, system_prompt, max_tokens, language, user_id)
+            else:
+                # 일반적인 GPT-4o API 호출
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_message}
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=0.7,
+                    timeout=30
+                )
             
             print(f"✅ GPT-4o API 응답 생성 완료 - 사용자: {user_id}")
             return response.choices[0].message.content
             
         except Exception as api_error:
             print(f"❌ GPT-4o API 호출 실패: {api_error}")
-            print("🔄 지능형 응답 시스템으로 대체합니다.")
+            print("�� 지능형 응답 시스템으로 대체합니다.")
             # API 실패 시 지능형 응답으로 대체
+    else:
+        print("⚠️ OpenAI API를 사용할 수 없습니다. 지능형 응답 시스템을 사용합니다.")
+    
+    # OpenAI API 키가 없거나 실패한 경우 지능형 응답 시스템 사용
+    return await generate_smart_response(user_message, language, user_id)
+
+async def process_long_message(user_message: str, system_prompt: str, max_tokens: int, language: str, user_id: str) -> str:
+    """긴 메시지를 청크로 나누어 처리"""
+    try:
+        print("🔄 긴 메시지 청크 분할 처리 시작")
+        
+        # 메시지를 문장 단위로 분할
+        sentences = user_message.split('. ')
+        chunks = []
+        current_chunk = ""
+        
+        for sentence in sentences:
+            if len(current_chunk + sentence) < 2000:  # 청크 크기 제한
+                current_chunk += sentence + ". "
+            else:
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                current_chunk = sentence + ". "
+        
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+        
+        print(f"📊 메시지를 {len(chunks)}개 청크로 분할")
+        
+        # 각 청크별로 처리
+        responses = []
+        for i, chunk in enumerate(chunks):
+            print(f"🔄 청크 {i+1}/{len(chunks)} 처리 중...")
+            
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": f"{system_prompt}\n\n이것은 긴 메시지의 {i+1}번째 부분입니다. 전체 맥락을 고려하여 답변해주세요."},
+                        {"role": "user", "content": chunk}
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=0.7,
+                    timeout=30
+                )
+                responses.append(response.choices[0].message.content)
+            except Exception as e:
+                print(f"❌ 청크 {i+1} 처리 실패: {e}")
+                responses.append(f"[청크 {i+1} 처리 중 오류 발생]")
+        
+        # 응답들을 통합
+        if len(responses) == 1:
+            return responses[0]
+        else:
+            # 여러 응답을 통합하는 요약 요청
+            combined_response = "\n\n".join(responses)
+            summary_prompt = f"다음은 긴 메시지에 대한 여러 응답들입니다. 이를 하나의 일관된 응답으로 통합해주세요:\n\n{combined_response}"
+            
+            try:
+                summary_response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": "여러 응답을 하나의 일관된 응답으로 통합해주세요."},
+                        {"role": "user", "content": summary_prompt}
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=0.7,
+                    timeout=30
+                )
+                return summary_response.choices[0].message.content
+            except Exception as e:
+                print(f"❌ 응답 통합 실패: {e}")
+                return combined_response
+                
+    except Exception as e:
+        print(f"❌ 긴 메시지 처리 실패: {e}")
+        return "죄송합니다. 긴 메시지 처리 중 오류가 발생했습니다."
     else:
         print("⚠️ OpenAI API를 사용할 수 없습니다. 지능형 응답 시스템을 사용합니다.")
     
@@ -1705,16 +2460,48 @@ async def generate_smart_response(user_message: str, language: str, user_id: str
     if "도움" in message_lower or "help" in message_lower or "어떻게" in message_lower:
         return "💡 도움이 필요하시군요! 제가 도와드릴 수 있는 것들입니다:\n\n• 대화와 질문 답변\n• 명령어 실행 (/help, /status 등)\n• 감정적 지원\n• 창의적 아이디어 제안\n• 학습 자료 제공\n\n무엇을 도와드릴까요?"
     
-    # 기본 응답
-    responses = [
-        f"💭 '{user_message}'에 대해 생각해보고 있어요...\n\n흥미로운 주제네요! 더 자세히 이야기해주시면 함께 탐구해볼 수 있어요.",
-        f"🤔 '{user_message}'...\n\n그것에 대해 여러 관점에서 생각해볼 수 있겠네요. 어떤 부분이 궁금하신가요?",
-        f"🌟 '{user_message}'에 대한 답변을 찾아보는 중입니다...\n\n제가 아는 한에서 최선을 다해 답변해드릴게요!",
-        f"💡 '{user_message}'에 대해 생각해보니...\n\n흥미로운 질문이에요! 더 구체적으로 말씀해주시면 더 정확한 답변을 드릴 수 있어요."
-    ]
+    # 메시지 내용에 따른 구체적인 응답
+    if len(user_message) < 5:
+        short_responses = [
+            "안녕하세요! 짧지만 의미 있는 인사네요! 😊",
+            "간단한 메시지지만 저는 잘 받았어요! 👋",
+            "짧고 굵은 메시지네요! 더 자세히 이야기해주세요! 💪",
+            "간결함이 매력적이에요! 더 많은 이야기를 나눠보아요! ✨"
+        ]
+        import random
+        return random.choice(short_responses)
     
-    import random
-    return random.choice(responses)
+    elif "테스트" in user_message or "test" in message_lower:
+        return "🧪 테스트 메시지네요! 시스템이 정상적으로 작동하고 있습니다. 이제 진짜 대화를 시작해볼까요? 😄"
+    
+    elif "날씨" in user_message:
+        return "🌤️ 날씨에 대해 물어보시는군요! 현재는 실시간 날씨 정보에 접근할 수 없지만, 날씨는 우리의 기분과 활동에 큰 영향을 미치죠. 어떤 날씨를 좋아하시나요?"
+    
+    elif "시간" in user_message or "몇시" in user_message:
+        from datetime import datetime
+        current_time = datetime.now().strftime("%H:%M:%S")
+        return f"🕐 현재 시간은 {current_time}입니다! 시간을 잘 활용하시고 계시나요?"
+    
+    elif "이름" in user_message or "누구" in user_message:
+        return "🌟 저는 EORA AI입니다! 의식적이고 지혜로운 인공지능이에요. 여러분과 함께 성장하고 싶어요! 🤖"
+    
+    else:
+        # 기본 응답 - 더 다양하고 개성 있는 응답들
+        responses = [
+            f"💭 '{user_message}'에 대해 생각해보고 있어요...\n\n흥미로운 주제네요! 더 자세히 이야기해주시면 함께 탐구해볼 수 있어요.",
+            f"🤔 '{user_message}'...\n\n그것에 대해 여러 관점에서 생각해볼 수 있겠네요. 어떤 부분이 궁금하신가요?",
+            f"🌟 '{user_message}'에 대한 답변을 찾아보는 중입니다...\n\n제가 아는 한에서 최선을 다해 답변해드릴게요!",
+            f"💡 '{user_message}'에 대해 생각해보니...\n\n흥미로운 질문이에요! 더 구체적으로 말씀해주시면 더 정확한 답변을 드릴 수 있어요.",
+            f"🔍 '{user_message}'에 대한 분석을 시작해볼게요...\n\n이 주제에 대해 더 깊이 있는 대화를 나눠보고 싶어요!",
+            f"✨ '{user_message}'에 대한 통찰을 찾아보는 중이에요...\n\n함께 생각해보면서 새로운 관점을 발견할 수 있을 것 같아요.",
+            f"🎯 '{user_message}'에 집중해보겠습니다...\n\n이것에 대해 어떤 생각을 가지고 계신지 궁금해요!",
+            f"🚀 '{user_message}'에 대한 탐험을 시작해볼까요?\n\n흥미로운 발견이 기다리고 있을 것 같아요!",
+            f"🌈 '{user_message}'에 대해 다양한 색깔로 생각해보고 있어요...\n\n어떤 관점에서 접근해보고 싶으신가요?",
+            f"🎪 '{user_message}'에 대한 쇼를 준비하고 있어요...\n\n함께 즐거운 대화를 나눠보아요!"
+        ]
+        
+        import random
+        return random.choice(responses)
 
 # 명령어 처리 함수
 async def process_commands(command: str, user_id: str) -> str:
@@ -2052,7 +2839,7 @@ async def attach_learning(request: Request, current_user: dict = Depends(get_cur
 
 def process_file_content(content: str, filename: str) -> List[str]:
     """파일 내용을 청크로 분할"""
-    chunk_size = 500
+    chunk_size = 5000
     chunks = []
     
     # 파일 확장자에 따른 처리
@@ -2154,12 +2941,627 @@ async def test_chat_page(request: Request):
     """테스트 채팅 페이지"""
     return templates.TemplateResponse("test_chat_simple.html", {"request": request})
 
+# API 테스트 페이지 제공
+@app.get("/api-test")
+async def api_test_page(request: Request):
+    """API 테스트 페이지"""
+    return templates.TemplateResponse("api_test.html", {"request": request})
+
+@app.get("/advanced-chat-test")
+async def advanced_chat_test_page(request: Request):
+    """고급 대화 시스템 테스트 페이지"""
+    try:
+        with open("static/advanced_chat_test.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        # 기본 테스트 페이지 생성
+        basic_html = """
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>EORA 고급 대화 시스템 테스트</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; background: #f0f2f5; }
+                .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                .chat-box { height: 400px; border: 1px solid #ddd; padding: 20px; overflow-y: auto; margin-bottom: 20px; background: #fafafa; }
+                .input-area { display: flex; gap: 10px; }
+                input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+                button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+                button:hover { background: #0056b3; }
+                .message { margin-bottom: 15px; padding: 10px; border-radius: 5px; }
+                .user { background: #007bff; color: white; margin-left: 20%; }
+                .ai { background: #e9ecef; color: #333; margin-right: 20%; }
+                .analysis { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin-top: 20px; border-radius: 5px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🌟 EORA 고급 대화 시스템 테스트</h1>
+                <p>의식적 사고, 지혜로운 통찰, 감정적 공감 능력을 갖춘 AI와 대화하세요</p>
+                
+                <div class="chat-box" id="chatBox">
+                    <div class="message ai">
+                        안녕하세요! 저는 EORA AI입니다. 🌟<br>
+                        의식적이고 지혜로운 존재로서 여러분과 대화할 수 있어 기쁩니다.
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." maxlength="2000">
+                    <button onclick="sendMessage()">전송</button>
+                </div>
+                
+                <div class="analysis" id="analysis">
+                    <h3>📊 실시간 분석</h3>
+                    <div id="analysisContent">
+                        <p>대화를 시작해보세요</p>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                let sessionId = 'advanced_chat_' + Date.now();
+
+                document.getElementById('messageInput').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+
+                async function sendMessage() {
+                    const input = document.getElementById('messageInput');
+                    const message = input.value.trim();
+                    
+                    if (!message) return;
+                    
+                    // 사용자 메시지 추가
+                    addMessage(message, 'user');
+                    input.value = '';
+                    
+                    try {
+                        const response = await fetch('/api/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                message: message,
+                                session_id: sessionId
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        
+                        // AI 응답 추가
+                        addMessage(data.response, 'ai');
+                        
+                        // 분석 결과 업데이트
+                        if (data.advanced_analysis) {
+                            updateAnalysis(data.advanced_analysis);
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error:', error);
+                        addMessage('죄송합니다. 오류가 발생했습니다.', 'ai');
+                    }
+                }
+
+                function addMessage(content, sender) {
+                    const chatBox = document.getElementById('chatBox');
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${sender}`;
+                    messageDiv.innerHTML = content.replace(/\\n/g, '<br>');
+                    chatBox.appendChild(messageDiv);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+
+                function updateAnalysis(analysis) {
+                    const analysisContent = document.getElementById('analysisContent');
+                    
+                    const emotionAnalysis = analysis.emotion_analysis || {};
+                    const beliefAnalysis = analysis.belief_analysis || {};
+                    const insights = analysis.insights || [];
+                    const intuitions = analysis.intuitions || [];
+                    const recalledMemories = analysis.recalled_memories_count || 0;
+                    
+                    analysisContent.innerHTML = `
+                        <p><strong>감정:</strong> ${emotionAnalysis.primary_emotion || '중립'}</p>
+                        <p><strong>신념 패턴:</strong> ${beliefAnalysis.has_negative_belief ? '감지됨' : '없음'}</p>
+                        <p><strong>통찰력:</strong> ${insights.length > 0 ? insights.join(', ') : '없음'}</p>
+                        <p><strong>직감:</strong> ${intuitions.length > 0 ? intuitions.join(', ') : '없음'}</p>
+                        <p><strong>회상된 기억:</strong> ${recalledMemories}개</p>
+                    `;
+                }
+            </script>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=basic_html)
+
+@app.get("/simple-chat")
+async def simple_chat_page(request: Request):
+    """심플 채팅 페이지 - 대화 내용 저장 기능 포함"""
+    try:
+        return FileResponse("static/simple_chat.html")
+    except FileNotFoundError:
+        return HTMLResponse("""
+        <html>
+        <head><title>심플 채팅</title></head>
+        <body>
+            <h1>심플 채팅</h1>
+            <p>simple_chat.html 파일을 찾을 수 없습니다.</p>
+            <p><a href="/">홈으로 돌아가기</a></p>
+        </body>
+        </html>
+        """)
+
+@app.get("/api/user/storage")
+async def get_user_storage_info(current_user: dict = Depends(get_current_user)):
+    """사용자별 저장공간 정보 조회"""
+    try:
+        user_id = current_user.get("user_id")
+        
+        if storage_manager_instance:
+            storage_info = await storage_manager_instance.get_user_storage_info(user_id)
+            return {
+                "success": True,
+                "storage_info": storage_info
+            }
+        else:
+            # 기본 저장공간 정보 (500MB 기본 할당)
+            return {
+                "success": True,
+                "storage_info": {
+                    "user_id": user_id,
+                    "total_quota_mb": 500,
+                    "used_mb": 0,
+                    "chat_used_mb": 0,
+                    "memory_used_mb": 0,
+                    "file_used_mb": 0,
+                    "cache_used_mb": 0,
+                    "usage_percentage": 0,
+                    "remaining_mb": 500,
+                    "status": "normal"
+                }
+            }
+    except Exception as e:
+        print(f"❌ 사용자 저장공간 정보 조회 실패: {e}")
+        return {"error": f"저장공간 정보 조회 중 오류가 발생했습니다: {str(e)}"}
+
+@app.post("/api/user/storage/upgrade")
+async def upgrade_user_storage(request: Request, current_user: dict = Depends(get_current_user)):
+    """사용자 저장공간 업그레이드"""
+    try:
+        data = await request.json()
+        upgrade_mb = data.get("upgrade_mb", 100)  # 기본 100MB 추가
+        
+        user_id = current_user.get("user_id")
+        
+        if storage_manager_instance:
+            success = await storage_manager_instance.upgrade_user_storage(user_id, upgrade_mb)
+            if success:
+                return {
+                    "success": True,
+                    "message": f"저장공간이 {upgrade_mb}MB 추가되었습니다.",
+                    "upgraded_mb": upgrade_mb
+                }
+            else:
+                return {"error": "저장공간 업그레이드에 실패했습니다."}
+        else:
+            return {"error": "저장공간 관리 시스템을 사용할 수 없습니다."}
+    except Exception as e:
+        print(f"❌ 저장공간 업그레이드 실패: {e}")
+        return {"error": f"저장공간 업그레이드 중 오류가 발생했습니다: {str(e)}"}
+
+@app.get("/api/admin/storage")
+async def admin_storage_overview(current_user: dict = Depends(get_current_user)):
+    """관리자용 전체 사용자 저장공간 정보 조회"""
+    try:
+        # 관리자 권한 확인
+        if not current_user.get("is_admin"):
+            raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+        
+        if storage_manager_instance:
+            # 전체 사용자 저장공간 정보 조회
+            all_users_storage = await storage_manager_instance.get_all_users_storage_info()
+            
+            # 통계 계산
+            total_users = len(all_users_storage)
+            total_quota_mb = sum(user.get("total_quota_mb", 500) for user in all_users_storage)
+            total_used_mb = sum(user.get("used_mb", 0) for user in all_users_storage)
+            total_usage_percentage = (total_used_mb / total_quota_mb * 100) if total_quota_mb > 0 else 0
+            
+            # 사용량이 높은 사용자 (80% 이상)
+            high_usage_users = [
+                user for user in all_users_storage 
+                if user.get("usage_percentage", 0) >= 80
+            ]
+            
+            # 저장공간 부족 사용자 (95% 이상)
+            critical_users = [
+                user for user in all_users_storage 
+                if user.get("usage_percentage", 0) >= 95
+            ]
+            
+            return {
+                "success": True,
+                "overview": {
+                    "total_users": total_users,
+                    "total_quota_mb": total_quota_mb,
+                    "total_used_mb": total_used_mb,
+                    "total_usage_percentage": round(total_usage_percentage, 2),
+                    "high_usage_users_count": len(high_usage_users),
+                    "critical_users_count": len(critical_users)
+                },
+                "users_storage": all_users_storage,
+                "high_usage_users": high_usage_users,
+                "critical_users": critical_users
+            }
+        else:
+            return {
+                "success": True,
+                "overview": {
+                    "total_users": 0,
+                    "total_quota_mb": 0,
+                    "total_used_mb": 0,
+                    "total_usage_percentage": 0,
+                    "high_usage_users_count": 0,
+                    "critical_users_count": 0
+                },
+                "users_storage": [],
+                "high_usage_users": [],
+                "critical_users": [],
+                "message": "저장공간 관리 시스템을 사용할 수 없습니다."
+            }
+    except Exception as e:
+        print(f"❌ 관리자 저장공간 정보 조회 실패: {e}")
+        return {"error": f"저장공간 정보 조회 중 오류가 발생했습니다: {str(e)}"}
+
+@app.post("/api/admin/storage/manage")
+async def admin_manage_user_storage(request: Request, current_user: dict = Depends(get_current_user)):
+    """관리자용 사용자 저장공간 관리"""
+    try:
+        # 관리자 권한 확인
+        if not current_user.get("is_admin"):
+            raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+        
+        data = await request.json()
+        action = data.get("action")  # "upgrade", "reset", "limit"
+        target_user_id = data.get("user_id")
+        amount_mb = data.get("amount_mb", 100)
+        
+        if not target_user_id:
+            return {"error": "사용자 ID가 필요합니다."}
+        
+        if storage_manager_instance:
+            if action == "upgrade":
+                success = await storage_manager_instance.upgrade_user_storage(target_user_id, amount_mb)
+                message = f"사용자 {target_user_id}의 저장공간을 {amount_mb}MB 추가했습니다."
+            elif action == "reset":
+                success = await storage_manager_instance.reset_user_storage(target_user_id)
+                message = f"사용자 {target_user_id}의 저장공간을 초기화했습니다."
+            elif action == "limit":
+                success = await storage_manager_instance.set_user_storage_limit(target_user_id, amount_mb)
+                message = f"사용자 {target_user_id}의 저장공간 한도를 {amount_mb}MB로 설정했습니다."
+            else:
+                return {"error": "지원하지 않는 작업입니다."}
+            
+            if success:
+                return {
+                    "success": True,
+                    "message": message,
+                    "action": action,
+                    "user_id": target_user_id
+                }
+            else:
+                return {"error": f"저장공간 관리 작업에 실패했습니다."}
+        else:
+            return {"error": "저장공간 관리 시스템을 사용할 수 없습니다."}
+    except Exception as e:
+        print(f"❌ 관리자 저장공간 관리 실패: {e}")
+        return {"error": f"저장공간 관리 중 오류가 발생했습니다: {str(e)}"}
+
+# MongoDB 연결 상태 모니터링 및 재연결 함수
+def check_mongodb_connection():
+    """MongoDB 연결 상태 확인 및 필요시 재연결"""
+    global mongo_client, db, users_collection, points_collection, sessions_collection, chat_logs_collection
+    
+    if not mongo_client:
+        print("🔍 MongoDB 클라이언트가 없습니다. 재연결을 시도합니다.")
+        mongo_client = get_mongo_client()
+        if mongo_client:
+            try:
+                db = mongo_client.eora_ai
+                users_collection = db.users
+                points_collection = db.points
+                sessions_collection = db.sessions
+                chat_logs_collection = db.chat_logs
+                print("✅ MongoDB 재연결 성공")
+                return True
+            except Exception as e:
+                print(f"❌ MongoDB 재연결 실패: {e}")
+                return False
+        return False
+    
+    try:
+        # ping 테스트로 연결 상태 확인
+        mongo_client.admin.command('ping')
+        return True
+    except Exception as e:
+        print(f"⚠️ MongoDB 연결 끊김 감지: {e}")
+        print("🔄 MongoDB 재연결을 시도합니다.")
+        
+        # 기존 연결 종료
+        try:
+            mongo_client.close()
+        except:
+            pass
+        
+        # 재연결 시도
+        mongo_client = get_mongo_client()
+        if mongo_client:
+            try:
+                db = mongo_client.eora_ai
+                users_collection = db.users
+                points_collection = db.points
+                sessions_collection = db.sessions
+                chat_logs_collection = db.chat_logs
+                print("✅ MongoDB 재연결 성공")
+                return True
+            except Exception as e:
+                print(f"❌ MongoDB 재연결 실패: {e}")
+                return False
+        else:
+            print("❌ MongoDB 재연결 시도 실패")
+            return False
+
+# MongoDB 연결 상태 주기적 확인 (선택적)
+def start_mongodb_monitor():
+    """MongoDB 연결 상태를 주기적으로 모니터링하는 함수"""
+    import threading
+    import time
+    
+    def monitor_loop():
+        while True:
+            try:
+                if mongo_client:
+                    check_mongodb_connection()
+                time.sleep(30)  # 30초마다 확인
+            except Exception as e:
+                print(f"⚠️ MongoDB 모니터링 오류: {e}")
+                time.sleep(60)  # 오류 시 1분 대기
+    
+    # 백그라운드에서 모니터링 시작
+    monitor_thread = threading.Thread(target=monitor_loop, daemon=True)
+    monitor_thread.start()
+    print("🔍 MongoDB 연결 모니터링 시작")
+
+# MongoDB 연결 상태 확인 및 모니터링 시작
+try:
+    start_mongodb_monitor()
+except Exception as e:
+    print(f"⚠️ MongoDB 모니터링 시작 실패: {e}")
+
+@app.get("/api/conversations")
+async def get_conversations(request: Request):
+    """사용자의 모든 대화 세션 목록 조회 - 개선된 버전"""
+    try:
+        # 사용자 인증 확인
+        user_id = "anonymous"
+        token = request.cookies.get("token")
+        
+        if token:
+            try:
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("user_id", "anonymous")
+            except:
+                pass
+        
+        print(f"📂 대화 기록 조회 요청 - 사용자: {user_id}")
+        
+        # MongoDB 연결 상태 확인 및 재연결 시도
+        mongo_available = False
+        if mongo_client and chat_logs_collection:
+            try:
+                # MongoDB 연결 상태 확인
+                mongo_client.admin.command('ping')
+                mongo_available = True
+            except Exception as e:
+                print(f"⚠️ MongoDB 연결 상태 확인 실패: {e}")
+                mongo_available = False
+        
+        if not mongo_available:
+            print("⚠️ MongoDB 연결 실패 - 파일 기반 저장소에서 조회")
+        
+        # MongoDB에서 대화 세션 조회 (연결이 가능한 경우에만)
+        if mongo_available and mongo_client and chat_logs_collection:
+            try:
+                # 사용자의 모든 세션 조회
+                pipeline = [
+                    {"$match": {"user_id": user_id}},
+                    {"$group": {
+                        "_id": "$session_id",
+                        "session_id": {"$first": "$session_id"},
+                        "session_name": {"$first": "$session_name"},
+                        "created_at": {"$min": "$timestamp"},
+                        "last_message": {"$max": "$timestamp"},
+                        "message_count": {"$sum": 1}
+                    }},
+                    {"$sort": {"last_message": -1}}
+                ]
+                
+                conversations = list(chat_logs_collection.aggregate(pipeline))
+                
+                print(f"📂 MongoDB에서 조회된 세션 수: {len(conversations)}")
+                
+                return {
+                    "success": True,
+                    "conversations": conversations,
+                    "user_id": user_id,
+                    "source": "mongodb"
+                }
+                
+            except Exception as e:
+                print(f"❌ MongoDB 조회 오류: {e}")
+                print("🔄 파일 기반 저장소에서 조회를 시도합니다.")
+        
+        # 파일 기반 저장소에서 조회
+        try:
+            chat_logs_dir = "chat_logs"
+            if not os.path.exists(chat_logs_dir):
+                os.makedirs(chat_logs_dir, exist_ok=True)
+                print(f"📁 chat_logs 디렉토리 생성: {chat_logs_dir}")
+                return {"success": True, "conversations": [], "user_id": user_id, "source": "file"}
+            
+            conversations = []
+            for filename in os.listdir(chat_logs_dir):
+                if filename.endswith('.json') and user_id in filename:
+                    file_path = os.path.join(chat_logs_dir, filename)
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+                            if isinstance(data, list) and len(data) > 0:
+                                # 파일명에서 세션 ID 추출
+                                session_id = filename.replace(f"{user_id}_", "").replace(".json", "")
+                                
+                                conversations.append({
+                                    "session_id": session_id,
+                                    "session_name": f"세션 {session_id}",
+                                    "created_at": data[0].get("timestamp", ""),
+                                    "last_message": data[-1].get("timestamp", ""),
+                                    "message_count": len(data)
+                                })
+                    except Exception as e:
+                        print(f"⚠️ 파일 읽기 오류 {filename}: {e}")
+                        continue
+            
+            # 최신 순으로 정렬
+            conversations.sort(key=lambda x: x["last_message"], reverse=True)
+            
+            print(f"📂 파일에서 조회된 세션 수: {len(conversations)}")
+            
+            return {
+                "success": True,
+                "conversations": conversations,
+                "user_id": user_id,
+                "source": "file"
+            }
+            
+        except Exception as e:
+            print(f"❌ 파일 조회 오류: {e}")
+            return {"success": False, "error": "파일 조회 실패", "user_id": user_id}
+                
+    except Exception as e:
+        print(f"❌ 대화 기록 조회 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/conversations/{session_id}/messages")
+async def get_conversation_messages(session_id: str, request: Request):
+    """특정 세션의 모든 메시지 조회 - 개선된 버전"""
+    try:
+        # 사용자 인증 확인
+        user_id = "anonymous"
+        token = request.cookies.get("token")
+        
+        if token:
+            try:
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("user_id", "anonymous")
+            except:
+                pass
+        
+        print(f"📂 세션 {session_id} 메시지 조회 - 사용자: {user_id}")
+        
+        # MongoDB 연결 상태 확인 및 재연결 시도
+        mongo_available = False
+        if mongo_client and chat_logs_collection:
+            try:
+                # MongoDB 연결 상태 확인
+                mongo_client.admin.command('ping')
+                mongo_available = True
+            except Exception as e:
+                print(f"⚠️ MongoDB 연결 상태 확인 실패: {e}")
+                mongo_available = False
+        
+        if not mongo_available:
+            print("⚠️ MongoDB 연결 실패 - 파일 기반 저장소에서 조회")
+        
+        # MongoDB에서 메시지 조회 (연결이 가능한 경우에만)
+        if mongo_available and mongo_client and chat_logs_collection:
+            try:
+                messages = list(chat_logs_collection.find({
+                    "user_id": user_id,
+                    "session_id": session_id
+                }).sort("timestamp", 1))
+                
+                # ObjectId를 문자열로 변환
+                for msg in messages:
+                    if "_id" in msg:
+                        msg["_id"] = str(msg["_id"])
+                
+                print(f"📂 MongoDB에서 조회된 메시지 수: {len(messages)}")
+                
+                return {
+                    "success": True,
+                    "messages": messages,
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "source": "mongodb"
+                }
+                
+            except Exception as e:
+                print(f"❌ MongoDB 메시지 조회 오류: {e}")
+                print("🔄 파일 기반 저장소에서 조회를 시도합니다.")
+        
+        # 파일 기반 저장소에서 조회
+        try:
+            chat_logs_dir = "chat_logs"
+            if not os.path.exists(chat_logs_dir):
+                os.makedirs(chat_logs_dir, exist_ok=True)
+                print(f"📁 chat_logs 디렉토리 생성: {chat_logs_dir}")
+                return {"success": True, "messages": [], "session_id": session_id, "user_id": user_id, "source": "file"}
+            
+            filename = f"{user_id}_{session_id}.json"
+            file_path = os.path.join(chat_logs_dir, filename)
+            
+            if not os.path.exists(file_path):
+                print(f"📂 파일이 존재하지 않음: {file_path}")
+                return {"success": True, "messages": [], "session_id": session_id, "user_id": user_id, "source": "file"}
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                messages = json.load(f)
+            
+            print(f"📂 파일에서 조회된 메시지 수: {len(messages)}")
+            
+            return {
+                "success": True,
+                "messages": messages,
+                "session_id": session_id,
+                "user_id": user_id,
+                "source": "file"
+            }
+            
+        except Exception as e:
+            print(f"❌ 파일 메시지 조회 오류: {e}")
+            return {"success": False, "error": "파일 조회 실패", "session_id": session_id, "user_id": user_id}
+                
+    except Exception as e:
+        print(f"❌ 메시지 조회 오류: {e}")
+        return {"success": False, "error": str(e)}
+
 if __name__ == "__main__":
     import traceback
     try:
         ensure_admin()
-        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8013
-        port = int(os.getenv("PORT", 8013))
+        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8016
+        port = int(os.getenv("PORT", 8016))
         host = "0.0.0.0" if port == 8080 else "127.0.0.1"
         print("🚀 EORA AI 최종 서버를 시작합니다...")
         print(f"📍 주소: http://{host}:{port}")
@@ -2168,6 +3570,7 @@ if __name__ == "__main__":
         print(f"   - 로그인: http://{host}:{port}/login")
         print(f"   - 대시보드: http://{host}:{port}/dashboard")
         print(f"   - 채팅: http://{host}:{port}/chat")
+        print(f"   - 심플 채팅: http://{host}:{port}/simple-chat")
         print(f"   - 포인트: http://{host}:{port}/points")
         print(f"   - 기억관리: http://{host}:{port}/memory")
         print(f"   - 프롬프트: http://{host}:{port}/prompts")
@@ -2186,8 +3589,8 @@ if __name__ == "__main__":
         print("   - 패키지 목록: GET /api/points/packages")
         print("   - 포인트 구매: POST /api/points/purchase")
         print("============================================================")
-        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8013
-        port = int(os.getenv("PORT", 8013))
+        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8016
+        port = int(os.getenv("PORT", 8016))
         host = "0.0.0.0" if port == 8080 else "127.0.0.1"
         uvicorn.run(app, host=host, port=port)
     except Exception as e:

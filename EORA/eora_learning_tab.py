@@ -82,7 +82,7 @@ class EORALearningTab(QWidget):
             if not text.strip():
                 self.log_output.append(f"⚠️ {os.path.basename(path)}: 추출된 텍스트가 없습니다.")
                 continue
-            chunk_size = 500
+            chunk_size = 5000
             chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
             for idx, chunk in enumerate(chunks):
                 meta = {

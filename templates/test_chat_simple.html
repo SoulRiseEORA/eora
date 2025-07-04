@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>채팅 API 테스트 (CORS 해결됨)</title>
+    <title>채팅 API 테스트 (localStorage 저장)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -88,15 +88,42 @@
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .clear-btn {
+            padding: 8px 16px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .clear-btn:hover {
+            background-color: #c82333;
+        }
+        .timestamp {
+            font-size: 10px;
+            color: #666;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
-    <h1>🔧 채팅 API 테스트 (CORS 해결됨)</h1>
-    <p>이 페이지는 CORS 문제가 해결된 상태에서 API를 테스트합니다.</p>
+    <h1>🔧 채팅 API 테스트 (localStorage 저장)</h1>
+    <p>이 페이지는 localStorage를 사용하여 대화 내용을 저장합니다. 새로고침해도 대화가 유지됩니다.</p>
     
     <div class="status info">
         🌐 현재 페이지: <span id="currentUrl"></span><br>
         🔧 API 서버: <span id="apiServer"></span>
+    </div>
+    
+    <div class="controls">
+        <button class="clear-btn" onclick="clearChat()">대화 초기화</button>
+        <span id="storageInfo">저장된 메시지: 0개</span>
     </div>
     
     <div class="debug-info">
@@ -107,6 +134,7 @@
     <div class="chat-container" id="chatContainer">
         <div class="message ai-message">
             안녕하세요! EORA AI 테스트 페이지입니다. 메시지를 보내보세요! 🤖
+            <div class="timestamp">지금</div>
         </div>
     </div>
     
@@ -116,6 +144,9 @@
     </div>
     
     <script>
+        const API_BASE = window.location.origin;
+        const STORAGE_KEY = 'test_chat_history';
+        
         // 현재 페이지 URL과 API 서버 URL 설정
         const currentUrl = window.location.origin;
         const apiServer = currentUrl; // 같은 서버 사용
@@ -129,6 +160,26 @@
             const timestamp = new Date().toLocaleTimeString();
             debugInfo.innerHTML += `[${timestamp}] ${message}<br>`;
             debugInfo.scrollTop = debugInfo.scrollHeight;
+        }
+        
+        // 채팅 기록 로드
+        function loadChatHistory() {
+            const savedChat = localStorage.getItem(STORAGE_KEY);
+            if (savedChat) {
+                const chatHistory = JSON.parse(savedChat);
+                const chatContainer = document.getElementById('chatContainer');
+                
+                // 기존 메시지 제거 (AI 환영 메시지 제외)
+                chatContainer.innerHTML = '';
+                
+                // 저장된 메시지들 추가
+                chatHistory.forEach(msg => {
+                    addMessageToChat(msg.content, msg.sender, msg.timestamp);
+                });
+                
+                updateStorageInfo();
+                updateDebugInfo(`✅ 저장된 대화 ${chatHistory.length}개 로드 완료`);
+            }
         }
         
         // 서버 상태 확인
@@ -155,7 +206,7 @@
             if (!message) return;
             
             // 사용자 메시지 추가
-            addMessage('user', message);
+            addMessageToChat(message, 'user');
             messageInput.value = '';
             
             updateDebugInfo(`📤 메시지 전송: ${message}`);
@@ -175,26 +226,78 @@
                 if (response.ok) {
                     const data = await response.json();
                     updateDebugInfo(`✅ 응답 수신: ${data.response.substring(0, 50)}...`);
-                    addMessage('ai', data.response);
+                    addMessageToChat(data.response, 'ai');
                 } else {
                     const errorText = await response.text();
                     updateDebugInfo(`❌ API 오류: ${response.status} - ${errorText}`);
-                    addMessage('ai', '죄송합니다. 응답을 생성할 수 없습니다.');
+                    addMessageToChat('죄송합니다. 응답을 생성할 수 없습니다.', 'ai');
                 }
             } catch (error) {
                 updateDebugInfo(`❌ 네트워크 오류: ${error.message}`);
-                addMessage('ai', '네트워크 오류가 발생했습니다.');
+                addMessageToChat('네트워크 오류가 발생했습니다.', 'ai');
             }
         }
         
-        // 메시지 추가
-        function addMessage(type, content) {
+        // 메시지 추가 (localStorage 저장 포함)
+        function addMessageToChat(content, sender, timestamp = null) {
             const container = document.getElementById('chatContainer');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}-message`;
-            messageDiv.textContent = content;
+            messageDiv.className = `message ${sender}-message`;
+            
+            const time = timestamp || new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                ${content}
+                <div class="timestamp">${time}</div>
+            `;
+            
             container.appendChild(messageDiv);
             container.scrollTop = container.scrollHeight;
+            
+            // localStorage에 저장
+            saveChatToLocalStorage(content, sender, time);
+        }
+        
+        // 채팅 기록을 localStorage에 저장
+        function saveChatToLocalStorage(content, sender, timestamp) {
+            const savedChat = localStorage.getItem(STORAGE_KEY) || '[]';
+            const chatHistory = JSON.parse(savedChat);
+            
+            chatHistory.push({
+                content: content,
+                sender: sender,
+                timestamp: timestamp
+            });
+            
+            // 최대 50개 메시지까지만 저장
+            if (chatHistory.length > 50) {
+                chatHistory.splice(0, chatHistory.length - 50);
+            }
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
+            updateStorageInfo();
+        }
+        
+        // 저장된 메시지 개수 표시 업데이트
+        function updateStorageInfo() {
+            const savedChat = localStorage.getItem(STORAGE_KEY) || '[]';
+            const chatHistory = JSON.parse(savedChat);
+            document.getElementById('storageInfo').textContent = `저장된 메시지: ${chatHistory.length}개`;
+        }
+        
+        // 대화 초기화
+        function clearChat() {
+            if (confirm('정말로 대화 내용을 초기화하시겠습니까?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                const chatContainer = document.getElementById('chatContainer');
+                chatContainer.innerHTML = `
+                    <div class="message ai-message">
+                        안녕하세요! EORA AI 테스트 페이지입니다. 메시지를 보내보세요! 🤖
+                        <div class="timestamp">지금</div>
+                    </div>
+                `;
+                updateStorageInfo();
+                updateDebugInfo('🗑️ 대화 내용 초기화 완료');
+            }
         }
         
         // 엔터키 처리
@@ -204,10 +307,11 @@
             }
         }
         
-        // 페이지 로드 시 서버 상태 확인
+        // 페이지 로드 시 서버 상태 확인 및 채팅 기록 로드
         window.onload = function() {
             updateDebugInfo('페이지 로드 완료');
             checkServerStatus();
+            loadChatHistory();
         };
     </script>
 </body>

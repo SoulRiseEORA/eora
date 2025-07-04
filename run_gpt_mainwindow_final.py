@@ -47,9 +47,26 @@ import qasync
 from GPTMainWindow import GPTMainWindow
 from dotenv import load_dotenv
 from redis_launcher import start_redis
-from aura_system.memory_manager import get_memory_manager
-from aura_system.openai_client import init_openai
-from aura_system.task_manager import cleanup_pending_tasks
+
+# 아우라 통합 시스템 import
+try:
+    from aura_integration import get_aura_integration, AuraIntegration
+    AURA_INTEGRATION_AVAILABLE = True
+    print("✅ 아우라 통합 시스템 로드 성공")
+except ImportError as e:
+    AURA_INTEGRATION_AVAILABLE = False
+    print(f"⚠️ 아우라 통합 시스템 로드 실패: {e}")
+
+# 기존 아우라 시스템 import (호환성)
+try:
+    from aura_system.memory_manager import get_memory_manager
+    from aura_system.openai_client import init_openai
+    from aura_system.task_manager import cleanup_pending_tasks
+    AURA_SYSTEM_AVAILABLE = True
+    print("✅ 기존 아우라 시스템 로드 성공")
+except ImportError as e:
+    AURA_SYSTEM_AVAILABLE = False
+    print(f"⚠️ 기존 아우라 시스템 로드 실패: {e}")
 
 # 로깅 설정
 # logging.basicConfig(
@@ -72,26 +89,51 @@ async def main():
         print(f"[Redis Error] {e}")
         traceback.print_exc()
 
-    memory_manager = None
-    try:
-        memory_manager = await get_memory_manager()
-        if not memory_manager or not memory_manager.is_initialized:
-            raise RuntimeError("메모리 매니저 초기화에 실패했지만 예외가 발생하지 않았습니다.")
-        # logging.info("✅ MemoryManager 초기화 완료")
-    except Exception as e:
-        print(f"[MemoryManager Error] {e}")
-        traceback.print_exc()
-        return
+    # 아우라 통합 시스템 초기화
+    aura_integration = None
+    if AURA_INTEGRATION_AVAILABLE:
+        try:
+            aura_integration = await get_aura_integration()
+            if not aura_integration or not aura_integration._initialized:
+                raise RuntimeError("아우라 통합 시스템 초기화에 실패했습니다.")
+            print("✅ 아우라 통합 시스템 초기화 완료")
+        except Exception as e:
+            print(f"[Aura Integration Error] {e}")
+            traceback.print_exc()
+            aura_integration = None
 
-    try:
-        init_openai()
-        # logging.info("✅ OpenAI 초기화 완료")
-    except Exception as e:
-        print(f"[OpenAI Error] {e}")
-        traceback.print_exc()
+    # 기존 아우라 시스템 초기화 (폴백)
+    memory_manager = None
+    if not aura_integration and AURA_SYSTEM_AVAILABLE:
+        try:
+            memory_manager = await get_memory_manager()
+            if not memory_manager or not memory_manager.is_initialized:
+                raise RuntimeError("메모리 매니저 초기화에 실패했지만 예외가 발생하지 않았습니다.")
+            print("✅ 기존 메모리 매니저 초기화 완료")
+        except Exception as e:
+            print(f"[MemoryManager Error] {e}")
+            traceback.print_exc()
+            return
+
+    # OpenAI 초기화
+    if AURA_SYSTEM_AVAILABLE:
+        try:
+            init_openai()
+            print("✅ OpenAI 초기화 완료")
+        except Exception as e:
+            print(f"[OpenAI Error] {e}")
+            traceback.print_exc()
 
     app = QApplication.instance() or QApplication(sys.argv)
-    window = GPTMainWindow(memory_manager=memory_manager)
+    
+    # 아우라 통합 시스템을 우선적으로 사용
+    if aura_integration:
+        window = GPTMainWindow(aura_integration=aura_integration)
+        print("✅ GPTMainWindow 실행됨 (아우라 통합 시스템 사용)")
+    else:
+        window = GPTMainWindow(memory_manager=memory_manager)
+        print("✅ GPTMainWindow 실행됨 (기존 시스템 사용)")
+    
     shutdown_future = asyncio.get_event_loop().create_future()
     window.set_shutdown_future(shutdown_future)
     window.show()
@@ -100,7 +142,23 @@ async def main():
     await shutdown_future
 
     # logging.info("애플리케이션 종료 신호 수신. 정리 작업을 시작합니다.")
-    await cleanup_pending_tasks()
+    
+    # 아우라 통합 시스템 정리
+    if aura_integration:
+        try:
+            await aura_integration.cleanup()
+            print("✅ 아우라 통합 시스템 정리 완료")
+        except Exception as e:
+            print(f"[Aura Integration Cleanup Error] {e}")
+    
+    # 기존 시스템 정리
+    if AURA_SYSTEM_AVAILABLE:
+        try:
+            await cleanup_pending_tasks()
+            print("✅ 기존 시스템 정리 완료")
+        except Exception as e:
+            print(f"[Cleanup Error] {e}")
+    
     # logging.info("모든 정리 작업 완료. 앱을 완전히 종료합니다.")
 
 if __name__ == "__main__":

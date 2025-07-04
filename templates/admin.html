@@ -427,6 +427,7 @@
                 <button class="nav-btn active" onclick="showSection('overview')">📊 개요</button>
                 <button class="nav-btn" onclick="showSection('users')">👥 사용자 관리</button>
                 <button class="nav-btn" onclick="showSection('points')">💰 포인트 관리</button>
+                <button class="nav-btn" onclick="showSection('storage')">💾 저장공간 관리</button>
                 <button class="nav-btn" onclick="showSection('learning')">🧠 학습 관리</button>
                 <button class="nav-btn" onclick="showSection('system')">⚙️ 시스템</button>
             </div>
@@ -498,6 +499,88 @@
                             </tr>
                         </thead>
                         <tbody id="points-table-body">
+                            <tr>
+                                <td colspan="6" style="text-align: center;">로딩 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 저장공간 관리 섹션 -->
+            <div id="storage-section" class="admin-section">
+                <!-- 저장공간 개요 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">💾</div>
+                        <div class="stat-number" id="total-storage-users">0</div>
+                        <div class="stat-label">총 사용자</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-number" id="total-storage-quota">0</div>
+                        <div class="stat-label">총 할당량 (MB)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💿</div>
+                        <div class="stat-number" id="total-storage-used">0</div>
+                        <div class="stat-label">총 사용량 (MB)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-number" id="critical-storage-users">0</div>
+                        <div class="stat-label">저장공간 부족</div>
+                    </div>
+                </div>
+
+                <!-- 저장공간 관리 도구 -->
+                <div class="data-table">
+                    <h3>🔧 저장공간 관리 도구</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button class="action-btn" onclick="refreshStorageData()">🔄 새로고침</button>
+                        <button class="action-btn" onclick="exportStorageData()">📥 내보내기</button>
+                        <button class="action-btn" onclick="showStorageUpgradeModal()">⬆️ 일괄 업그레이드</button>
+                    </div>
+                </div>
+
+                <!-- 사용자별 저장공간 정보 -->
+                <div class="data-table">
+                    <h3>👥 사용자별 저장공간 정보</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>사용자 ID</th>
+                                <th>이메일</th>
+                                <th>총 할당량 (MB)</th>
+                                <th>사용량 (MB)</th>
+                                <th>사용률 (%)</th>
+                                <th>상태</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="storage-users-table-body">
+                            <tr>
+                                <td colspan="7" style="text-align: center;">로딩 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 저장공간 부족 사용자 -->
+                <div class="data-table">
+                    <h3>⚠️ 저장공간 부족 사용자</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>사용자 ID</th>
+                                <th>이메일</th>
+                                <th>사용률 (%)</th>
+                                <th>부족량 (MB)</th>
+                                <th>권장 조치</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="critical-storage-table-body">
                             <tr>
                                 <td colspan="6" style="text-align: center;">로딩 중...</td>
                             </tr>
@@ -662,6 +745,9 @@
                 case 'points':
                     loadPoints();
                     break;
+                case 'storage':
+                    loadStorageStatus();
+                    break;
                 case 'system':
                     loadSystemStatus();
                     break;
@@ -761,6 +847,182 @@
                 }
             } catch (error) {
                 console.error('포인트 현황 로드 오류:', error);
+            }
+        }
+
+        // 저장공간 상태 로드
+        async function loadStorageStatus() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/storage', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // 개요 정보 업데이트
+                        document.getElementById('total-storage-users').textContent = data.overview.total_users || 0;
+                        document.getElementById('total-storage-quota').textContent = data.overview.total_quota_mb || 0;
+                        document.getElementById('total-storage-used').textContent = data.overview.total_used_mb || 0;
+                        document.getElementById('critical-storage-users').textContent = data.overview.critical_users_count || 0;
+
+                        // 사용자별 저장공간 정보 표시
+                        displayStorageUsers(data.users_storage || []);
+                        
+                        // 저장공간 부족 사용자 표시
+                        displayCriticalUsers(data.critical_users || []);
+                    }
+                }
+            } catch (error) {
+                console.error('저장공간 상태 로드 오류:', error);
+            }
+        }
+
+        // 사용자별 저장공간 정보 표시
+        function displayStorageUsers(users) {
+            const tbody = document.getElementById('storage-users-table-body');
+            tbody.innerHTML = '';
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">사용자 데이터가 없습니다.</td></tr>';
+                return;
+            }
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                const usagePercentage = user.usage_percentage || 0;
+                const status = getStorageStatus(usagePercentage);
+                
+                row.innerHTML = `
+                    <td>${user.user_id}</td>
+                    <td>${user.email || 'N/A'}</td>
+                    <td>${user.total_quota_mb || 500}</td>
+                    <td>${user.used_mb || 0}</td>
+                    <td>${usagePercentage.toFixed(1)}%</td>
+                    <td>${status}</td>
+                    <td>
+                        <button class="action-btn" onclick="upgradeUserStorage('${user.user_id}')">⬆️ 업그레이드</button>
+                        <button class="action-btn" onclick="resetUserStorage('${user.user_id}')">🔄 초기화</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 저장공간 부족 사용자 표시
+        function displayCriticalUsers(users) {
+            const tbody = document.getElementById('critical-storage-table-body');
+            tbody.innerHTML = '';
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">저장공간 부족 사용자가 없습니다.</td></tr>';
+                return;
+            }
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                const usagePercentage = user.usage_percentage || 0;
+                const shortage = Math.max(0, (user.used_mb || 0) - (user.total_quota_mb || 500));
+                const recommendation = getStorageRecommendation(usagePercentage);
+                
+                row.innerHTML = `
+                    <td>${user.user_id}</td>
+                    <td>${user.email || 'N/A'}</td>
+                    <td>${usagePercentage.toFixed(1)}%</td>
+                    <td>${shortage.toFixed(1)} MB</td>
+                    <td>${recommendation}</td>
+                    <td>
+                        <button class="action-btn" onclick="upgradeUserStorage('${user.user_id}', ${shortage + 100})">⬆️ 긴급 업그레이드</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 저장공간 상태 반환
+        function getStorageStatus(usagePercentage) {
+            if (usagePercentage >= 95) return '<span style="color: red; font-weight: bold;">⚠️ 위험</span>';
+            if (usagePercentage >= 80) return '<span style="color: orange; font-weight: bold;">⚠️ 주의</span>';
+            if (usagePercentage >= 50) return '<span style="color: blue;">📊 보통</span>';
+            return '<span style="color: green;">✅ 정상</span>';
+        }
+
+        // 저장공간 권장사항 반환
+        function getStorageRecommendation(usagePercentage) {
+            if (usagePercentage >= 95) return '즉시 저장공간 확장 필요';
+            if (usagePercentage >= 80) return '저장공간 확장 권장';
+            if (usagePercentage >= 50) return '사용량 모니터링';
+            return '정상 범위';
+        }
+
+        // 사용자 저장공간 업그레이드
+        async function upgradeUserStorage(userId, amount = 100) {
+            const upgradeAmount = amount || prompt('추가할 저장공간을 MB 단위로 입력하세요 (기본: 100MB):', '100');
+            if (!upgradeAmount) return;
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/storage/manage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        action: 'upgrade',
+                        user_id: userId,
+                        amount_mb: parseInt(upgradeAmount)
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        alert(data.message);
+                        loadStorageStatus(); // 저장공간 정보 새로고침
+                    } else {
+                        alert(data.error || '업그레이드에 실패했습니다.');
+                    }
+                }
+            } catch (error) {
+                console.error('사용자 저장공간 업그레이드 실패:', error);
+                alert('업그레이드 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 사용자 저장공간 초기화
+        async function resetUserStorage(userId) {
+            if (!confirm(`사용자 ${userId}의 저장공간을 초기화하시겠습니까?`)) return;
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/storage/manage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        action: 'reset',
+                        user_id: userId
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        alert(data.message);
+                        loadStorageStatus(); // 저장공간 정보 새로고침
+                    } else {
+                        alert(data.error || '초기화에 실패했습니다.');
+                    }
+                }
+            } catch (error) {
+                console.error('사용자 저장공간 초기화 실패:', error);
+                alert('초기화 중 오류가 발생했습니다.');
             }
         }
 
@@ -982,6 +1244,66 @@
             document.querySelector('#attach-learning-tab .start-btn').disabled = false;
             document.querySelector('#attach-learning-tab .stop-btn').disabled = true;
             document.getElementById('attach-learning-log').textContent += '⏹️ 첨부 학습이 중지되었습니다.\n';
+        }
+
+        // 저장공간 데이터 새로고침
+        async function refreshStorageData() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/storage', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const storage = await response.json();
+                    document.getElementById('total-storage-users').textContent = storage.total_users || 0;
+                    document.getElementById('total-storage-quota').textContent = `${storage.total_quota_mb} MB`;
+                    document.getElementById('total-storage-used').textContent = `${storage.total_used_mb} MB`;
+                    document.getElementById('critical-storage-users').textContent = storage.critical_users || 0;
+                } else {
+                    alert('저장공간 데이터를 새로고침하는데 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('저장공간 데이터 새로고침 오류:', error);
+            }
+        }
+
+        // 저장공간 데이터 내보내기
+        async function exportStorageData() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/storage/export', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'storage_usage.csv'; // 파일 이름 지정
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    alert('저장공간 사용량 데이터가 내보내졌습니다.');
+                } else {
+                    const error = await response.json();
+                    alert(`저장공간 데이터 내보내기 실패: ${error.detail}`);
+                }
+            } catch (error) {
+                console.error('저장공간 데이터 내보내기 오류:', error);
+            }
+        }
+
+        // 저장공간 업그레이드 모달 표시
+        function showStorageUpgradeModal() {
+            alert('저장공간 업그레이드 기능은 곧 추가됩니다!');
         }
 
         // 페이지 로드 시 초기화

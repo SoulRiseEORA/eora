@@ -41,7 +41,7 @@ class EORAParams:
             },
             "memory": {
                 "max_tokens": 4000,
-                "chunk_size": 1500
+                "chunk_size": 5000
             },
             "emotion": {
                 "enabled": True,

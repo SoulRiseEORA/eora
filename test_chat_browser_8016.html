@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포트 8016 채팅 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            overflow-y: auto;
+            background-color: white;
+            border-radius: 8px;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        #sendBtn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #sendBtn:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+        }
+        .ai-message {
+            background-color: #f3e5f5;
+            margin-right: 20%;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            border-bottom-left-radius: 5px;
+        }
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 포트 8016 채팅 테스트</h1>
+    <p>이 페이지는 포트 8016에서 실행되는 서버의 채팅 기능을 테스트합니다.</p>
+    
+    <div class="status info" id="status">
+        🌐 서버 상태: 확인 중...
+    </div>
+    
+    <div class="chat-container" id="chatContainer">
+        <div class="message ai-message">
+            안녕하세요! 포트 8016 채팅 테스트 페이지입니다. 메시지를 보내보세요! 🤖
+        </div>
+    </div>
+    
+    <div class="typing-indicator" id="typingIndicator">
+        <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        </div>
+        <span>AI가 응답을 생성하고 있습니다...</span>
+    </div>
+    
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." onkeypress="handleKeyPress(event)">
+        <button id="sendBtn" onclick="sendMessage()">전송</button>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8016';
+        
+        // 서버 상태 확인
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                document.getElementById('status').textContent = `✅ 서버 상태: ${data.status} (${data.version})`;
+                document.getElementById('status').className = 'status success';
+            } catch (error) {
+                document.getElementById('status').textContent = '❌ 서버 상태: 연결 실패';
+                document.getElementById('status').className = 'status error';
+            }
+        }
+        
+        // 메시지 전송
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+            
+            // 사용자 메시지 표시
+            addMessage(message, 'user');
+            messageInput.value = '';
+            
+            // 타이핑 표시
+            showTypingIndicator();
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: 'test_session_8016'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    hideTypingIndicator();
+                    addMessage(data.response, 'ai');
+                } else {
+                    hideTypingIndicator();
+                    addMessage('죄송합니다. 응답을 생성할 수 없습니다.', 'ai');
+                }
+            } catch (error) {
+                console.error('메시지 전송 실패:', error);
+                hideTypingIndicator();
+                addMessage('네트워크 오류가 발생했습니다.', 'ai');
+            }
+        }
+        
+        // 채팅에 메시지 추가
+        function addMessage(message, isUser) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+            messageDiv.textContent = message;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // 타이핑 표시
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'flex';
+        }
+        
+        // 타이핑 숨김
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+        
+        // Enter 키 처리
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // 페이지 로드 시 서버 상태 확인
+        window.onload = function() {
+            checkServerStatus();
+        };
+    </script>
+</body>
+</html> 

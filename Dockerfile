@@ -27,4 +27,4 @@ ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 
 # 애플리케이션 실행
-CMD ["python", "final_server.py"] 
+CMD ["python", "railway_server.py"] 

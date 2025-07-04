@@ -1,98 +1,95 @@
 #!/usr/bin/env python3
 """
-EORA AI Railway 배포용 서버
-환경변수 자동 수정 및 MongoDB 연결 안정화
+Railway 배포 전용 EORA AI 서버
 """
 
 import os
 import sys
-import re
+import logging
 from pathlib import Path
 
-# 현재 디렉토리를 Python 경로에 추가
-current_dir = Path(__file__).parent
-sys.path.insert(0, str(current_dir))
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 
-# 환경변수 자동 수정 함수
-def fix_environment_variables():
-    """환경변수 값을 자동으로 정리하고 수정"""
+logger = logging.getLogger(__name__)
+
+def setup_railway_environment():
+    """Railway 환경 설정"""
+    logger.info("🚂 Railway 환경 설정 시작")
     
-    # MongoDB 관련 환경변수들
-    mongo_vars = [
-        "MONGO_PUBLIC_URL",
-        "MONGO_URL", 
-        "MONGO_INITDB_ROOT_PASSWORD",
-        "MONGO_INITDB_ROOT_USERNAME"
+    # Railway 환경변수 확인
+    required_vars = [
+        'OPENAI_API_KEY',
+        'MONGO_URL', 
+        'MONGO_PUBLIC_URL',
+        'PORT'
     ]
     
-    # OpenAI API 키 확인
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if openai_key:
-        if openai_key.startswith("sk-"):
-            print("✅ OpenAI API 키가 올바르게 설정되어 있습니다!")
-        else:
-            print("❌ OpenAI API 키 형식이 올바르지 않습니다. 'sk-'로 시작해야 합니다.")
-    else:
-        print("❌ OPENAI_API_KEY가 설정되지 않았습니다.")
-        print("🔧 Railway 대시보드 > Service > Variables에서 설정해주세요.")
+    missing_vars = []
+    for var in required_vars:
+        if not os.getenv(var):
+            missing_vars.append(var)
     
-    for var_name in mongo_vars:
-        value = os.getenv(var_name, "")
-        if value:
-            # 값 정리 (쌍따옴표, 공백, 줄바꿈 제거)
-            cleaned_value = value.strip().replace('"', '').replace("'", "").replace('\n', '').replace('\r', '')
-            
-            # URL인 경우 추가 정리
-            if var_name in ["MONGO_PUBLIC_URL", "MONGO_URL"] and cleaned_value.startswith("mongodb://"):
-                # 포트 뒤에 다른 환경변수가 붙어있는 경우 수정
-                if 'MONGO_INITDB_ROOT_PASSWORD=' in cleaned_value:
-                    # 포트 번호까지만 추출
-                    port_match = re.search(r':(\d+)', cleaned_value)
-                    if port_match:
-                        port = port_match.group(1)
-                        # trolley.proxy.rlwy.net:포트까지만 사용
-                        if 'trolley.proxy.rlwy.net' in cleaned_value:
-                            password = os.getenv("MONGO_INITDB_ROOT_PASSWORD", "").strip().replace('"', '').replace("'", "")
-                            cleaned_value = f"mongodb://mongo:{password}@trolley.proxy.rlwy.net:{port}"
-                        elif 'mongodb.railway.internal' in cleaned_value:
-                            password = os.getenv("MONGO_INITDB_ROOT_PASSWORD", "").strip().replace('"', '').replace("'", "")
-                            cleaned_value = f"mongodb://mongo:{password}@mongodb.railway.internal:27017"
-            
-            # 수정된 값으로 환경변수 재설정
-            os.environ[var_name] = cleaned_value
-            print(f"🔧 환경변수 수정: {var_name} = {cleaned_value.replace(os.getenv('MONGO_INITDB_ROOT_PASSWORD', ''), '***') if 'PASSWORD' in var_name else cleaned_value}")
+    if missing_vars:
+        logger.warning(f"⚠️ 누락된 환경변수: {missing_vars}")
+        logger.info("🔧 Railway 대시보드에서 환경변수를 설정해주세요.")
+    else:
+        logger.info("✅ 모든 필수 환경변수가 설정되었습니다.")
+    
+    # 포트 설정
+    port = int(os.getenv('PORT', 8080))
+    logger.info(f"📍 서버 포트: {port}")
+    
+    # OpenAI API 키 확인
+    openai_key = os.getenv('OPENAI_API_KEY')
+    if openai_key and openai_key.startswith('sk-'):
+        logger.info("✅ OpenAI API 키가 설정되었습니다.")
+    else:
+        logger.warning("⚠️ OpenAI API 키가 올바르게 설정되지 않았습니다.")
+    
+    # MongoDB 연결 확인
+    mongo_url = os.getenv('MONGO_URL') or os.getenv('MONGO_PUBLIC_URL')
+    if mongo_url:
+        logger.info("✅ MongoDB 연결 URL이 설정되었습니다.")
+    else:
+        logger.warning("⚠️ MongoDB 연결 URL이 설정되지 않았습니다.")
+    
+    return port
 
 def main():
-    """메인 함수"""
-    print("🚀 EORA AI Railway 서버 시작")
-    print("=" * 50)
-    
-    # 환경변수 자동 수정
-    print("🔧 환경변수 자동 수정 중...")
-    fix_environment_variables()
-    
-    # final_server.py 실행
-    print("🚀 final_server.py 실행 중...")
-    
-    # final_server 모듈 import 및 실행
+    """메인 실행 함수"""
     try:
-        import final_server
-        print("✅ final_server 모듈 로드 성공")
+        # Railway 환경 설정
+        port = setup_railway_environment()
         
-        # FastAPI 앱 실행
+        # final_server 모듈 임포트
+        logger.info("📦 final_server 모듈 로드 중...")
+        from final_server import app
+        
+        # 서버 시작
         import uvicorn
+        logger.info(f"🚀 Railway EORA AI 서버 시작 (포트: {port})")
+        logger.info("📍 서버 주소: http://0.0.0.0:" + str(port))
+        
         uvicorn.run(
-            final_server.app,
+            app,
             host="0.0.0.0",
-            port=int(os.getenv("PORT", "8080")),
+            port=port,
             log_level="info"
         )
         
     except ImportError as e:
-        print(f"❌ final_server 모듈 로드 실패: {e}")
+        logger.error(f"❌ 모듈 임포트 오류: {e}")
+        logger.error("final_server.py 파일이 존재하는지 확인해주세요.")
         sys.exit(1)
     except Exception as e:
-        print(f"❌ 서버 실행 실패: {e}")
+        logger.error(f"❌ 서버 시작 오류: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
