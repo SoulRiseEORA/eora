@@ -1,15 +1,20 @@
 [phases.setup]
-nixPkgs = ["python311", "gcc", "gfortran", "openblas", "lapack", "pkg-config"]
+nixPkgs = ["python311", "gcc", "gfortran", "openblas", "lapack", "pkg-config", "cmake", "make"]
 
 [phases.install]
 cmds = [
+  "pip install --upgrade pip",
+  "pip install --no-cache-dir numpy==1.26.4",
+  "pip install --no-cache-dir faiss-cpu==1.7.4",
+  "pip install --no-cache-dir sentence-transformers==2.2.2",
   "pip install --no-cache-dir -r requirements.txt"
 ]
 
 [phases.build]
 cmds = [
-  "echo 'Build completed successfully'"
+  "echo 'Build completed successfully'",
+  "python -c 'import faiss; print(\"✅ FAISS 설치 성공\")'"
 ]
 
 [start]
-cmd = "python railway_optimized.py" 
+cmd = "python final_server.py" 
