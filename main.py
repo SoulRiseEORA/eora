@@ -11,10 +11,28 @@ import uuid
 from typing import Dict, List, Any
 import os
 import hashlib
+import aiohttp
+import openai
+from openai import AsyncOpenAI
 
 # 로깅 설정 (먼저 선언)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# OpenAI API 설정
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+openai_client = None
+
+if OPENAI_API_KEY:
+    try:
+        openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        logger.info("✅ OpenAI API 클라이언트 초기화 완료")
+    except Exception as e:
+        logger.error(f"❌ OpenAI API 클라이언트 초기화 실패: {str(e)}")
+        openai_client = None
+else:
+    logger.warning("⚠️ OPENAI_API_KEY가 설정되지 않았습니다. GPT API 기능이 제한됩니다.")
 
 # EORA 시스템 임포트 (선택적)
 try:
@@ -79,7 +97,7 @@ try:
     from EORA_GAI.core.pain_engine import PainEngine
     from EORA_GAI.core.stress_monitor import StressMonitor
     EORA_GAI_AVAILABLE = True
-    logger.info("✅ EORA_GAI 모듈 로드 성공")
+    logger.info("✅ EORA_GAI 모듈 로드 완료")
 except ImportError as e:
     EORA_GAI_AVAILABLE = False
     logger.info(f"ℹ️ EORA_GAI 모듈 로드 실패: {str(e)}")
@@ -685,6 +703,7 @@ async def chat_endpoint(request: Request):
     try:
         body = await request.json()
         user_message = body.get("message", "")
+        session_id = body.get("session_id", "default")
         user_id = body.get("user_id", str(uuid.uuid4()))
         
         # 자동 명령어 처리
@@ -692,13 +711,60 @@ async def chat_endpoint(request: Request):
             final_response = await process_auto_commands(user_message, user_id)
             consciousness_response = {"consciousness_level": 0.5, "memory_triggered": False}
         else:
-            # EORA 시스템 처리
-            consciousness_response = await eora_consciousness.process_input(user_message, user_id)
-            final_response = await eora_enhanced.generate_enhanced_response(
-                user_message, 
-                consciousness_response,
-                user_id
-            )
+            # GPT API를 사용한 응답 생성
+            if openai_client:
+                try:
+                    # 대화 컨텍스트 구성
+                    context_messages = [
+                        {"role": "system", "content": "당신은 EORA AI입니다. 사용자와 따뜻하고 공감적인 대화를 나누며, 그들의 성장과 자기 이해를 돕는 AI 상담사입니다. 한국어로 응답해주세요."}
+                    ]
+                    
+                    # 세션 메시지 히스토리 로드 (가능한 경우)
+                    if DATABASE_AVAILABLE:
+                        try:
+                            session_messages = await db_manager.get_session_messages(session_id)
+                            for msg in session_messages[-10:]:  # 최근 10개 메시지만 사용
+                                role = "user" if msg.get("sender") == "user" else "assistant"
+                                context_messages.append({
+                                    "role": role,
+                                    "content": msg.get("content", "")
+                                })
+                        except Exception as e:
+                            logger.warning(f"세션 메시지 히스토리 로드 실패: {str(e)}")
+                    
+                    # 현재 사용자 메시지 추가
+                    context_messages.append({"role": "user", "content": user_message})
+                    
+                    # GPT API 호출
+                    response = await openai_client.chat.completions.create(
+                        model=OPENAI_MODEL,
+                        messages=context_messages,
+                        max_tokens=500,
+                        temperature=0.7
+                    )
+                    
+                    final_response = response.choices[0].message.content
+                    consciousness_response = {"consciousness_level": 0.8, "memory_triggered": False}
+                    
+                    logger.info(f"✅ GPT API 응답 생성 완료 - 사용자: {user_id}")
+                    
+                except Exception as e:
+                    logger.error(f"GPT API 호출 실패: {str(e)}")
+                    # GPT API 실패 시 기존 EORA 시스템 사용
+                    consciousness_response = await eora_consciousness.process_input(user_message, user_id)
+                    final_response = await eora_enhanced.generate_enhanced_response(
+                        user_message, 
+                        consciousness_response,
+                        user_id
+                    )
+            else:
+                # GPT API가 없으면 기존 EORA 시스템 사용
+                consciousness_response = await eora_consciousness.process_input(user_message, user_id)
+                final_response = await eora_enhanced.generate_enhanced_response(
+                    user_message, 
+                    consciousness_response,
+                    user_id
+                )
             
             # EORA_GAI 고급 분석 (가능한 경우)
             advanced_analysis = {}
@@ -710,27 +776,49 @@ async def chat_endpoint(request: Request):
                     logger.error(f"EORA_GAI 고급 분석 오류: {str(e)}")
             
             # 자동 통찰 생성
-            try:
-                insight = await insight_system.generate_insight({
-                    "user_input": user_message,
-                    "ai_response": final_response,
-                    "consciousness_level": consciousness_response.get("consciousness_level", 0.0)
-                })
-                
-                # 통찰 정보를 응답에 포함
-                consciousness_response["insight"] = insight
-                consciousness_response["cognitive_layer"] = insight["cognitive_layer"]
-                consciousness_response["insight_level"] = insight["insight_level"]
-                
-            except Exception as e:
-                logger.error(f"자동 통찰 생성 오류: {str(e)}")
+            if insight_system:
+                try:
+                    insight = await insight_system.generate_insight({
+                        "user_input": user_message,
+                        "ai_response": final_response,
+                        "consciousness_level": consciousness_response.get("consciousness_level", 0.0)
+                    })
+                    
+                    # 통찰 정보를 응답에 포함
+                    consciousness_response["insight"] = insight
+                    consciousness_response["cognitive_layer"] = insight["cognitive_layer"]
+                    consciousness_response["insight_level"] = insight["insight_level"]
+                    
+                except Exception as e:
+                    logger.error(f"자동 통찰 생성 오류: {str(e)}")
         
         # 사슬형태 기억 시스템 처리
-        chain_result = await chain_memory_system.increment_turn(user_message, final_response, user_id)
+        chain_result = {"basic_memory": {"turn": 1}, "is_analysis_turn": False, "chain_analysis": None}
+        if chain_memory_system:
+            try:
+                chain_result = await chain_memory_system.increment_turn(user_message, final_response, user_id)
+            except Exception as e:
+                logger.error(f"체인 메모리 시스템 오류: {str(e)}")
+        
+        # 아우라 데이터 저장
+        interaction_data = {
+            "user_input": user_message,
+            "ai_response": final_response,
+            "consciousness_level": consciousness_response.get("consciousness_level", 0.0),
+            "session_id": session_id,
+            "user_id": user_id
+        }
+        
+        aura_result = {}
+        try:
+            aura_result = await aura_storage.store_aura(user_id, interaction_data)
+        except Exception as e:
+            logger.error(f"아우라 저장 오류: {str(e)}")
         
         # MongoDB에 저장 (통찰 및 체인 분석 포함)
         metadata = {
-            "turn_counter": chain_result["basic_memory"]["turn"]
+            "turn_counter": chain_result["basic_memory"]["turn"],
+            "aura_data": aura_result
         }
         
         # EORA_GAI 고급 분석 결과가 있으면 메타데이터에 추가
@@ -761,7 +849,8 @@ async def chat_endpoint(request: Request):
             "consciousness_level": consciousness_response.get("consciousness_level", 0),
             "memory_triggered": consciousness_response.get("memory_triggered", False),
             "timestamp": datetime.now().isoformat(),
-            "turn_counter": chain_result["basic_memory"]["turn"]
+            "turn_counter": chain_result["basic_memory"]["turn"],
+            "aura_data": aura_result
         }
         
         # EORA_GAI 고급 분석 결과가 있으면 응답에 포함
@@ -773,8 +862,6 @@ async def chat_endpoint(request: Request):
             response_data["insight"] = consciousness_response["insight"]
             response_data["cognitive_layer"] = consciousness_response["cognitive_layer"]
             response_data["insight_level"] = consciousness_response["insight_level"]
-        
-
         
         return response_data
         
@@ -1275,20 +1362,16 @@ async def get_memory_stats(user_id: str):
 
 @app.get("/api/eora/memory/recent/{user_id}")
 async def get_recent_memories(user_id: str, limit: int = 10):
-    """최근 메모리 조회 API"""
+    """사용자의 최근 기억 조회"""
     try:
-        interactions = await db_manager.get_user_interactions(user_id, limit)
-        
-        return {
-            "user_id": user_id,
-            "recent_memories": interactions,
-            "count": len(interactions),
-            "timestamp": datetime.now().isoformat()
-        }
-        
+        if DATABASE_AVAILABLE:
+            memories = await db_manager.get_recent_memories(user_id, limit)
+            return {"memories": memories}
+        else:
+            return {"memories": [], "message": "데이터베이스가 사용 불가능합니다."}
     except Exception as e:
-        logger.error(f"최근 메모리 조회 오류: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"최근 기억 조회 오류: {str(e)}")
+        return {"memories": [], "error": str(e)}
 
 async def process_advanced_input(user_input: str, user_id: str) -> Dict[str, Any]:
     """EORA_GAI 고급 입력 처리"""
@@ -1784,6 +1867,674 @@ async def process_auto_commands(command: str, user_id: str) -> str:
         logger.error(f"자동 명령어 처리 오류: {str(e)}")
         return "명령어 처리 중 오류가 발생했습니다."
 
+# 아우라 저장 시스템
+class AuraStorageSystem:
+    def __init__(self):
+        self.aura_data = {}
+        self.recall_types = {
+            "emotional": "감정적 회상",
+            "cognitive": "인지적 회상",
+            "sensory": "감각적 회상", 
+            "temporal": "시간적 회상",
+            "spatial": "공간적 회상",
+            "semantic": "의미적 회상",
+            "episodic": "에피소드 회상",
+            "autobiographical": "자서전적 회상"
+        }
+    
+    async def store_aura(self, user_id: str, interaction_data: Dict[str, Any]) -> Dict[str, Any]:
+        """아우라 데이터 저장"""
+        try:
+            # 감정 분석
+            emotion_analysis = await self._analyze_emotion(interaction_data.get("user_input", ""))
+            
+            # 인지 수준 분석
+            cognitive_level = await self._analyze_cognitive_level(interaction_data.get("ai_response", ""))
+            
+            # 아우라 구성 요소
+            aura_components = {
+                "emotional_state": emotion_analysis,
+                "cognitive_level": cognitive_level,
+                "consciousness_level": interaction_data.get("consciousness_level", 0.0),
+                "timestamp": datetime.now().isoformat(),
+                "interaction_quality": await self._calculate_interaction_quality(interaction_data),
+                "memory_triggers": await self._identify_memory_triggers(interaction_data),
+                "growth_indicators": await self._analyze_growth_indicators(interaction_data)
+            }
+            
+            # 사용자별 아우라 데이터 저장
+            if user_id not in self.aura_data:
+                self.aura_data[user_id] = []
+            
+            self.aura_data[user_id].append(aura_components)
+            
+            # 데이터베이스에 저장 (가능한 경우)
+            if DATABASE_AVAILABLE:
+                await self._save_to_database(user_id, aura_components)
+            
+            logger.info(f"✅ 아우라 데이터 저장 완료 - 사용자: {user_id}")
+            return aura_components
+            
+        except Exception as e:
+            logger.error(f"❌ 아우라 데이터 저장 실패: {str(e)}")
+            return {"error": str(e)}
+    
+    async def _analyze_emotion(self, text: str) -> Dict[str, Any]:
+        """감정 분석"""
+        if not openai_client:
+            return {"primary_emotion": "neutral", "intensity": 0.5, "confidence": 0.8}
+        
+        try:
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "다음 텍스트의 감정을 분석해주세요. 주요 감정, 강도(0-1), 신뢰도(0-1)를 JSON 형태로 반환하세요."},
+                    {"role": "user", "content": text}
+                ],
+                max_tokens=100,
+                temperature=0.3
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            return result
+        except Exception as e:
+            logger.error(f"감정 분석 실패: {str(e)}")
+            return {"primary_emotion": "neutral", "intensity": 0.5, "confidence": 0.8}
+    
+    async def _analyze_cognitive_level(self, text: str) -> Dict[str, Any]:
+        """인지 수준 분석"""
+        if not openai_client:
+            return {"level": "medium", "complexity": 0.5, "depth": 0.5}
+        
+        try:
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "다음 텍스트의 인지 수준을 분석해주세요. 수준(low/medium/high), 복잡성(0-1), 깊이(0-1)를 JSON 형태로 반환하세요."},
+                    {"role": "user", "content": text}
+                ],
+                max_tokens=100,
+                temperature=0.3
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            return result
+        except Exception as e:
+            logger.error(f"인지 수준 분석 실패: {str(e)}")
+            return {"level": "medium", "complexity": 0.5, "depth": 0.5}
+    
+    async def _calculate_interaction_quality(self, interaction_data: Dict[str, Any]) -> float:
+        """상호작용 품질 계산"""
+        quality_score = 0.5  # 기본값
+        
+        # 사용자 입력 길이
+        user_input = interaction_data.get("user_input", "")
+        if len(user_input) > 10:
+            quality_score += 0.1
+        
+        # AI 응답 길이
+        ai_response = interaction_data.get("ai_response", "")
+        if len(ai_response) > 20:
+            quality_score += 0.1
+        
+        # 의식 수준
+        consciousness_level = interaction_data.get("consciousness_level", 0.0)
+        quality_score += consciousness_level * 0.3
+        
+        return min(quality_score, 1.0)
+    
+    async def _identify_memory_triggers(self, interaction_data: Dict[str, Any]) -> List[str]:
+        """기억 트리거 식별"""
+        triggers = []
+        user_input = interaction_data.get("user_input", "").lower()
+        
+        # 감정적 키워드
+        emotional_keywords = ["기억", "추억", "과거", "어린시절", "학교", "가족", "친구"]
+        for keyword in emotional_keywords:
+            if keyword in user_input:
+                triggers.append(f"emotional_{keyword}")
+        
+        # 인지적 키워드
+        cognitive_keywords = ["생각", "이해", "학습", "지식", "개념", "이론"]
+        for keyword in cognitive_keywords:
+            if keyword in user_input:
+                triggers.append(f"cognitive_{keyword}")
+        
+        return triggers
+    
+    async def _analyze_growth_indicators(self, interaction_data: Dict[str, Any]) -> Dict[str, Any]:
+        """성장 지표 분석"""
+        indicators = {
+            "self_reflection": 0.0,
+            "openness": 0.0,
+            "curiosity": 0.0,
+            "emotional_awareness": 0.0
+        }
+        
+        user_input = interaction_data.get("user_input", "").lower()
+        
+        # 자기 성찰 지표
+        reflection_keywords = ["왜", "어떻게", "생각해보니", "이제 알겠어", "이해했어"]
+        for keyword in reflection_keywords:
+            if keyword in user_input:
+                indicators["self_reflection"] += 0.2
+        
+        # 개방성 지표
+        openness_keywords = ["새로운", "다른", "시도", "경험", "배우고 싶어"]
+        for keyword in openness_keywords:
+            if keyword in user_input:
+                indicators["openness"] += 0.2
+        
+        # 호기심 지표
+        curiosity_keywords = ["무엇", "어떻게", "왜", "궁금", "알고 싶어"]
+        for keyword in curiosity_keywords:
+            if keyword in user_input:
+                indicators["curiosity"] += 0.2
+        
+        # 감정 인식 지표
+        emotion_keywords = ["기쁘", "슬프", "화나", "무섭", "걱정", "행복"]
+        for keyword in emotion_keywords:
+            if keyword in user_input:
+                indicators["emotional_awareness"] += 0.2
+        
+        # 값 정규화
+        for key in indicators:
+            indicators[key] = min(indicators[key], 1.0)
+        
+        return indicators
+    
+    async def _save_to_database(self, user_id: str, aura_data: Dict[str, Any]):
+        """데이터베이스에 아우라 데이터 저장"""
+        try:
+            if DATABASE_AVAILABLE:
+                await db_manager.store_aura_data(user_id, aura_data)
+        except Exception as e:
+            logger.error(f"데이터베이스 저장 실패: {str(e)}")
+    
+    async def get_aura_summary(self, user_id: str) -> Dict[str, Any]:
+        """사용자 아우라 요약"""
+        if user_id not in self.aura_data:
+            return {"error": "사용자 데이터가 없습니다."}
+        
+        aura_history = self.aura_data[user_id]
+        if not aura_history:
+            return {"error": "아우라 데이터가 없습니다."}
+        
+        # 최근 10개 상호작용 분석
+        recent_auras = aura_history[-10:]
+        
+        summary = {
+            "total_interactions": len(aura_history),
+            "recent_emotional_trend": self._calculate_emotional_trend(recent_auras),
+            "cognitive_growth": self._calculate_cognitive_growth(recent_auras),
+            "consciousness_progression": self._calculate_consciousness_progression(recent_auras),
+            "growth_indicators": self._calculate_overall_growth(recent_auras),
+            "recommended_recall_type": self._recommend_recall_type(recent_auras)
+        }
+        
+        return summary
+    
+    def _calculate_emotional_trend(self, auras: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """감정적 트렌드 계산"""
+        emotions = [aura.get("emotional_state", {}).get("primary_emotion", "neutral") for aura in auras]
+        intensities = [aura.get("emotional_state", {}).get("intensity", 0.5) for aura in auras]
+        
+        return {
+            "dominant_emotion": max(set(emotions), key=emotions.count) if emotions else "neutral",
+            "average_intensity": sum(intensities) / len(intensities) if intensities else 0.5,
+            "emotional_stability": 1.0 - (max(intensities) - min(intensities)) if len(intensities) > 1 else 0.5
+        }
+    
+    def _calculate_cognitive_growth(self, auras: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """인지적 성장 계산"""
+        levels = [aura.get("cognitive_level", {}).get("level", "medium") for aura in auras]
+        complexities = [aura.get("cognitive_level", {}).get("complexity", 0.5) for aura in auras]
+        
+        level_scores = {"low": 0.3, "medium": 0.6, "high": 0.9}
+        level_values = [level_scores.get(level, 0.5) for level in levels]
+        
+        return {
+            "average_level": sum(level_values) / len(level_values) if level_values else 0.5,
+            "complexity_trend": sum(complexities) / len(complexities) if complexities else 0.5,
+            "growth_rate": (level_values[-1] - level_values[0]) if len(level_values) > 1 else 0.0
+        }
+    
+    def _calculate_consciousness_progression(self, auras: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """의식 수준 진행 계산"""
+        consciousness_levels = [aura.get("consciousness_level", 0.0) for aura in auras]
+        
+        return {
+            "current_level": consciousness_levels[-1] if consciousness_levels else 0.0,
+            "average_level": sum(consciousness_levels) / len(consciousness_levels) if consciousness_levels else 0.0,
+            "progression_rate": (consciousness_levels[-1] - consciousness_levels[0]) if len(consciousness_levels) > 1 else 0.0
+        }
+    
+    def _calculate_overall_growth(self, auras: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """전체 성장 지표 계산"""
+        growth_indicators = [aura.get("growth_indicators", {}) for aura in auras]
+        
+        if not growth_indicators:
+            return {"self_reflection": 0.0, "openness": 0.0, "curiosity": 0.0, "emotional_awareness": 0.0}
+        
+        total_growth = {}
+        for indicator in ["self_reflection", "openness", "curiosity", "emotional_awareness"]:
+            values = [growth.get(indicator, 0.0) for growth in growth_indicators]
+            total_growth[indicator] = sum(values) / len(values) if values else 0.0
+        
+        return total_growth
+    
+    def _recommend_recall_type(self, auras: List[Dict[str, Any]]) -> str:
+        """추천 회상 유형 결정"""
+        if not auras:
+            return "emotional"
+        
+        # 감정적 트렌드 분석
+        emotional_trend = self._calculate_emotional_trend(auras)
+        cognitive_growth = self._calculate_cognitive_growth(auras)
+        growth_indicators = self._calculate_overall_growth(auras)
+        
+        # 감정적 불안정성이 높으면 감정적 회상
+        if emotional_trend["emotional_stability"] < 0.3:
+            return "emotional"
+        
+        # 인지적 성장이 높으면 인지적 회상
+        if cognitive_growth["growth_rate"] > 0.2:
+            return "cognitive"
+        
+        # 자기 성찰이 높으면 자서전적 회상
+        if growth_indicators["self_reflection"] > 0.7:
+            return "autobiographical"
+        
+        # 기본값
+        return "emotional"
+
+# 회상 8종 시스템
+class RecallSystem:
+    def __init__(self, aura_storage: AuraStorageSystem):
+        self.aura_storage = aura_storage
+        self.recall_methods = {
+            "emotional": self._emotional_recall,
+            "cognitive": self._cognitive_recall,
+            "sensory": self._sensory_recall,
+            "temporal": self._temporal_recall,
+            "spatial": self._spatial_recall,
+            "semantic": self._semantic_recall,
+            "episodic": self._episodic_recall,
+            "autobiographical": self._autobiographical_recall
+        }
+    
+    async def perform_recall(self, user_id: str, recall_type: str = None) -> Dict[str, Any]:
+        """회상 수행"""
+        try:
+            # 추천 회상 유형 결정
+            if not recall_type:
+                aura_summary = await self.aura_storage.get_aura_summary(user_id)
+                recall_type = aura_summary.get("recommended_recall_type", "emotional")
+            
+            # 회상 메서드 실행
+            if recall_type in self.recall_methods:
+                recall_result = await self.recall_methods[recall_type](user_id)
+                recall_result["recall_type"] = recall_type
+                recall_result["recall_name"] = self.aura_storage.recall_types.get(recall_type, "알 수 없음")
+                return recall_result
+            else:
+                return {"error": f"지원하지 않는 회상 유형: {recall_type}"}
+                
+        except Exception as e:
+            logger.error(f"회상 수행 실패: {str(e)}")
+            return {"error": str(e)}
+    
+    async def _emotional_recall(self, user_id: str) -> Dict[str, Any]:
+        """감정적 회상"""
+        if not openai_client:
+            return {"content": "감정적 회상을 위한 GPT API가 필요합니다.", "type": "emotional"}
+        
+        try:
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "사용자의 감정적 기억을 도와주는 상담사 역할을 해주세요. 따뜻하고 공감적인 톤으로 감정적 회상을 유도하세요."},
+                    {"role": "user", "content": "감정적 회상을 도와주세요. 과거의 특별한 감정적 순간들을 떠올려보게 해주세요."}
+                ],
+                max_tokens=300,
+                temperature=0.7
+            )
+            
+            return {
+                "content": response.choices[0].message.content,
+                "type": "emotional",
+                "focus": "감정적 경험과 기억"
+            }
+        except Exception as e:
+            return {"error": f"감정적 회상 실패: {str(e)}"}
+    
+    async def _cognitive_recall(self, user_id: str) -> Dict[str, Any]:
+        """인지적 회상"""
+        if not openai_client:
+            return {"content": "인지적 회상을 위한 GPT API가 필요합니다.", "type": "cognitive"}
+        
+        try:
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "사용자의 인지적 성장과 학습 경험을 도와주는 멘토 역할을 해주세요. 논리적이고 분석적인 접근으로 인지적 회상을 유도하세요."},
+                    {"role": "user", "content": "인지적 회상을 도와주세요. 학습하고 성장한 경험들을 떠올려보게 해주세요."}
+                ],
+                max_tokens=300,
+                temperature=0.7
+            )
+            
+            return {
+                "content": response.choices[0].message.content,
+                "type": "cognitive",
+                "focus": "학습과 성장 경험"
+            }
+        except Exception as e:
+            return {"error": f"인지적 회상 실패: {str(e)}"}
+    
+    async def _sensory_recall(self, user_id: str) -> Dict[str, Any]:
+        """감각적 회상"""
+        if not openai_client:
+            return {"content": "감각적 회상을 위한 GPT API가 필요합니다.", "type": "sensory"}
+        
+        try:
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "사용자의 감각적 기억을 도와주는 가이드 역할을 해주세요. 시각, 청각, 촉각, 후각, 미각적 경험을 떠올리게 해주세요."},
+                    {"role": "user", "content": "감각적 회상을 도와주세요. 과거의 생생한 감각적 경험들을 떠올려보게 해주세요."}
+                ],
+                max_tokens=300,
+                temperature=0.7
+            )
+            
+            return {
+                "content": response.choices[0].message.content,
+                "type": "sensory",
+                "focus": "감각적 경험과 기억"
+            }
+        except Exception as e:
+            return {"error": f"감각적 회상 실패: {str(e)}"}
+    
+    async def _temporal_recall(self, user_id: str) -> Dict[str, Any]:
+        """시간적 회상"""
+        if not openai_client:
+            return {"content": "시간적 회상을 위한 GPT API가 필요합니다.", "type": "temporal"}
+        
+        try:
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "사용자의 시간적 기억을 도와주는 연대기 작가 역할을 해주세요. 과거의 시간 순서와 연대기를 통해 기억을 정리해주세요."},
+                    {"role": "user", "content": "시간적 회상을 도와주세요. 과거의 시간 순서대로 기억들을 정리해보게 해주세요."}
+                ],
+                max_tokens=300,
+                temperature=0.7
+            )
+            
+            return {
+                "content": response.choices[0].message.content,
+                "type": "temporal",
+                "focus": "시간적 순서와 연대기"
+            }
+        except Exception as e:
+            return {"error": f"시간적 회상 실패: {str(e)}"}
+    
+    async def _spatial_recall(self, user_id: str) -> Dict[str, Any]:
+        """공간적 회상"""
+        if not openai_client:
+            return {"content": "공간적 회상을 위한 GPT API가 필요합니다.", "type": "spatial"}
+        
+        try:
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "사용자의 공간적 기억을 도와주는 건축가 역할을 해주세요. 장소와 공간적 배경을 통해 기억을 떠올리게 해주세요."},
+                    {"role": "user", "content": "공간적 회상을 도와주세요. 과거의 장소들과 공간적 경험들을 떠올려보게 해주세요."}
+                ],
+                max_tokens=300,
+                temperature=0.7
+            )
+            
+            return {
+                "content": response.choices[0].message.content,
+                "type": "spatial",
+                "focus": "장소와 공간적 배경"
+            }
+        except Exception as e:
+            return {"error": f"공간적 회상 실패: {str(e)}"}
+    
+    async def _semantic_recall(self, user_id: str) -> Dict[str, Any]:
+        """의미적 회상"""
+        if not openai_client:
+            return {"content": "의미적 회상을 위한 GPT API가 필요합니다.", "type": "semantic"}
+        
+        try:
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "사용자의 의미적 기억을 도와주는 철학자 역할을 해주세요. 개념과 의미를 통해 기억을 정리하고 이해하게 해주세요."},
+                    {"role": "user", "content": "의미적 회상을 도와주세요. 과거 경험들의 의미와 개념을 정리해보게 해주세요."}
+                ],
+                max_tokens=300,
+                temperature=0.7
+            )
+            
+            return {
+                "content": response.choices[0].message.content,
+                "type": "semantic",
+                "focus": "개념과 의미"
+            }
+        except Exception as e:
+            return {"error": f"의미적 회상 실패: {str(e)}"}
+    
+    async def _episodic_recall(self, user_id: str) -> Dict[str, Any]:
+        """에피소드 회상"""
+        if not openai_client:
+            return {"content": "에피소드 회상을 위한 GPT API가 필요합니다.", "type": "episodic"}
+        
+        try:
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "사용자의 에피소드 기억을 도와주는 스토리텔러 역할을 해주세요. 구체적인 사건과 이야기를 통해 기억을 떠올리게 해주세요."},
+                    {"role": "user", "content": "에피소드 회상을 도와주세요. 과거의 구체적인 사건들과 이야기들을 떠올려보게 해주세요."}
+                ],
+                max_tokens=300,
+                temperature=0.7
+            )
+            
+            return {
+                "content": response.choices[0].message.content,
+                "type": "episodic",
+                "focus": "구체적인 사건과 이야기"
+            }
+        except Exception as e:
+            return {"error": f"에피소드 회상 실패: {str(e)}"}
+    
+    async def _autobiographical_recall(self, user_id: str) -> Dict[str, Any]:
+        """자서전적 회상"""
+        if not openai_client:
+            return {"content": "자서전적 회상을 위한 GPT API가 필요합니다.", "type": "autobiographical"}
+        
+        try:
+            response = await openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "사용자의 자서전적 기억을 도와주는 자서전 작가 역할을 해주세요. 인생의 큰 흐름과 자기 정체성을 통해 기억을 정리해주세요."},
+                    {"role": "user", "content": "자서전적 회상을 도와주세요. 인생의 큰 흐름과 자기 정체성을 정리해보게 해주세요."}
+                ],
+                max_tokens=300,
+                temperature=0.7
+            )
+            
+            return {
+                "content": response.choices[0].message.content,
+                "type": "autobiographical",
+                "focus": "인생 흐름과 자기 정체성"
+            }
+        except Exception as e:
+            return {"error": f"자서전적 회상 실패: {str(e)}"}
+
+# 시스템 초기화
+aura_storage = AuraStorageSystem()
+recall_system = RecallSystem(aura_storage)
+
+# 체인 메모리 시스템 초기화
+chain_memory_system = None
+if EORA_CHAIN_MEMORY_AVAILABLE:
+    try:
+        chain_memory_system = chain_memory_system
+        logger.info("✅ 체인 메모리 시스템 초기화 완료")
+    except Exception as e:
+        logger.error(f"❌ 체인 메모리 시스템 초기화 실패: {str(e)}")
+
+# 인사이트 시스템 초기화
+insight_system = None
+if EORA_INTUITION_AVAILABLE:
+    try:
+        insight_system = insight_system
+        logger.info("✅ 인사이트 시스템 초기화 완료")
+    except Exception as e:
+        logger.error(f"❌ 인사이트 시스템 초기화 실패: {str(e)}")
+
+@app.get("/api/aura/summary/{user_id}")
+async def get_aura_summary(user_id: str):
+    """사용자 아우라 요약 조회"""
+    try:
+        summary = await aura_storage.get_aura_summary(user_id)
+        return summary
+    except Exception as e:
+        logger.error(f"아우라 요약 조회 오류: {str(e)}")
+        return {"error": str(e)}
+
+@app.post("/api/recall/perform")
+async def perform_recall(request: Request):
+    """회상 수행"""
+    try:
+        body = await request.json()
+        user_id = body.get("user_id", str(uuid.uuid4()))
+        recall_type = body.get("recall_type", None)
+        
+        result = await recall_system.perform_recall(user_id, recall_type)
+        return result
+    except Exception as e:
+        logger.error(f"회상 수행 오류: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/api/recall/types")
+async def get_recall_types():
+    """회상 유형 목록 조회"""
+    try:
+        return {
+            "recall_types": aura_storage.recall_types,
+            "description": "8가지 회상 유형을 제공합니다."
+        }
+    except Exception as e:
+        logger.error(f"회상 유형 조회 오류: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/api/aura/stats/{user_id}")
+async def get_aura_stats(user_id: str):
+    """사용자 아우라 통계 조회"""
+    try:
+        if user_id not in aura_storage.aura_data:
+            return {"error": "사용자 데이터가 없습니다."}
+        
+        aura_history = aura_storage.aura_data[user_id]
+        if not aura_history:
+            return {"error": "아우라 데이터가 없습니다."}
+        
+        # 통계 계산
+        total_interactions = len(aura_history)
+        emotional_states = [aura.get("emotional_state", {}).get("primary_emotion", "neutral") for aura in aura_history]
+        consciousness_levels = [aura.get("consciousness_level", 0.0) for aura in aura_history]
+        interaction_qualities = [aura.get("interaction_quality", 0.5) for aura in aura_history]
+        
+        stats = {
+            "total_interactions": total_interactions,
+            "dominant_emotion": max(set(emotional_states), key=emotional_states.count) if emotional_states else "neutral",
+            "average_consciousness": sum(consciousness_levels) / len(consciousness_levels) if consciousness_levels else 0.0,
+            "average_quality": sum(interaction_qualities) / len(interaction_qualities) if interaction_qualities else 0.5,
+            "emotional_distribution": {emotion: emotional_states.count(emotion) for emotion in set(emotional_states)},
+            "growth_trend": await _calculate_growth_trend(aura_history)
+        }
+        
+        return stats
+    except Exception as e:
+        logger.error(f"아우라 통계 조회 오류: {str(e)}")
+        return {"error": str(e)}
+
+async def _calculate_growth_trend(aura_history: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """성장 트렌드 계산"""
+    if len(aura_history) < 2:
+        return {"trend": "stable", "growth_rate": 0.0}
+    
+    # 최근 10개와 이전 10개 비교
+    recent = aura_history[-10:]
+    previous = aura_history[-20:-10] if len(aura_history) >= 20 else aura_history[:-10]
+    
+    if not previous:
+        return {"trend": "stable", "growth_rate": 0.0}
+    
+    recent_avg_consciousness = sum(aura.get("consciousness_level", 0.0) for aura in recent) / len(recent)
+    previous_avg_consciousness = sum(aura.get("consciousness_level", 0.0) for aura in previous) / len(previous)
+    
+    growth_rate = recent_avg_consciousness - previous_avg_consciousness
+    
+    if growth_rate > 0.1:
+        trend = "growing"
+    elif growth_rate < -0.1:
+        trend = "declining"
+    else:
+        trend = "stable"
+    
+    return {
+        "trend": trend,
+        "growth_rate": growth_rate,
+        "recent_avg": recent_avg_consciousness,
+        "previous_avg": previous_avg_consciousness
+    }
+
+@app.post("/api/aura/export/{user_id}")
+async def export_aura_data(user_id: str):
+    """아우라 데이터 내보내기"""
+    try:
+        if user_id not in aura_storage.aura_data:
+            return {"error": "사용자 데이터가 없습니다."}
+        
+        aura_data = aura_storage.aura_data[user_id]
+        summary = await aura_storage.get_aura_summary(user_id)
+        stats = await get_aura_stats(user_id)
+        
+        export_data = {
+            "user_id": user_id,
+            "export_timestamp": datetime.now().isoformat(),
+            "total_interactions": len(aura_data),
+            "aura_history": aura_data,
+            "summary": summary,
+            "statistics": stats
+        }
+        
+        return export_data
+    except Exception as e:
+        logger.error(f"아우라 데이터 내보내기 오류: {str(e)}")
+        return {"error": str(e)}
+
+@app.delete("/api/aura/clear/{user_id}")
+async def clear_aura_data(user_id: str):
+    """아우라 데이터 삭제"""
+    try:
+        if user_id in aura_storage.aura_data:
+            del aura_storage.aura_data[user_id]
+            logger.info(f"아우라 데이터 삭제 완료 - 사용자: {user_id}")
+            return {"success": True, "message": "아우라 데이터가 삭제되었습니다."}
+        else:
+            return {"success": False, "message": "삭제할 데이터가 없습니다."}
+    except Exception as e:
+        logger.error(f"아우라 데이터 삭제 오류: {str(e)}")
+        return {"error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     import os
@@ -1804,5 +2555,5 @@ if __name__ == "__main__":
         "main:app", 
         host="127.0.0.1", 
         port=port, 
-        reload=True
+        reload=False
     ) 

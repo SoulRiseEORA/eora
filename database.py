@@ -2,6 +2,7 @@ import os
 import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
+from bson import ObjectId
 from typing import Optional, Dict, List
 import asyncio
 
@@ -55,6 +56,17 @@ class DatabaseManager:
             if collection_name not in await self.db.list_collection_names():
                 await self.db.create_collection(collection_name)
                 logger.info(f"컬렉션 생성: {collection_name}")
+    
+    def _convert_objectid_to_str(self, data):
+        """ObjectId를 문자열로 변환하는 헬퍼 메서드"""
+        if isinstance(data, dict):
+            return {k: self._convert_objectid_to_str(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._convert_objectid_to_str(item) for item in data]
+        elif isinstance(data, ObjectId):
+            return str(data)
+        else:
+            return data
     
     async def store_interaction(self, user_id: str, user_input: str, ai_response: str, 
                                consciousness_level: float = 0.0, metadata: Dict = None):
@@ -468,12 +480,7 @@ class DatabaseManager:
             sessions = await cursor.to_list(length=50)
             
             # ObjectId를 문자열로 변환
-            from bson import ObjectId
-            for session in sessions:
-                if "_id" in session:
-                    session["_id"] = str(session["_id"])
-            
-            return sessions
+            return self._convert_objectid_to_str(sessions)
         except Exception as e:
             logger.error(f"사용자 세션 목록 조회 실패: {str(e)}")
             return []
@@ -505,12 +512,7 @@ class DatabaseManager:
             messages = await cursor.to_list(length=1000)
             
             # ObjectId를 문자열로 변환
-            from bson import ObjectId
-            for message in messages:
-                if "_id" in message:
-                    message["_id"] = str(message["_id"])
-            
-            return messages
+            return self._convert_objectid_to_str(messages)
         except Exception as e:
             logger.error(f"세션 메시지 조회 실패: {str(e)}")
             return []
@@ -525,6 +527,19 @@ class DatabaseManager:
             logger.info(f"세션 업데이트 완료: {session_id}")
         except Exception as e:
             logger.error(f"세션 업데이트 실패: {str(e)}")
+            raise
+    
+    async def store_aura_data(self, user_id: str, aura_data: Dict) -> str:
+        """아우라 데이터 저장"""
+        try:
+            aura_data["user_id"] = user_id
+            aura_data["timestamp"] = asyncio.get_event_loop().time()
+            
+            result = await self.db.user_interactions.insert_one(aura_data)
+            logger.info(f"아우라 데이터 저장 완료: {result.inserted_id}")
+            return str(result.inserted_id)
+        except Exception as e:
+            logger.error(f"아우라 데이터 저장 실패: {str(e)}")
             raise
     
     async def _create_default_admin(self):
