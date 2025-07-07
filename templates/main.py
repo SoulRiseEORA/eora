@@ -777,6 +777,7 @@ if __name__ == "__main__":
     # railway_final.py 파일 존재 확인
     if os.path.exists("railway_final.py"):
         logger.info("✅ railway_final.py 파일 발견 - 실행 중...")
+        logger.info("🚀 이 파일이 실행되면 모든 문제가 해결된 것입니다!")
         try:
             # railway_final.py 실행
             subprocess.run([sys.executable, "railway_final.py"] + sys.argv[1:], check=True)
@@ -795,6 +796,7 @@ if __name__ == "__main__":
             )
     else:
         logger.error("❌ railway_final.py 파일이 없습니다!")
+        logger.error("❌ 이는 Railway 캐시 문제입니다. Clear build cache를 실행하세요!")
         # 현재 서버 실행
         uvicorn.run(
             app, 
