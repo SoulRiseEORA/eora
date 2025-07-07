@@ -47,7 +47,8 @@ class DatabaseManager:
             'system_logs',
             'user_profiles',
             'users',
-            'sessions'
+            'sessions',
+            'messages'
         ]
         
         for collection_name in collections:
@@ -430,10 +431,23 @@ class DatabaseManager:
             logger.error(f"세션 생성 실패: {str(e)}")
             raise
     
+    async def get_session_by_id(self, session_id: str) -> Optional[Dict]:
+        """세션 ID로 세션 조회"""
+        try:
+            session = await self.db.sessions.find_one({"session_id": session_id})
+            if session and "_id" in session:
+                session["_id"] = str(session["_id"])
+            return session
+        except Exception as e:
+            logger.error(f"세션 조회 실패: {str(e)}")
+            return None
+    
     async def get_session(self, session_id: str) -> Optional[Dict]:
         """세션 조회"""
         try:
             session = await self.db.sessions.find_one({"session_id": session_id})
+            if session and "_id" in session:
+                session["_id"] = str(session["_id"])
             return session
         except Exception as e:
             logger.error(f"세션 조회 실패: {str(e)}")
@@ -452,10 +466,66 @@ class DatabaseManager:
         try:
             cursor = self.db.sessions.find({"user_id": user_id}).sort("created_at", -1)
             sessions = await cursor.to_list(length=50)
+            
+            # ObjectId를 문자열로 변환
+            from bson import ObjectId
+            for session in sessions:
+                if "_id" in session:
+                    session["_id"] = str(session["_id"])
+            
             return sessions
         except Exception as e:
             logger.error(f"사용자 세션 목록 조회 실패: {str(e)}")
             return []
+    
+    async def save_message(self, session_id: str, sender: str, content: str, timestamp: str = None) -> str:
+        """메시지 저장"""
+        try:
+            if timestamp is None:
+                timestamp = asyncio.get_event_loop().time()
+            
+            message_data = {
+                "session_id": session_id,
+                "sender": sender,
+                "content": content,
+                "timestamp": timestamp
+            }
+            
+            result = await self.db.messages.insert_one(message_data)
+            logger.info(f"메시지 저장 완료: {result.inserted_id}")
+            return str(result.inserted_id)
+        except Exception as e:
+            logger.error(f"메시지 저장 실패: {str(e)}")
+            raise
+    
+    async def get_session_messages(self, session_id: str) -> List[Dict]:
+        """세션의 메시지 목록 조회"""
+        try:
+            cursor = self.db.messages.find({"session_id": session_id}).sort("timestamp", 1)
+            messages = await cursor.to_list(length=1000)
+            
+            # ObjectId를 문자열로 변환
+            from bson import ObjectId
+            for message in messages:
+                if "_id" in message:
+                    message["_id"] = str(message["_id"])
+            
+            return messages
+        except Exception as e:
+            logger.error(f"세션 메시지 조회 실패: {str(e)}")
+            return []
+    
+    async def update_session(self, session_id: str, update_data: Dict):
+        """세션 업데이트"""
+        try:
+            await self.db.sessions.update_one(
+                {"session_id": session_id},
+                {"$set": update_data}
+            )
+            logger.info(f"세션 업데이트 완료: {session_id}")
+        except Exception as e:
+            logger.error(f"세션 업데이트 실패: {str(e)}")
+            raise
     
     async def _create_default_admin(self):
         """기본 관리자 계정 생성"""

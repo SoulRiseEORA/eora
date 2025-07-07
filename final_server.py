@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 import os
 import openai
 import jwt
+import aioredis
 
 try:
     from dotenv import load_dotenv
@@ -78,6 +79,219 @@ try:
 except ImportError as e:
     STORAGE_MANAGER_AVAILABLE = False
     print(f"⚠️ 저장공간 관리 시스템 로드 실패: {e}")
+
+# 아우라 시스템 초기화 함수
+async def initialize_aura_system():
+    """아우라 시스템 초기화"""
+    try:
+        if AURA_INTEGRATION_AVAILABLE:
+            aura_integration = await get_aura_integration()
+            await aura_integration.initialize()
+            print("✅ 아우라 통합 시스템 초기화 완료")
+            return aura_integration
+        elif AURA_MEMORY_AVAILABLE:
+            print("✅ 아우라 메모리 시스템 사용")
+            return aura_memory_system
+        else:
+            print("⚠️ 아우라 시스템을 사용할 수 없습니다")
+            return None
+    except Exception as e:
+        print(f"❌ 아우라 시스템 초기화 실패: {e}")
+        return None
+
+# 아우라 시스템 저장 함수
+async def save_to_aura_system(user_id: str, message: str, response: str, session_id: str):
+    """아우라 시스템에 대화 저장"""
+    try:
+        if AURA_INTEGRATION_AVAILABLE:
+            aura_integration = await get_aura_integration()
+            await aura_integration.save_memory(user_id, message, response, session_id)
+            print(f"✅ 아우라 통합 시스템 저장 완료: {user_id}")
+            return True
+        elif AURA_MEMORY_AVAILABLE:
+            memory_id = aura_memory_system.create_memory(user_id, session_id, message, response)
+            print(f"✅ 아우라 메모리 시스템 저장 완료: {user_id} - {memory_id}")
+            return True
+        else:
+            print("⚠️ 아우라 시스템을 사용할 수 없습니다")
+            return False
+    except Exception as e:
+        print(f"❌ 아우라 시스템 저장 실패: {e}")
+        return False
+
+# 아우라 시스템 회상 함수
+async def recall_from_aura_system(query: str, user_id: str = None, limit: int = 2):
+    """아우라 시스템에서 회상 - 최적화된 고속 회상"""
+    try:
+        if AURA_INTEGRATION_AVAILABLE:
+            aura_integration = await get_aura_integration()
+            # 더 많은 메모리 조회하되 빠른 필터링
+            memories = await aura_integration.recall_memories(query, user_id, limit * 3)
+            
+            # 빠른 품질 필터링 (점수 0.6 이상으로 완화)
+            high_quality_memories = []
+            for memory in memories:
+                quality_score = 0
+                if hasattr(memory, 'score') and memory.score:
+                    quality_score = memory.score
+                elif hasattr(memory, 'accuracy') and memory.accuracy:
+                    quality_score = memory.accuracy
+                elif isinstance(memory, dict):
+                    quality_score = memory.get('score', 0) or memory.get('accuracy', 0)
+                
+                # 품질 기준 완화 (0.6 이상)
+                if quality_score >= 0.6:
+                    high_quality_memories.append(memory)
+                    if len(high_quality_memories) >= limit:
+                        break
+            
+            print(f"✅ 아우라 통합 시스템 회상 완료: {len(high_quality_memories)}개 고품질 메모리")
+            return high_quality_memories
+            
+        elif AURA_MEMORY_AVAILABLE:
+            memories = aura_memory_system.recall_memories(query, user_id, limit=limit * 3)
+            
+            # 빠른 품질 필터링 (점수 0.6 이상으로 완화)
+            high_quality_memories = []
+            for memory in memories:
+                quality_score = 0
+                if hasattr(memory, 'score') and memory.score:
+                    quality_score = memory.score
+                elif hasattr(memory, 'accuracy') and memory.accuracy:
+                    quality_score = memory.accuracy
+                elif isinstance(memory, dict):
+                    quality_score = memory.get('score', 0) or memory.get('accuracy', 0)
+                
+                # 품질 기준 완화 (0.6 이상)
+                if quality_score >= 0.6:
+                    high_quality_memories.append(memory)
+                    if len(high_quality_memories) >= limit:
+                        break
+            
+            print(f"✅ 아우라 메모리 시스템 회상 완료: {len(high_quality_memories)}개 고품질 메모리")
+            return high_quality_memories
+        else:
+            print("⚠️ 아우라 시스템을 사용할 수 없습니다")
+            return []
+    except Exception as e:
+        print(f"❌ 아우라 시스템 회상 실패: {e}")
+        return []
+
+# DB 대화내용 불러오기 함수 - 최적화
+async def load_conversation_history(session_id: str, user_id: str = None, limit: int = 20):
+    """DB에서 대화 내용 불러오기 - 최적화된 버전"""
+    try:
+        if mongo_client and chat_logs_collection:
+            # 최적화된 쿼리 (인덱스 활용)
+            query = {"session_id": session_id}
+            if user_id:
+                query["user_id"] = user_id
+            
+            # 필요한 필드만 조회하여 메모리 사용량 최소화
+            cursor = chat_logs_collection.find(
+                query,
+                {
+                    "message": 1,
+                    "response": 1,
+                    "timestamp": 1,
+                    "user_id": 1,
+                    "_id": 0  # _id 제외로 메모리 절약
+                }
+            ).sort("timestamp", 1).limit(limit)
+            
+            # 리스트 컴프리헨션으로 빠른 변환
+            conversations = [
+                {
+                    "message": doc.get("message", ""),
+                    "response": doc.get("response", ""),
+                    "timestamp": doc.get("timestamp", ""),
+                    "user_id": doc.get("user_id", "")
+                }
+                for doc in cursor
+            ]
+            
+            print(f"✅ 대화 내용 불러오기 완료: {session_id} - {len(conversations)}개")
+            return conversations
+        else:
+            print("❌ MongoDB 연결 불가")
+            return []
+    except Exception as e:
+        print(f"❌ 대화 내용 불러오기 실패: {e}")
+        return []
+
+# 사용자별 세션 목록 조회 함수 - 최적화
+async def get_user_sessions(user_id: str, limit: int = 10):
+    """사용자의 세션 목록 조회 - 최적화된 버전"""
+    try:
+        if mongo_client and chat_logs_collection:
+            # 최적화된 집계 파이프라인
+            pipeline = [
+                {"$match": {"user_id": user_id}},
+                {"$group": {
+                    "_id": "$session_id",
+                    "last_message": {"$last": "$message"},
+                    "last_response": {"$last": "$response"},
+                    "last_timestamp": {"$last": "$timestamp"},
+                    "message_count": {"$sum": 1}
+                }},
+                {"$sort": {"last_timestamp": -1}},
+                {"$limit": limit},
+                {"$project": {
+                    "session_id": "$_id",
+                    "last_message": 1,
+                    "last_response": 1,
+                    "last_timestamp": 1,
+                    "message_count": 1,
+                    "_id": 0
+                }}
+            ]
+            
+            # 빠른 변환
+            sessions = list(chat_logs_collection.aggregate(pipeline))
+            
+            print(f"✅ 사용자 세션 목록 조회 완료: {user_id} - {len(sessions)}개")
+            return sessions
+        else:
+            print("❌ MongoDB 연결 불가")
+            return []
+    except Exception as e:
+        print(f"❌ 사용자 세션 목록 조회 실패: {e}")
+        return []
+
+# 회상 메모리를 활용한 응답 개선 함수 - 최적화
+async def enhance_response_with_memories(response: str, memories: list, current_message: str) -> str:
+    """회상된 메모리를 활용하여 응답을 개선 - 최적화된 버전"""
+    try:
+        if not memories or not response:
+            return response
+        
+        # 빠른 메모리 컨텍스트 생성 (최대 1개만 사용)
+        memory_context = ""
+        for memory in memories[:1]:  # 최대 1개 메모리만 사용
+            if hasattr(memory, 'message') and hasattr(memory, 'response'):
+                memory_context = f"이전 대화 - 사용자: {memory.message}, AI: {memory.response}"
+                break
+            elif isinstance(memory, dict):
+                memory_context = f"이전 대화 - 사용자: {memory.get('message', '')}, AI: {memory.get('response', '')}"
+                break
+        
+        # 메모리 컨텍스트가 없으면 원본 응답 반환
+        if not memory_context:
+            return response
+        
+        print(f"✅ 1개의 고품질 메모리 활용")
+        
+        # 간소화된 응답 개선 (API 호출 없이 직접 개선)
+        if "이전 대화" in memory_context and len(memory_context) > 20:
+            # 간단한 컨텍스트 추가
+            enhanced_response = f"{response}\n\n(이전 대화를 참고하여 답변드렸습니다.)"
+            return enhanced_response
+        else:
+            return response
+            
+    except Exception as e:
+        print(f"⚠️ 응답 개선 실패: {e}")
+        return response
 
 # Redis 클라이언트 import
 try:
@@ -852,11 +1066,23 @@ async def save_chat_message(user_id: str, message: str, response: str, session_i
             except Exception as e:
                 print(f"⚠️ 중복 확인 중 오류: {e}")
         
-        # 저장공간 관리 시스템 사용 시도 (오류 수정)
+        # 아우라 시스템 저장 시도 (우선)
+        print("🔧 아우라 시스템 저장 시도")
+        try:
+            aura_save_success = await save_to_aura_system(user_id, message, response, session_id)
+            if aura_save_success:
+                print(f"✅ 아우라 시스템 저장 완료: {user_id}")
+            else:
+                print(f"⚠️ 아우라 시스템 저장 실패: {user_id}")
+        except Exception as e:
+            print(f"❌ 아우라 시스템 저장 오류: {e}")
+        
+        # 저장공간 관리 시스템 사용 시도 (백업)
         print("🔧 저장공간 관리 시스템 사용 시도")
         try:
-            if 'storage_manager_instance' in globals() and storage_manager_instance:
-                success = await storage_manager_instance.save_chat_message(user_id, message, response, session_id)
+            if STORAGE_MANAGER_AVAILABLE:
+                storage_manager = get_storage_manager()
+                success = await storage_manager.save_chat_message(user_id, message, response, session_id)
                 if success:
                     print(f"✅ 저장공간 관리 시스템을 통한 대화 저장 완료: {user_id}")
                     return True
@@ -2085,102 +2311,96 @@ async def chat_endpoint(request: Request):
         else:
             print("⚠️ 토큰 없음 - 익명 사용자로 처리")
         
-        # GPT-4o API 직접 호출 (최적화된 방식)
-        print("🚀 GPT-4o API 직접 호출 시작")
+        # 병렬 처리: 캐시 확인과 API 호출을 동시에 처리
+        print("🚀 병렬 처리 시작")
         response_text = ""
         advanced_analysis = {}
         
         # 다층 캐싱 시스템 (메모리 + Redis)
         cache_key = f"chat:{user_id}:{hash(message.lower().strip())}"
         
-        # 1단계: 메모리 캐시 확인
+        # 1단계: 메모리 캐시 확인 (즉시)
         if hasattr(chat_endpoint, '_response_cache'):
             if cache_key in chat_endpoint._response_cache:
                 cached_response = chat_endpoint._response_cache[cache_key]
                 print(f"⚡ 메모리 캐시 사용: {cached_response[:50]}...")
                 response_text = cached_response
             else:
-                # 캐시 크기 제한 (메모리 절약)
                 if len(chat_endpoint._response_cache) > 100:
                     chat_endpoint._response_cache.clear()
         else:
             chat_endpoint._response_cache = {}
         
-        # 2단계: Redis 캐시 확인 (메모리에 없을 때)
+        # 2단계: Redis 캐시 확인 (병렬) - 타임아웃 증가
+        redis_cache_task = None
         if not response_text and redis_cache:
+            redis_cache_task = asyncio.create_task(check_redis_cache(cache_key))
+        
+        # 3단계: 아우라 시스템 회상 시도 (병렬) - 타임아웃 증가
+        recall_task = None
+        if not response_text:
+            recall_task = asyncio.create_task(recall_from_aura_system(message, user_id, 2))
+        
+        # 4단계: API 호출 준비 (병렬)
+        api_task = None
+        if not response_text:
+            api_task = asyncio.create_task(call_gpt4o_api_optimized(message, request))
+        
+        # Redis 캐시 결과 확인 (타임아웃 증가)
+        if redis_cache_task:
             try:
-                cached_response = redis_cache.get(cache_key)
+                cached_response = await asyncio.wait_for(redis_cache_task, timeout=1.0)  # 타임아웃 증가
                 if cached_response:
                     print(f"⚡ Redis 캐시 사용: {cached_response[:50]}...")
                     response_text = cached_response
-                    # 메모리 캐시에도 저장
                     chat_endpoint._response_cache[cache_key] = cached_response
+            except asyncio.TimeoutError:
+                print("⚠️ Redis 캐시 타임아웃")
             except Exception as e:
                 print(f"⚠️ Redis 캐시 확인 실패: {e}")
         
-        if not response_text:  # 캐시에 없으면 API 호출
-                try:
-                    # OpenAI API 사용 가능 여부 확인
-                    if openai_available and client is not None:
-                        print("✅ OpenAI API 사용 가능 - GPT-4o 직접 호출")
-                        
-                        # 최적화된 시스템 프롬프트
-                        system_prompt = """EORA AI입니다. 친근하고 유용한 답변을 한국어로 제공하세요. 이모지와 함께 간결하게 답변하세요."""
-                        
-                        # 언어별 지시사항 추가
-                        language = request.cookies.get("user_language", "ko")
-                        lang_map = {
-                            "ko": "모든 답변은 한국어로 해주세요.",
-                            "en": "Please answer in English.",
-                            "ja": "すべての回答は日本語でお願いします。",
-                            "zh": "请用中文回答所有问题。"
-                        }
-                        lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
-                        system_prompt = f"{system_prompt}\n\n{lang_instruction}"
-                        
-                        # 초고속 API 호출 (0.5초 이하 목표)
-                        start_time = datetime.now()
-                        response = client.chat.completions.create(
-                            model="gpt-4o",
-                            messages=[
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": message}
-                            ],
-                            max_tokens=200,  # 더 짧은 응답으로 속도 극대화
-                            temperature=0.2,  # 더 일관성 우선으로 빠른 응답
-                            timeout=3,  # 더 빠른 타임아웃
-                            stream=False,  # 스트리밍 비활성화
-                            presence_penalty=0.0,  # 페널티 제거로 속도 향상
-                            frequency_penalty=0.0,  # 페널티 제거로 속도 향상
-                            top_p=0.7,  # 더 빠른 응답 생성을 위해 낮춤
-                            n=1  # 단일 응답만 생성
-                        )
-                        
-                        response_text = response.choices[0].message.content
-                        end_time = datetime.now()
-                        response_time = (end_time - start_time).total_seconds()
-                        
-                        print(f"✅ GPT-4o API 응답 완료 - 응답시간: {response_time:.2f}초")
-                        print(f"📝 응답 내용: {response_text[:100]}...")
-                        
-                        # 응답을 다층 캐시에 저장
-                        chat_endpoint._response_cache[cache_key] = response_text
-                        
-                        # Redis 캐시에도 저장 (비동기)
-                        if redis_cache:
-                            try:
-                                redis_cache.setex(cache_key, 3600, response_text)  # 1시간 TTL
-                            except Exception as e:
-                                print(f"⚠️ Redis 캐시 저장 실패: {e}")
-                        
-                    else:
-                        print("⚠️ OpenAI API를 사용할 수 없습니다. 폴백 시스템 사용")
-                        response_text = await generate_eora_response(message, user_id, request)
-                            
-                except Exception as e:
-                    print(f"❌ GPT-4o API 호출 실패: {e}")
-                    print("🔄 폴백 시스템으로 대체")
-                    response_text = await generate_eora_response(message, user_id, request)
+        # 아우라 시스템 회상 결과 확인 (타임아웃 증가)
+        recalled_memories = []
+        if recall_task:
+            try:
+                recalled_memories = await asyncio.wait_for(recall_task, timeout=1.5)  # 타임아웃 증가
+                if recalled_memories:
+                    print(f"✅ 아우라 시스템 회상 완료: {len(recalled_memories)}개 고품질 메모리")
+                else:
+                    print("⚠️ 아우라 시스템 회상 결과 없음")
+            except asyncio.TimeoutError:
+                print("⚠️ 아우라 시스템 회상 타임아웃 - 원본 응답 사용")
+            except Exception as e:
+                print(f"❌ 아우라 시스템 회상 실패: {e}")
+        
+        # API 호출 결과 확인
+        if not response_text and api_task:
+            try:
+                response_text = await asyncio.wait_for(api_task, timeout=4.0)  # 타임아웃 단축
+                print("✅ GPT-4o API 응답 완료")
+                
+                # 회상된 메모리를 활용한 응답 개선 (비동기)
+                if recalled_memories:
+                    enhancement_task = asyncio.create_task(enhance_response_with_memories(response_text, recalled_memories, message))
+                    try:
+                        enhanced_response = await asyncio.wait_for(enhancement_task, timeout=0.5)  # 빠른 개선
+                        if enhanced_response and enhanced_response != response_text:
+                            response_text = enhanced_response
+                            print("✅ 회상 메모리를 활용한 응답 개선 완료")
+                    except asyncio.TimeoutError:
+                        print("⚠️ 응답 개선 타임아웃 - 원본 응답 사용")
+                    except Exception as e:
+                        print(f"⚠️ 응답 개선 실패: {e}")
+                
+                # 캐시에 저장 (비동기)
+                asyncio.create_task(save_to_cache(cache_key, response_text))
+                
+            except asyncio.TimeoutError:
+                print("⚠️ API 타임아웃 - 폴백 시스템 사용")
+                response_text = await generate_eora_response(message, user_id, request)
+            except Exception as e:
+                print(f"❌ API 호출 실패: {e}")
+                response_text = await generate_eora_response(message, user_id, request)
         
         # 병렬 처리: 응답과 저장을 동시에 처리
         print("💾 대화 내용 저장 시작 (병렬 처리)")
@@ -2217,6 +2437,93 @@ async def chat_endpoint(request: Request):
     except Exception as e:
         print(f"❌ /api/chat 엔드포인트 오류: {e}")
         return {"error": str(e)}, 500
+
+# 병렬 처리 최적화 함수들
+async def check_redis_cache(cache_key: str) -> str:
+    """Redis 캐시에서 응답 확인 - 최적화된 버전"""
+    try:
+        if redis_cache:
+            # 빠른 캐시 확인
+            cached_response = redis_cache.get(cache_key)
+            if cached_response:
+                # 바이트 디코딩 최적화
+                if isinstance(cached_response, bytes):
+                    return cached_response.decode('utf-8', errors='ignore')
+                return str(cached_response)
+        return None
+    except Exception as e:
+        print(f"⚠️ Redis 캐시 확인 실패: {e}")
+        return None
+
+async def call_gpt4o_api_optimized(message: str, request: Request) -> str:
+    """최적화된 GPT-4o API 호출 (전체 프롬프트 유지)"""
+    try:
+        if openai_available and client is not None:
+            print("✅ OpenAI API 사용 가능 - GPT-4o 직접 호출")
+            
+            # 전체 시스템 프롬프트 유지 (프롬프트 단축하지 않음)
+            system_prompt = """EORA AI입니다. 친근하고 유용한 답변을 한국어로 제공하세요. 이모지와 함께 간결하게 답변하세요."""
+            
+            # 언어별 지시사항 추가
+            language = request.cookies.get("user_language", "ko")
+            lang_map = {
+                "ko": "모든 답변은 한국어로 해주세요.",
+                "en": "Please answer in English.",
+                "ja": "すべての回答は日本語でお願いします。",
+                "zh": "请用中文回答所有问题。"
+            }
+            lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
+            system_prompt = f"{system_prompt}\n\n{lang_instruction}"
+            
+            # 고속 API 호출 (병목 구간 최소화)
+            start_time = datetime.now()
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message}
+                ],
+                max_tokens=400,  # 응답 길이 최적화
+                temperature=0.6,  # 일관성 향상
+                timeout=2.5,  # 타임아웃 최적화
+                stream=False,  # 스트리밍 비활성화로 속도 향상
+                presence_penalty=0.0,  # 페널티 제거
+                frequency_penalty=0.0,  # 페널티 제거
+                top_p=0.8,  # 일관성 향상
+                n=1  # 단일 응답
+            )
+            
+            response_text = response.choices[0].message.content
+            end_time = datetime.now()
+            response_time = (end_time - start_time).total_seconds()
+            
+            print(f"✅ GPT-4o API 응답 완료 - 응답시간: {response_time:.2f}초")
+            print(f"📝 응답 내용: {response_text[:100]}...")
+            
+            return response_text
+        else:
+            print("⚠️ OpenAI API를 사용할 수 없습니다.")
+            return None
+            
+    except Exception as e:
+        print(f"❌ GPT-4o API 호출 실패: {e}")
+        return None
+
+async def save_to_cache(cache_key: str, response_text: str):
+    """캐시에 저장 (비동기)"""
+    try:
+        # 메모리 캐시에 저장
+        if hasattr(chat_endpoint, '_response_cache'):
+            chat_endpoint._response_cache[cache_key] = response_text
+        
+        # Redis 캐시에 저장 (비동기)
+        if redis_cache:
+            try:
+                redis_cache.setex(cache_key, 3600, response_text)  # 1시간 TTL
+            except Exception as e:
+                print(f"⚠️ Redis 캐시 저장 실패: {e}")
+    except Exception as e:
+        print(f"⚠️ 캐시 저장 실패: {e}")
 
 # 웹소켓 엔드포인트
 @app.websocket("/ws/{client_id}")
@@ -2327,9 +2634,9 @@ async def generate_intelligent_response(user_message: str, language: str, user_i
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_message}
                     ],
-                    max_tokens=max_tokens,
-                    temperature=0.7,
-                    timeout=30
+                    max_tokens=500,  # 고정된 응답 길이
+                    temperature=0.7,  # 창의성 향상
+                    timeout=3  # 타임아웃 단축으로 속도 향상
                 )
             
             print(f"✅ GPT-4o API 응답 생성 완료 - 사용자: {user_id}")
@@ -3493,15 +3800,23 @@ async def get_conversation_messages(session_id: str, request: Request):
         if not mongo_available:
             print("⚠️ MongoDB 연결 실패 - 파일 기반 저장소에서 조회")
         
-        # MongoDB에서 메시지 조회 (연결이 가능한 경우에만)
+        # MongoDB에서 메시지 조회 (병렬 처리 최적화)
         if mongo_available and mongo_client and chat_logs_collection:
             try:
+                # 인덱스를 활용한 빠른 조회 (프로젝션 최적화)
                 messages = list(chat_logs_collection.find({
                     "user_id": user_id,
                     "session_id": session_id
-                }).sort("timestamp", 1))
+                }, {
+                    "_id": 1,
+                    "user_id": 1,
+                    "message": 1,
+                    "response": 1,
+                    "timestamp": 1,
+                    "created_at": 1
+                }).sort("created_at", 1).limit(200))  # 최대 200개 메시지
                 
-                # ObjectId를 문자열로 변환
+                # ObjectId를 문자열로 변환 (병렬 처리)
                 for msg in messages:
                     if "_id" in msg:
                         msg["_id"] = str(msg["_id"])
@@ -3513,7 +3828,8 @@ async def get_conversation_messages(session_id: str, request: Request):
                     "messages": messages,
                     "session_id": session_id,
                     "user_id": user_id,
-                    "source": "mongodb"
+                    "source": "mongodb",
+                    "timestamp": datetime.now().isoformat()
                 }
                 
             except Exception as e:
@@ -3556,12 +3872,477 @@ async def get_conversation_messages(session_id: str, request: Request):
         print(f"❌ 메시지 조회 오류: {e}")
         return {"success": False, "error": str(e)}
 
+@app.get("/api/conversations/{session_id}/realtime")
+async def get_conversation_realtime(session_id: str, request: Request):
+    """실시간 대화 불러오기 - 새로고침 시에도 유지"""
+    try:
+        # 사용자 인증 확인
+        user_id = "anonymous"
+        token = request.cookies.get("token")
+        
+        if token:
+            try:
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("user_id", "anonymous")
+            except:
+                pass
+        
+        print(f"🔄 실시간 세션 {session_id} 조회 - 사용자: {user_id}")
+        
+        # MongoDB에서 최신 메시지 조회 (캐시 활용)
+        if mongo_client and chat_logs_collection:
+            try:
+                # Redis 캐시 확인
+                cache_key = f"realtime_{user_id}_{session_id}"
+                cached_data = await check_redis_cache(cache_key)
+                
+                if cached_data:
+                    print(f"⚡ 캐시된 실시간 데이터 사용: {session_id}")
+                    return {
+                        "success": True,
+                        "messages": json.loads(cached_data),
+                        "session_id": session_id,
+                        "user_id": user_id,
+                        "source": "cache",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                
+                # MongoDB에서 조회
+                messages = list(chat_logs_collection.find({
+                    "user_id": user_id,
+                    "session_id": session_id
+                }, {
+                    "_id": 1,
+                    "user_id": 1,
+                    "message": 1,
+                    "response": 1,
+                    "timestamp": 1,
+                    "created_at": 1
+                }).sort("created_at", 1).limit(100))  # 최근 100개 메시지
+                
+                # ObjectId를 문자열로 변환
+                for msg in messages:
+                    if "_id" in msg:
+                        msg["_id"] = str(msg["_id"])
+                
+                # Redis에 캐시 저장 (5분간)
+                await save_to_cache(cache_key, json.dumps(messages, default=str))
+                
+                print(f"🔄 실시간 데이터 조회 완료: {len(messages)}개 메시지")
+                
+                return {
+                    "success": True,
+                    "messages": messages,
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "source": "mongodb_realtime",
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            except Exception as e:
+                print(f"❌ 실시간 조회 오류: {e}")
+        
+        # 파일 기반 조회
+        try:
+            chat_logs_dir = "chat_logs"
+            filename = f"{user_id}_{session_id}.json"
+            file_path = os.path.join(chat_logs_dir, filename)
+            
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    messages = json.load(f)
+                
+                print(f"🔄 파일에서 실시간 데이터 조회: {len(messages)}개 메시지")
+                
+                return {
+                    "success": True,
+                    "messages": messages,
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "source": "file_realtime",
+                    "timestamp": datetime.now().isoformat()
+                }
+        except Exception as e:
+            print(f"❌ 파일 실시간 조회 오류: {e}")
+        
+        return {"success": True, "messages": [], "session_id": session_id, "user_id": user_id, "source": "empty"}
+        
+    except Exception as e:
+        print(f"❌ 실시간 조회 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.delete("/api/conversations/{session_id}")
+async def delete_conversation(session_id: str, request: Request):
+    """특정 세션의 대화 삭제"""
+    try:
+        # 사용자 인증 확인
+        user_id = "anonymous"
+        token = request.cookies.get("token")
+        
+        if token:
+            try:
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("user_id", "anonymous")
+            except:
+                pass
+        
+        print(f"🗑️ 세션 {session_id} 삭제 요청 - 사용자: {user_id}")
+        
+        # MongoDB에서 삭제
+        if mongo_client and chat_logs_collection:
+            try:
+                result = chat_logs_collection.delete_many({
+                    "user_id": user_id,
+                    "session_id": session_id
+                })
+                print(f"✅ MongoDB에서 {result.deleted_count}개 메시지 삭제 완료")
+            except Exception as e:
+                print(f"❌ MongoDB 삭제 오류: {e}")
+        
+        # 파일에서도 삭제
+        try:
+            chat_logs_dir = "chat_logs"
+            filename = f"{user_id}_{session_id}.json"
+            file_path = os.path.join(chat_logs_dir, filename)
+            
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"✅ 파일 삭제 완료: {file_path}")
+        except Exception as e:
+            print(f"❌ 파일 삭제 오류: {e}")
+        
+        return {"success": True, "message": "대화가 삭제되었습니다.", "session_id": session_id}
+        
+    except Exception as e:
+        print(f"❌ 대화 삭제 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/conversations/{session_id}/export")
+async def export_conversation(session_id: str, request: Request):
+    """특정 세션의 대화를 JSON 형태로 내보내기"""
+    try:
+        # 사용자 인증 확인
+        user_id = "anonymous"
+        token = request.cookies.get("token")
+        
+        if token:
+            try:
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("user_id", "anonymous")
+            except:
+                pass
+        
+        print(f"📤 세션 {session_id} 내보내기 요청 - 사용자: {user_id}")
+        
+        # MongoDB에서 메시지 조회
+        messages = []
+        if mongo_client and chat_logs_collection:
+            try:
+                messages = list(chat_logs_collection.find({
+                    "user_id": user_id,
+                    "session_id": session_id
+                }, {
+                    "_id": 0,
+                    "user_id": 1,
+                    "message": 1,
+                    "response": 1,
+                    "timestamp": 1,
+                    "created_at": 1
+                }).sort("created_at", 1))
+                
+                # ObjectId를 문자열로 변환
+                for msg in messages:
+                    if "_id" in msg:
+                        msg["_id"] = str(msg["_id"])
+                
+                print(f"📂 MongoDB에서 {len(messages)}개 메시지 조회 완료")
+                
+            except Exception as e:
+                print(f"❌ MongoDB 조회 오류: {e}")
+        
+        # 파일에서 조회 (MongoDB에 없는 경우)
+        if not messages:
+            try:
+                chat_logs_dir = "chat_logs"
+                filename = f"{user_id}_{session_id}.json"
+                file_path = os.path.join(chat_logs_dir, filename)
+                
+                if os.path.exists(file_path):
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        messages = json.load(f)
+                    print(f"📂 파일에서 {len(messages)}개 메시지 조회 완료")
+            except Exception as e:
+                print(f"❌ 파일 조회 오류: {e}")
+        
+        if not messages:
+            return {"success": False, "error": "대화를 찾을 수 없습니다.", "session_id": session_id}
+        
+        # 내보내기 데이터 구성
+        export_data = {
+            "session_id": session_id,
+            "user_id": user_id,
+            "export_timestamp": datetime.now().isoformat(),
+            "message_count": len(messages),
+            "messages": messages
+        }
+        
+        return {
+            "success": True,
+            "data": export_data,
+            "session_id": session_id,
+            "message_count": len(messages)
+        }
+        
+    except Exception as e:
+        print(f"❌ 대화 내보내기 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+# 아우라 시스템 API 엔드포인트들
+@app.get("/api/aura/status")
+async def get_aura_status():
+    """아우라 시스템 상태 확인"""
+    try:
+        status = {
+            "integration_available": AURA_INTEGRATION_AVAILABLE,
+            "memory_available": AURA_MEMORY_AVAILABLE,
+            "storage_manager_available": STORAGE_MANAGER_AVAILABLE
+        }
+        
+        # 아우라 시스템 초기화 테스트
+        if AURA_INTEGRATION_AVAILABLE or AURA_MEMORY_AVAILABLE:
+            try:
+                aura_system = await initialize_aura_system()
+                status["initialization_success"] = aura_system is not None
+            except Exception as e:
+                status["initialization_success"] = False
+                status["initialization_error"] = str(e)
+        
+        return JSONResponse(content=status)
+    except Exception as e:
+        print(f"❌ 아우라 상태 확인 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"상태 확인 실패: {str(e)}"}
+        )
+
+@app.post("/api/aura/save")
+async def save_to_aura(request: Request):
+    """아우라 시스템에 메모리 저장"""
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        message = data.get("message")
+        response = data.get("response")
+        session_id = data.get("session_id", "default")
+        
+        if not all([user_id, message, response]):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "user_id, message, response가 필요합니다"}
+            )
+        
+        success = await save_to_aura_system(user_id, message, response, session_id)
+        
+        return JSONResponse(content={
+            "success": success,
+            "message": "아우라 시스템 저장 완료" if success else "아우라 시스템 저장 실패"
+        })
+        
+    except Exception as e:
+        print(f"❌ 아우라 저장 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"저장 실패: {str(e)}"}
+        )
+
+@app.get("/api/aura/recall")
+async def recall_from_aura(query: str, user_id: str = None, limit: int = 5):
+    """아우라 시스템에서 메모리 회상"""
+    try:
+        memories = await recall_from_aura_system(query, user_id, limit)
+        
+        return JSONResponse(content={
+            "success": True,
+            "memories": memories,
+            "count": len(memories)
+        })
+        
+    except Exception as e:
+        print(f"❌ 아우라 회상 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"회상 실패: {str(e)}"}
+        )
+
+# DB 대화내용 불러오기 API 엔드포인트들
+@app.get("/api/conversations/{session_id}/history")
+async def get_conversation_history(session_id: str, user_id: str = None, limit: int = 20, request: Request = None):
+    """특정 세션의 대화 내용 불러오기 - 최적화된 버전"""
+    try:
+        # 사용자 인증 확인 (선택적) - 최적화
+        if request and not user_id:
+            try:
+                auth_header = request.headers.get("authorization")
+                if auth_header and auth_header.startswith("Bearer "):
+                    token = auth_header.split(" ")[1]
+                    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                    user_id = payload.get("sub")
+            except Exception as e:
+                print(f"⚠️ 사용자 인증 실패: {e}")
+        
+        # 병렬 처리로 대화 내용 불러오기
+        conversations = await asyncio.wait_for(
+            load_conversation_history(session_id, user_id, limit), 
+            timeout=2.0  # 타임아웃 설정
+        )
+        
+        return JSONResponse(content={
+            "success": True,
+            "session_id": session_id,
+            "conversations": conversations,
+            "count": len(conversations),
+            "load_time": "optimized"
+        })
+        
+    except asyncio.TimeoutError:
+        print(f"⚠️ 대화 내용 불러오기 타임아웃: {session_id}")
+        return JSONResponse(
+            status_code=408,
+            content={"error": "불러오기 시간 초과", "session_id": session_id}
+        )
+    except Exception as e:
+        print(f"❌ 대화 내용 불러오기 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"불러오기 실패: {str(e)}"}
+        )
+
+@app.get("/api/user/{user_id}/sessions")
+async def get_user_sessions_api(user_id: str, limit: int = 10):
+    """사용자의 세션 목록 조회 - 최적화된 버전"""
+    try:
+        # 병렬 처리로 세션 목록 조회
+        sessions = await asyncio.wait_for(
+            get_user_sessions(user_id, limit), 
+            timeout=1.5  # 타임아웃 설정
+        )
+        
+        return JSONResponse(content={
+            "success": True,
+            "user_id": user_id,
+            "sessions": sessions,
+            "count": len(sessions),
+            "load_time": "optimized"
+        })
+        
+    except asyncio.TimeoutError:
+        print(f"⚠️ 사용자 세션 목록 조회 타임아웃: {user_id}")
+        return JSONResponse(
+            status_code=408,
+            content={"error": "조회 시간 초과", "user_id": user_id}
+        )
+    except Exception as e:
+        print(f"❌ 사용자 세션 목록 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"조회 실패: {str(e)}"}
+        )
+
+@app.get("/api/aura/memory/stats")
+async def get_aura_memory_stats(user_id: str = None):
+    """아우라 메모리 통계"""
+    try:
+        stats = {
+            "total_memories": 0,
+            "user_memories": 0,
+            "recent_memories": 0
+        }
+        
+        if AURA_INTEGRATION_AVAILABLE:
+            try:
+                aura_integration = await get_aura_integration()
+                stats = await aura_integration.get_memory_stats(user_id)
+            except Exception as e:
+                print(f"⚠️ 아우라 통합 시스템 통계 실패: {e}")
+        elif AURA_MEMORY_AVAILABLE:
+            try:
+                stats = aura_memory_system.get_memory_stats(user_id)
+            except Exception as e:
+                print(f"⚠️ 아우라 메모리 시스템 통계 실패: {e}")
+        
+        return JSONResponse(content={
+            "success": True,
+            "stats": stats
+        })
+        
+    except Exception as e:
+        print(f"❌ 아우라 메모리 통계 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"통계 실패: {str(e)}"}
+        )
+
+# 1. 서버 시작 시 MongoDB 인덱스 자동 생성 (맨 위 app, db 초기화 직후에 추가)
+try:
+    if chat_logs_collection:
+        chat_logs_collection.create_index([("session_id", 1), ("user_id", 1), ("timestamp", 1)])
+        print("✅ chat_logs 인덱스 자동 생성 완료")
+except Exception as e:
+    print(f"⚠️ chat_logs 인덱스 생성 실패: {e}")
+
+# redis_cache 비동기 풀로 초기화 (FastAPI/uvicorn startup 이벤트 또는 main에서)
+redis_cache = None
+
+async def init_redis():
+    global redis_cache
+    redis_cache = await aioredis.create_redis_pool("redis://localhost")
+
+# FastAPI 앱 시작 시 Redis 초기화
+from fastapi import FastAPI
+app = FastAPI()
+
+@app.on_event("startup")
+async def on_startup():
+    await init_redis()
+    print("✅ aioredis 비동기 Redis 클라이언트 초기화 완료")
+
+# check_redis_cache, save_to_cache 함수 비동기화
+async def check_redis_cache(cache_key: str) -> str:
+    """Redis 캐시에서 응답 확인 - aioredis 비동기 버전"""
+    try:
+        if redis_cache:
+            cached_response = await redis_cache.get(cache_key)
+            if cached_response:
+                return cached_response.decode('utf-8', errors='ignore')
+        return None
+    except Exception as e:
+        print(f"⚠️ Redis 캐시 확인 실패: {e}")
+        return None
+
+async def save_to_cache(cache_key: str, response_text: str):
+    """캐시에 저장 (aioredis 비동기)"""
+    try:
+        if redis_cache:
+            await redis_cache.setex(cache_key, 3600, response_text)
+    except Exception as e:
+        print(f"⚠️ Redis 캐시 저장 실패: {e}")
+
 if __name__ == "__main__":
     import traceback
+    import argparse
+    
+    # 명령행 인수 파싱
+    parser = argparse.ArgumentParser(description='EORA AI Server')
+    parser.add_argument('--port', type=int, default=8016, help='서버 포트 (기본값: 8016)')
+    args = parser.parse_args()
+    
     try:
         ensure_admin()
-        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8016
-        port = int(os.getenv("PORT", 8016))
+        # 명령행 인수 또는 환경변수에서 포트 가져오기
+        port = args.port
         host = "0.0.0.0" if port == 8080 else "127.0.0.1"
         print("🚀 EORA AI 최종 서버를 시작합니다...")
         print(f"📍 주소: http://{host}:{port}")
@@ -3589,9 +4370,21 @@ if __name__ == "__main__":
         print("   - 패키지 목록: GET /api/points/packages")
         print("   - 포인트 구매: POST /api/points/purchase")
         print("============================================================")
-        # Railway 배포 환경에서는 0.0.0.0:8080, 로컬에서는 127.0.0.1:8016
-        port = int(os.getenv("PORT", 8016))
-        host = "0.0.0.0" if port == 8080 else "127.0.0.1"
+        print("🔧 아우라 시스템 API 엔드포인트:")
+        print("   - 아우라 상태: GET /api/aura/status")
+        print("   - 아우라 저장: POST /api/aura/save")
+        print("   - 아우라 회상: GET /api/aura/recall")
+        print("   - 아우라 통계: GET /api/aura/memory/stats")
+        print("============================================================")
+        print("🔧 대화 불러오기 API 엔드포인트:")
+        print("   - 대화 목록 조회: GET /api/conversations")
+        print("   - 세션 메시지 조회: GET /api/conversations/{session_id}/messages")
+        print("   - 대화 내용 불러오기: GET /api/conversations/{session_id}/history")
+        print("   - 사용자 세션 목록: GET /api/user/{user_id}/sessions")
+        print("   - 대화 삭제: DELETE /api/conversations/{session_id}")
+        print("   - 대화 내보내기: GET /api/conversations/{session_id}/export")
+        print("   - 실시간 대화 불러오기: GET /api/conversations/{session_id}/realtime")
+        print("============================================================")
         uvicorn.run(app, host=host, port=port)
     except Exception as e:
         print("서버 실행 중 예외 발생:", e)

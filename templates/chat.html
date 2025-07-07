@@ -898,6 +898,214 @@
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 5;
 
+        // 페이지 로드 시 몽고DB에서 세션 목록 로드
+        async function loadSessionsFromDatabase() {
+            try {
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch('/api/sessions', {
+                    method: 'GET',
+                    headers: headers
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    sessions = data.sessions || [];
+                    
+                    // localStorage에서 저장된 세션 이름들 로드
+                    const savedSessionNames = JSON.parse(localStorage.getItem('sessionNames') || '{}');
+                    console.log(`📂 localStorage에서 로드된 세션 이름들:`, savedSessionNames);
+                    
+                    // 세션 이름이 undefined인 경우 기본값 설정
+                    sessions.forEach(session => {
+                        console.log(`🔍 세션 처리 중: ${session.id} - 현재 이름: "${session.name}"`);
+                        
+                        if (!session.name || session.name === 'undefined') {
+                            session.name = '새 세션 ' + new Date(session.created_at).toLocaleDateString();
+                            console.log(`⚠️ 세션 이름이 undefined - 기본값 설정: "${session.name}"`);
+                        }
+                        
+                        // localStorage에 저장된 이름이 있으면 우선 사용
+                        if (savedSessionNames[session.id]) {
+                            const oldName = session.name;
+                            session.name = savedSessionNames[session.id];
+                            console.log(`💾 localStorage 이름 적용: "${oldName}" -> "${session.name}"`);
+                        }
+                    });
+                    
+                    updateSessionList();
+                    
+                    // 저장된 현재 세션 ID 확인
+                    const savedSessionId = localStorage.getItem('currentSessionId');
+                    
+                    if (sessions.length > 0) {
+                        // 저장된 세션이 있고, 해당 세션이 여전히 존재하는 경우
+                        if (savedSessionId && sessions.find(s => s.id === savedSessionId)) {
+                            currentSessionId = savedSessionId;
+                            await loadSessionMessages(savedSessionId);
+                        } else {
+                            // 저장된 세션이 없거나 존재하지 않는 경우, 마지막 세션 사용
+                            const lastSession = sessions[0];
+                            currentSessionId = lastSession.id;
+                            localStorage.setItem('currentSessionId', lastSession.id);
+                            await loadSessionMessages(lastSession.id);
+                        }
+                    } else {
+                        // 세션이 없는 경우에만 새 세션 생성
+                        createNewSession();
+                    }
+                } else {
+                    console.error('세션 목록 로드 실패:', response.status);
+                    // 에러가 발생한 경우에만 새 세션 생성
+                    if (sessions.length === 0) {
+                        createNewSession();
+                    }
+                }
+            } catch (error) {
+                console.error('세션 로드 오류:', error);
+                // 에러가 발생한 경우에만 새 세션 생성
+                if (sessions.length === 0) {
+                    createNewSession();
+                }
+            }
+        }
+
+        // 특정 세션의 메시지들을 몽고DB에서 로드
+        async function loadSessionMessages(sessionId) {
+            try {
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch(`/api/sessions/${sessionId}/messages`, {
+                    method: 'GET',
+                    headers: headers
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const messages = data.messages || [];
+                    
+                    clearChatMessages();
+                    messages.forEach(msg => {
+                        addMessage(msg.sender, msg.content, msg.timestamp);
+                    });
+                } else {
+                    console.error('메시지 로드 실패:', response.status);
+                    clearChatMessages();
+                }
+            } catch (error) {
+                console.error('메시지 로드 오류:', error);
+                clearChatMessages();
+            }
+        }
+
+        // 세션 이름 업데이트 (프론트엔드에서만 관리)
+        function updateSessionName(sessionId, newName) {
+            console.log(`🔄 세션 이름 업데이트 시작: ${sessionId} -> "${newName}"`);
+            
+            const session = sessions.find(s => s.id === sessionId);
+            if (session) {
+                const oldName = session.name;
+                session.name = newName;
+                
+                // localStorage에 세션 이름 저장
+                const sessionNames = JSON.parse(localStorage.getItem('sessionNames') || '{}');
+                sessionNames[sessionId] = newName;
+                localStorage.setItem('sessionNames', JSON.stringify(sessionNames));
+                
+                console.log(`✅ 세션 이름 업데이트 완료: "${oldName}" -> "${newName}"`);
+                console.log(`💾 localStorage 저장: ${sessionId} = "${newName}"`);
+                
+                updateSessionList();
+            } else {
+                console.error(`❌ 세션을 찾을 수 없음: ${sessionId}`);
+            }
+        }
+
+        // 세션 이름을 localStorage에서 제거
+        function removeSessionName(sessionId) {
+            const sessionNames = JSON.parse(localStorage.getItem('sessionNames') || '{}');
+            delete sessionNames[sessionId];
+            localStorage.setItem('sessionNames', JSON.stringify(sessionNames));
+        }
+
+        // 세션을 몽고DB에 저장
+        async function saveSessionToDatabase(session) {
+            try {
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(session)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.session_id;
+                } else {
+                    console.error('세션 저장 실패:', response.status);
+                    return null;
+                }
+            } catch (error) {
+                console.error('세션 저장 오류:', error);
+                return null;
+            }
+        }
+
+        // 메시지를 몽고DB에 저장
+        async function saveMessageToDatabase(sessionId, sender, content) {
+            try {
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const messageData = {
+                    session_id: sessionId,
+                    sender: sender,
+                    content: content,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await fetch('/api/messages', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(messageData)
+                });
+                
+                if (!response.ok) {
+                    console.error('메시지 저장 실패:', response.status);
+                }
+            } catch (error) {
+                console.error('메시지 저장 오류:', error);
+            }
+        }
+
         function connectWebSocket() {
             const clientId = Date.now().toString();
             // 현재 페이지의 포트를 사용하여 WebSocket 연결
@@ -952,6 +1160,21 @@
             addMessage('user', message);
             messageInput.value = '';
             
+            // 첫 번째 메시지인 경우 세션 이름을 메시지 내용으로 설정
+            if (currentSessionId) {
+                const currentSession = sessions.find(s => s.id === currentSessionId);
+                if (currentSession && currentSession.name.includes('새 세션')) {
+                    // 첫 번째 사용자 메시지를 세션 이름으로 설정 (최대 30자)
+                    const sessionName = message.length > 30 ? message.substring(0, 30) + '...' : message;
+                    updateSessionName(currentSessionId, sessionName);
+                }
+            }
+            
+            // 사용자 메시지를 몽고DB에 저장
+            if (currentSessionId) {
+                await saveMessageToDatabase(currentSessionId, 'user', message);
+            }
+            
             // AI 응답 요청
             console.log("🤖 AI 응답 요청 시작");
             showTypingIndicator();
@@ -992,6 +1215,11 @@
                     const data = await response.json();
                     console.log("✅ API 응답 성공:", data);
                     addMessage('assistant', data.response);
+                    
+                    // AI 응답을 몽고DB에 저장
+                    if (currentSessionId) {
+                        await saveMessageToDatabase(currentSessionId, 'assistant', data.response);
+                    }
                 } else {
                     const errorData = await response.json().catch(() => ({}));
                     console.error("❌ API 오류:", errorData);
@@ -1002,7 +1230,13 @@
             } catch (error) {
                 console.error("💥 채팅 오류:", error);
                 console.error("💥 오류 스택:", error.stack);
-                addMessage('assistant', '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.');
+                const errorMessage = '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.';
+                addMessage('assistant', errorMessage);
+                
+                // 오류 메시지도 몽고DB에 저장
+                if (currentSessionId) {
+                    await saveMessageToDatabase(currentSessionId, 'assistant', errorMessage);
+                }
             } finally {
                 console.log("🏁 sendMessage 함수 종료");
                 hideTypingIndicator();
@@ -1018,7 +1252,7 @@
         }
 
         // 메시지 추가
-        function addMessage(sender, content) {
+        function addMessage(sender, content, timestamp = new Date().toISOString()) {
             const chatMessages = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}`;
@@ -1033,7 +1267,7 @@
             
             const messageTime = document.createElement('div');
             messageTime.className = 'message-time';
-            messageTime.textContent = new Date().toLocaleTimeString();
+            messageTime.textContent = new Date(timestamp).toLocaleTimeString();
             
             messageContent.appendChild(messageTime);
             messageDiv.appendChild(avatar);
@@ -1053,18 +1287,29 @@
         }
 
         // 세션 관리
-        function createNewSession() {
+        async function createNewSession() {
             const sessionId = 'session_' + Date.now();
             const sessionName = '새 세션 ' + new Date().toLocaleDateString();
             
-            sessions.unshift({
+            const newSession = {
                 id: sessionId,
                 name: sessionName,
                 created_at: new Date().toISOString(),
                 messages: []
-            });
+            };
             
-            currentSessionId = sessionId;
+            // 몽고DB에 세션 저장
+            const savedSessionId = await saveSessionToDatabase(newSession);
+            if (savedSessionId) {
+                newSession.id = savedSessionId;
+            }
+            
+            sessions.unshift(newSession);
+            currentSessionId = newSession.id;
+            
+            // localStorage에 현재 세션 ID 저장
+            localStorage.setItem('currentSessionId', newSession.id);
+            
             updateSessionList();
             clearChatMessages();
             
@@ -1087,7 +1332,7 @@
                 sessionItem.innerHTML = `
                     <input type="checkbox" class="session-checkbox" 
                            onchange="toggleSessionSelection('${session.id}', this.checked)">
-                    <div class="session-name">${session.name}</div>
+                    <div class="session-name">${session.name || '새 세션'}</div>
                     <div class="session-time">${new Date(session.created_at).toLocaleDateString()}</div>
                 `;
                 
@@ -1106,17 +1351,16 @@
             });
         }
 
-        function loadSession(sessionId) {
+        async function loadSession(sessionId) {
             currentSessionId = sessionId;
-            updateSessionList();
-            clearChatMessages();
             
-            const session = sessions.find(s => s.id === sessionId);
-            if (session && session.messages) {
-                session.messages.forEach(msg => {
-                    addMessage(msg.sender, msg.content);
-                });
-            }
+            // localStorage에 현재 세션 ID 저장
+            localStorage.setItem('currentSessionId', sessionId);
+            
+            updateSessionList();
+            
+            // 몽고DB에서 해당 세션의 메시지들을 로드
+            await loadSessionMessages(sessionId);
         }
 
         function clearChatMessages() {
@@ -1140,18 +1384,41 @@
             }
         }
 
-        function deleteSelectedSessions() {
+        async function deleteSelectedSessions() {
             if (selectedSessions.size === 0) {
                 showMessage('삭제할 세션을 선택해주세요.', 'error');
                 return;
             }
             
             if (confirm('선택한 세션들을 삭제하시겠습니까?')) {
+                // 몽고DB에서 선택된 세션들 삭제
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                for (const sessionId of selectedSessions) {
+                    try {
+                        await fetch(`/api/sessions/${sessionId}`, {
+                            method: 'DELETE',
+                            headers: headers
+                        });
+                        removeSessionName(sessionId); // localStorage에서 제거
+                    } catch (error) {
+                        console.error(`세션 ${sessionId} 삭제 실패:`, error);
+                    }
+                }
+                
                 sessions = sessions.filter(session => !selectedSessions.has(session.id));
                 selectedSessions.clear();
                 
                 if (selectedSessions.has(currentSessionId)) {
                     currentSessionId = null;
+                    localStorage.removeItem('currentSessionId');
                     clearChatMessages();
                 }
                 
@@ -1160,10 +1427,32 @@
             }
         }
 
-        function clearAllSessions() {
+        async function clearAllSessions() {
             if (confirm('모든 세션을 삭제하시겠습니까?')) {
+                // 몽고DB에서 모든 세션 삭제
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                try {
+                    await fetch('/api/sessions', {
+                        method: 'DELETE',
+                        headers: headers
+                    });
+                    // 모든 세션 이름을 localStorage에서 제거
+                    localStorage.removeItem('sessionNames');
+                } catch (error) {
+                    console.error('모든 세션 삭제 실패:', error);
+                }
+                
                 sessions = [];
                 currentSessionId = null;
+                localStorage.removeItem('currentSessionId');
                 selectedSessions.clear();
                 updateSessionList();
                 clearChatMessages();
@@ -1189,26 +1478,48 @@
         function renameSessionFromContext() {
             if (!contextMenuSessionId) return;
             
+            console.log(`🔄 우클릭 세션 이름 변경 시작: ${contextMenuSessionId}`);
+            
             const newName = prompt('새 세션 이름을 입력하세요:');
             if (newName) {
-                const session = sessions.find(s => s.id === contextMenuSessionId);
-                if (session) {
-                    session.name = newName;
-                    updateSessionList();
-                    showMessage('세션 이름이 변경되었습니다.', 'success');
-                }
+                console.log(`📝 사용자 입력 이름: "${newName}"`);
+                updateSessionName(contextMenuSessionId, newName);
+                showMessage('세션 이름이 변경되었습니다.', 'success');
+            } else {
+                console.log(`❌ 사용자가 이름 변경을 취소함`);
             }
             hideContextMenu();
         }
 
-        function deleteSessionFromContext() {
+        async function deleteSessionFromContext() {
             if (!contextMenuSessionId) return;
             
             if (confirm('이 세션을 삭제하시겠습니까?')) {
+                // 몽고DB에서 세션 삭제
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                try {
+                    await fetch(`/api/sessions/${contextMenuSessionId}`, {
+                        method: 'DELETE',
+                        headers: headers
+                    });
+                    removeSessionName(contextMenuSessionId); // localStorage에서 제거
+                } catch (error) {
+                    console.error('세션 삭제 실패:', error);
+                }
+                
                 sessions = sessions.filter(s => s.id !== contextMenuSessionId);
                 
                 if (currentSessionId === contextMenuSessionId) {
                     currentSessionId = null;
+                    localStorage.removeItem('currentSessionId');
                     clearChatMessages();
                 }
                 
@@ -1271,7 +1582,7 @@
 
         // 초기화
         connectWebSocket();
-        createNewSession();
+        loadSessionsFromDatabase();
     </script>
 </body>
 </html> 

@@ -162,23 +162,37 @@
             debugInfo.scrollTop = debugInfo.scrollHeight;
         }
         
-        // 채팅 기록 로드
-        function loadChatHistory() {
-            const savedChat = localStorage.getItem(STORAGE_KEY);
-            if (savedChat) {
-                const chatHistory = JSON.parse(savedChat);
-                const chatContainer = document.getElementById('chatContainer');
+        // 채팅 기록 로드 (몽고DB에서)
+        async function loadChatHistory() {
+            try {
+                updateDebugInfo('몽고DB에서 대화 기록 로드 중...');
                 
-                // 기존 메시지 제거 (AI 환영 메시지 제외)
-                chatContainer.innerHTML = '';
-                
-                // 저장된 메시지들 추가
-                chatHistory.forEach(msg => {
-                    addMessageToChat(msg.content, msg.sender, msg.timestamp);
-                });
+                const response = await fetch(`${apiServer}/api/sessions/test_session/messages`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const messages = data.messages || [];
+                    
+                    const chatContainer = document.getElementById('chatContainer');
+                    chatContainer.innerHTML = '';
+                    
+                    if (messages.length > 0) {
+                        messages.forEach(msg => {
+                            addMessageToChat(msg.content, msg.sender, msg.timestamp);
+                        });
+                        updateDebugInfo(`✅ 몽고DB에서 ${messages.length}개 메시지 로드 완료`);
+                    } else {
+                        // 환영 메시지 표시
+                        addMessageToChat('안녕하세요! EORA AI 테스트 페이지입니다. 메시지를 보내보세요! 🤖', 'ai');
+                    }
+                } else {
+                    updateDebugInfo('❌ 대화 기록 로드 실패, 환영 메시지 표시');
+                    addMessageToChat('안녕하세요! EORA AI 테스트 페이지입니다. 메시지를 보내보세요! 🤖', 'ai');
+                }
                 
                 updateStorageInfo();
-                updateDebugInfo(`✅ 저장된 대화 ${chatHistory.length}개 로드 완료`);
+            } catch (error) {
+                updateDebugInfo(`❌ 대화 기록 로드 오류: ${error.message}`);
+                addMessageToChat('안녕하세요! EORA AI 테스트 페이지입니다. 메시지를 보내보세요! 🤖', 'ai');
             }
         }
         
@@ -205,8 +219,8 @@
             
             if (!message) return;
             
-            // 사용자 메시지 추가
-            addMessageToChat(message, 'user');
+            // 사용자 메시지 추가 (몽고DB에 자동 저장됨)
+            await addMessageToChat(message, 'user');
             messageInput.value = '';
             
             updateDebugInfo(`📤 메시지 전송: ${message}`);
@@ -226,20 +240,21 @@
                 if (response.ok) {
                     const data = await response.json();
                     updateDebugInfo(`✅ 응답 수신: ${data.response.substring(0, 50)}...`);
-                    addMessageToChat(data.response, 'ai');
+                    // AI 응답 추가 (몽고DB에 자동 저장됨)
+                    await addMessageToChat(data.response, 'ai');
                 } else {
                     const errorText = await response.text();
                     updateDebugInfo(`❌ API 오류: ${response.status} - ${errorText}`);
-                    addMessageToChat('죄송합니다. 응답을 생성할 수 없습니다.', 'ai');
+                    await addMessageToChat('죄송합니다. 응답을 생성할 수 없습니다.', 'ai');
                 }
             } catch (error) {
                 updateDebugInfo(`❌ 네트워크 오류: ${error.message}`);
-                addMessageToChat('네트워크 오류가 발생했습니다.', 'ai');
+                await addMessageToChat('네트워크 오류가 발생했습니다.', 'ai');
             }
         }
         
-        // 메시지 추가 (localStorage 저장 포함)
-        function addMessageToChat(content, sender, timestamp = null) {
+        // 메시지 추가 (몽고DB 저장 포함)
+        async function addMessageToChat(content, sender, timestamp = null) {
             const container = document.getElementById('chatContainer');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}-message`;
@@ -253,41 +268,74 @@
             container.appendChild(messageDiv);
             container.scrollTop = container.scrollHeight;
             
-            // localStorage에 저장
-            saveChatToLocalStorage(content, sender, time);
+            // 몽고DB에 저장
+            await saveChatToMongoDB(content, sender, time);
         }
         
-        // 채팅 기록을 localStorage에 저장
-        function saveChatToLocalStorage(content, sender, timestamp) {
-            const savedChat = localStorage.getItem(STORAGE_KEY) || '[]';
-            const chatHistory = JSON.parse(savedChat);
-            
-            chatHistory.push({
-                content: content,
-                sender: sender,
-                timestamp: timestamp
-            });
-            
-            // 최대 50개 메시지까지만 저장
-            if (chatHistory.length > 50) {
-                chatHistory.splice(0, chatHistory.length - 50);
+        // 채팅 기록을 몽고DB에 저장
+        async function saveChatToMongoDB(content, sender, timestamp) {
+            try {
+                const messageData = {
+                    session_id: 'test_session',
+                    sender: sender,
+                    content: content,
+                    timestamp: new Date(timestamp).toISOString()
+                };
+                
+                const response = await fetch(`${apiServer}/api/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(messageData)
+                });
+                
+                if (response.ok) {
+                    updateDebugInfo(`💾 메시지 저장 완료: ${sender}`);
+                } else {
+                    updateDebugInfo(`❌ 메시지 저장 실패: ${response.status}`);
+                }
+                
+                updateStorageInfo();
+            } catch (error) {
+                updateDebugInfo(`❌ 메시지 저장 오류: ${error.message}`);
             }
-            
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
-            updateStorageInfo();
         }
         
         // 저장된 메시지 개수 표시 업데이트
-        function updateStorageInfo() {
-            const savedChat = localStorage.getItem(STORAGE_KEY) || '[]';
-            const chatHistory = JSON.parse(savedChat);
-            document.getElementById('storageInfo').textContent = `저장된 메시지: ${chatHistory.length}개`;
+        async function updateStorageInfo() {
+            try {
+                const response = await fetch(`${apiServer}/api/sessions/test_session/messages`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const messageCount = data.messages ? data.messages.length : 0;
+                    document.getElementById('storageInfo').textContent = `저장된 메시지: ${messageCount}개`;
+                } else {
+                    document.getElementById('storageInfo').textContent = `저장된 메시지: 0개`;
+                }
+            } catch (error) {
+                document.getElementById('storageInfo').textContent = `저장된 메시지: 0개`;
+            }
         }
         
         // 대화 초기화
-        function clearChat() {
+        async function clearChat() {
             if (confirm('정말로 대화 내용을 초기화하시겠습니까?')) {
-                localStorage.removeItem(STORAGE_KEY);
+                try {
+                    // 몽고DB에서 test_session의 모든 메시지 삭제
+                    const response = await fetch(`${apiServer}/api/sessions/test_session`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        updateDebugInfo('🗑️ 몽고DB에서 대화 내용 삭제 완료');
+                    } else {
+                        updateDebugInfo('❌ 대화 내용 삭제 실패');
+                    }
+                } catch (error) {
+                    updateDebugInfo(`❌ 대화 내용 삭제 오류: ${error.message}`);
+                }
+                
                 const chatContainer = document.getElementById('chatContainer');
                 chatContainer.innerHTML = `
                     <div class="message ai-message">
@@ -296,7 +344,6 @@
                     </div>
                 `;
                 updateStorageInfo();
-                updateDebugInfo('🗑️ 대화 내용 초기화 완료');
             }
         }
         
@@ -308,10 +355,10 @@
         }
         
         // 페이지 로드 시 서버 상태 확인 및 채팅 기록 로드
-        window.onload = function() {
+        window.onload = async function() {
             updateDebugInfo('페이지 로드 완료');
-            checkServerStatus();
-            loadChatHistory();
+            await checkServerStatus();
+            await loadChatHistory();
         };
     </script>
 </body>

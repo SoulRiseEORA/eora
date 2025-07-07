@@ -12,6 +12,10 @@ from typing import Dict, List, Any
 import os
 import hashlib
 
+# 로깅 설정 (먼저 선언)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # EORA 시스템 임포트 (선택적)
 try:
     from eora_core import EORACore
@@ -62,10 +66,6 @@ except ImportError:
     AUTH_SYSTEM_AVAILABLE = False
     logger.info("ℹ️ auth_system 모듈 로드 실패")
 
-# 로깅 설정
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 # EORA_GAI 통합 시스템 (선택적)
 try:
     from EORA_GAI.EORA_Consciousness_AI import EORA as EORAGAI
@@ -87,8 +87,44 @@ except ImportError as e:
 app = FastAPI(title="EORA AI System", version="1.0.0")
 
 # 정적 파일 및 템플릿 설정
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+# static 폴더가 있을 때만 마운트
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 템플릿 경로를 절대 경로로 설정
+templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+print(f"템플릿 디렉토리 설정: {templates_dir}")
+print(f"템플릿 디렉토리 존재: {os.path.exists(templates_dir)}")
+
+if os.path.exists(templates_dir):
+    templates = Jinja2Templates(directory=templates_dir)
+    print("✅ Jinja2 템플릿 초기화 성공")
+else:
+    print("❌ 템플릿 디렉토리를 찾을 수 없습니다!")
+    # 상대 경로로 다시 시도
+    templates = Jinja2Templates(directory="templates")
+    print("🔄 상대 경로로 템플릿 설정")
+
+# 템플릿 파일 존재 확인
+home_template_path = os.path.join(templates_dir, "home.html")
+print(f"home.html 경로: {home_template_path}")
+print(f"home.html 존재: {os.path.exists(home_template_path)}")
+
+# 템플릿 경로 설정 - 간단하고 명확하게
+templates_path = "E:\\AI_Dev_Tool\\src\\templates"
+print(f"Templates path: {templates_path}")
+print(f"Templates exists: {os.path.exists(templates_path)}")
+
+# 템플릿 디렉토리 내용 확인
+if os.path.exists(templates_path):
+    print("Template files found:")
+    for file in os.listdir(templates_path):
+        if file.endswith('.html'):
+            print(f"  - {file}")
+else:
+    print("ERROR: Templates directory not found!")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Current file directory: {os.path.dirname(__file__)}")
 
 # 간단한 사용자 저장소 (실제로는 데이터베이스 사용)
 users_db = {}
@@ -211,7 +247,80 @@ async def shutdown_event():
 @app.get("/", response_class=HTMLResponse)
 async def home_page(request: Request):
     """홈 페이지"""
-    return templates.TemplateResponse("home.html", {"request": request})
+    print("홈페이지 요청 받음!")
+    print(f"요청 URL: {request.url}")
+    print(f"요청 메서드: {request.method}")
+    print(f"템플릿 디렉토리: {templates_dir}")
+    
+    # 템플릿 파일 경로 재확인
+    home_template_path = os.path.join(templates_dir, "home.html")
+    print(f"home.html 전체 경로: {home_template_path}")
+    print(f"home.html 파일 존재: {os.path.exists(home_template_path)}")
+    
+    # home.html 파일 내용 일부 확인
+    if os.path.exists(home_template_path):
+        try:
+            with open(home_template_path, 'r', encoding='utf-8') as f:
+                content = f.read(200)  # 처음 200자만 읽기
+                print(f"home.html 내용 시작: {content[:100]}...")
+        except Exception as read_error:
+            print(f"home.html 파일 읽기 오류: {str(read_error)}")
+    
+    try:
+        # 원래 home.html 템플릿 사용
+        return templates.TemplateResponse("home.html", {"request": request})
+    except Exception as e:
+        print(f"홈페이지 렌더링 오류: {str(e)}")
+        print(f"오류 타입: {type(e).__name__}")
+        import traceback
+        print(f"오류 상세: {traceback.format_exc()}")
+        # 오류 발생 시 간단한 페이지로 대체
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>EORA AI 시스템</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }}
+                h1 {{ color: #333; text-align: center; }}
+                .container {{ background: #f9f9f9; padding: 30px; border-radius: 10px; }}
+                .nav {{ margin: 20px 0; }}
+                .nav a {{ display: inline-block; margin: 10px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }}
+                .nav a:hover {{ background: #0056b3; }}
+                .error {{ color: #dc3545; background: #f8d7da; padding: 10px; border-radius: 5px; margin: 10px 0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🚀 EORA AI 시스템</h1>
+                <p>서버가 정상 작동 중입니다!</p>
+                <div class="error">
+                    <strong>템플릿 오류:</strong> {str(e)}<br>
+                    <strong>오류 타입:</strong> {type(e).__name__}<br>
+                    <strong>템플릿 경로:</strong> {templates_dir}
+                </div>
+                <div class="nav">
+                    <a href="/simple">간단한 테스트</a>
+                    <a href="/debug">디버그 페이지</a>
+                    <a href="/chat">채팅</a>
+                    <a href="/health">상태 확인</a>
+                </div>
+            </div>
+        </body>
+        </html>
+        """)
+
+# 홈페이지 별칭
+@app.get("/home", response_class=HTMLResponse)
+async def read_home(request: Request):
+    return await home_page(request)
+
+# 메인 페이지도 홈페이지로 리다이렉트
+@app.get("/main", response_class=HTMLResponse)
+async def read_main(request: Request):
+    return await home_page(request)
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -232,6 +341,18 @@ async def chat_page(request: Request):
 async def points_page(request: Request):
     """포인트 관리 페이지"""
     return templates.TemplateResponse("points.html", {"request": request})
+
+@app.get("/debug", response_class=HTMLResponse)
+async def debug_page(request: Request):
+    """디버그 페이지"""
+    print("디버그 페이지 요청 받음")
+    return templates.TemplateResponse("debug.html", {"request": request})
+
+@app.get("/simple", response_class=HTMLResponse)
+async def simple_page(request: Request):
+    """간단한 테스트 페이지"""
+    print("간단한 테스트 페이지 요청 받음")
+    return HTMLResponse(content="<h1>서버가 정상 작동합니다!</h1><p>이 페이지가 보이면 서버가 정상입니다.</p>")
 
 # 인증 API
 @app.post("/api/auth/register")
@@ -719,6 +840,177 @@ async def delete_user_session(session_id: str):
         logger.error(f"세션 삭제 오류: {str(e)}")
         return {"success": False, "message": "세션 삭제 중 오류가 발생했습니다."}
 
+# 세션 관리 API 엔드포인트들
+@app.get("/api/sessions")
+async def get_sessions():
+    """세션 목록 조회"""
+    try:
+        if DATABASE_AVAILABLE:
+            # 데이터베이스에서 세션 목록 조회
+            sessions = await db_manager.get_user_sessions("anonymous")
+            
+            # 프론트엔드 호환성을 위해 id 필드 추가하고 ObjectId 제거
+            clean_sessions = []
+            for session in sessions:
+                clean_session = {
+                    "id": session.get("session_id", str(session.get("_id", ""))),
+                    "session_id": session.get("session_id", str(session.get("_id", ""))),
+                    "title": session.get("title", "세션"),
+                    "user_id": session.get("user_id", "anonymous"),
+                    "created_at": session.get("created_at", datetime.now().isoformat()),
+                    "updated_at": session.get("updated_at", datetime.now().isoformat()),
+                    "message_count": session.get("message_count", 0)
+                }
+                clean_sessions.append(clean_session)
+            
+            # 세션이 없으면 기본 세션 생성
+            if not clean_sessions:
+                default_session_data = {
+                    "session_id": "default_session",
+                    "title": "기본 세션",
+                    "user_id": "anonymous",
+                    "created_at": datetime.now().isoformat(),
+                    "updated_at": datetime.now().isoformat(),
+                    "message_count": 0
+                }
+                await db_manager.create_session(default_session_data)
+                default_session_data["id"] = "default_session"
+                clean_sessions = [default_session_data]
+            
+            sessions = clean_sessions
+        else:
+            # 데이터베이스가 없을 때 기본 세션 반환
+            sessions = [
+                {
+                    "id": "default_session",
+                    "session_id": "default_session",
+                    "title": "기본 세션",
+                    "created_at": datetime.now().isoformat(),
+                    "updated_at": datetime.now().isoformat(),
+                    "message_count": 0
+                }
+            ]
+        
+        return {"sessions": sessions}
+    except Exception as e:
+        logger.error(f"세션 목록 조회 오류: {str(e)}")
+        return {"sessions": []}
+
+@app.post("/api/sessions")
+async def create_session(request: Request):
+    """새 세션 생성"""
+    try:
+        body = await request.json()
+        session_id = f"session_{datetime.now().timestamp()}"
+        
+        session_data = {
+            "session_id": session_id,
+            "title": body.get("title", "새 세션"),
+            "user_id": body.get("user_id", "anonymous"),
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "message_count": 0
+        }
+        
+        # 데이터베이스에 세션 저장
+        if DATABASE_AVAILABLE:
+            await db_manager.create_session(session_data)
+        
+        # 프론트엔드 호환성을 위해 id 필드 추가
+        session_data["id"] = session_id
+        
+        # ObjectId가 포함되지 않은 깨끗한 데이터 반환
+        clean_session_data = {
+            "id": session_id,
+            "session_id": session_id,
+            "title": session_data["title"],
+            "user_id": session_data["user_id"],
+            "created_at": session_data["created_at"],
+            "updated_at": session_data["updated_at"],
+            "message_count": session_data["message_count"]
+        }
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "session": clean_session_data
+        }
+    except Exception as e:
+        logger.error(f"세션 생성 오류: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/sessions/{session_id}/messages")
+async def get_session_messages(session_id: str):
+    """세션의 메시지 목록 조회"""
+    try:
+        if DATABASE_AVAILABLE:
+            messages = await db_manager.get_session_messages(session_id)
+        else:
+            messages = []
+        
+        return {
+            "session_id": session_id,
+            "messages": messages
+        }
+    except Exception as e:
+        logger.error(f"세션 메시지 조회 오류: {str(e)}")
+        return {"session_id": session_id, "messages": []}
+
+@app.post("/api/messages")
+async def save_message(request: Request):
+    """메시지 저장"""
+    try:
+        body = await request.json()
+        session_id = body.get("session_id")
+        sender = body.get("sender")
+        content = body.get("content")
+        timestamp = body.get("timestamp", datetime.now().isoformat())
+        
+        if DATABASE_AVAILABLE:
+            message_id = await db_manager.save_message(session_id, sender, content, timestamp)
+            
+            # 세션 업데이트 (메시지 수 증가)
+            try:
+                # 현재 세션의 메시지 수 조회
+                session = await db_manager.get_session(session_id)
+                current_count = session.get("message_count", 0) if session else 0
+                
+                await db_manager.update_session(session_id, {
+                    "updated_at": datetime.now().isoformat(),
+                    "message_count": current_count + 1
+                })
+            except Exception as update_error:
+                logger.error(f"세션 업데이트 오류: {str(update_error)}")
+        else:
+            message_id = f"msg_{datetime.now().timestamp()}"
+        
+        logger.info(f"메시지 저장 완료: {message_id}")
+        
+        return {
+            "success": True,
+            "message_id": message_id
+        }
+    except Exception as e:
+        logger.error(f"메시지 저장 오류: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """세션 삭제"""
+    try:
+        if DATABASE_AVAILABLE:
+            await db_manager.remove_session(session_id)
+        
+        logger.info(f"세션 삭제 완료: {session_id}")
+        
+        return {
+            "success": True,
+            "message": "세션이 삭제되었습니다."
+        }
+    except Exception as e:
+        logger.error(f"세션 삭제 오류: {str(e)}")
+        return {"success": False, "error": str(e)}
+
 # 관리자 관련 엔드포인트
 @app.get("/api/admin/users")
 async def get_all_users():
@@ -764,6 +1056,50 @@ async def search_memories(query: str, user_id: str = None):
 async def health_check():
     """헬스 체크 엔드포인트"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+# API 연결 테스트
+@app.get("/api/test")
+async def test_api():
+    return {
+        "message": "API 연결 성공!",
+        "status": "connected",
+        "timestamp": datetime.now().isoformat(),
+        "eora_systems": {
+            "eora_core": EORA_CORE_AVAILABLE,
+            "eora_consciousness": EORA_CONSCIOUSNESS_AVAILABLE,
+            "eora_enhanced": EORA_ENHANCED_AVAILABLE,
+            "eora_gai": EORA_GAI_AVAILABLE
+        }
+    }
+
+# 대화 연결 테스트
+@app.post("/api/test-chat")
+async def test_chat(request: Request):
+    try:
+        body = await request.json()
+        test_message = body.get("message", "안녕하세요")
+        
+        # 간단한 응답 생성
+        response = {
+            "success": True,
+            "message": "대화 연결 성공!",
+            "response": f"테스트 메시지 '{test_message}'를 받았습니다. EORA AI 시스템이 정상적으로 작동하고 있습니다.",
+            "timestamp": datetime.now().isoformat(),
+            "systems_available": {
+                "eora_core": EORA_CORE_AVAILABLE,
+                "eora_consciousness": EORA_CONSCIOUSNESS_AVAILABLE,
+                "eora_enhanced": EORA_ENHANCED_AVAILABLE,
+                "eora_gai": EORA_GAI_AVAILABLE
+            }
+        }
+        
+        return response
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 @app.post("/api/set-language")
 async def set_language(request: Request):
@@ -1452,12 +1788,21 @@ if __name__ == "__main__":
     import uvicorn
     import os
     
-    # Railway 환경변수에서 포트 가져오기
-    port = int(os.environ.get("PORT", 8000))
+    # Railway 환경변수에서 포트 가져오기 (기본값을 8001로 변경)
+    port = int(os.environ.get("PORT", 8001))
+    
+    print(f"🚀 EORA AI 서버를 시작합니다...")
+    print(f"📍 주소: http://127.0.0.1:{port}")
+    print(f"📋 사용 가능한 페이지:")
+    print(f"   - 홈: http://127.0.0.1:{port}/")
+    print(f"   - 디버그: http://127.0.0.1:{port}/debug")
+    print(f"   - 채팅: http://127.0.0.1:{port}/chat")
+    print(f"   - 상태 확인: http://127.0.0.1:{port}/health")
+    print("=" * 50)
     
     uvicorn.run(
         "main:app", 
-        host="0.0.0.0", 
+        host="127.0.0.1", 
         port=port, 
-        reload=False
+        reload=True
     ) 
