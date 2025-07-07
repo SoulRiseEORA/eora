@@ -94,11 +94,16 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# 정적 파일 설정
-try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-except Exception as e:
-    logger.warning(f"정적 파일 마운트 실패: {e}")
+# 정적 파일 설정 (선택적)
+static_path = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_path):
+    try:
+        app.mount("/static", StaticFiles(directory=static_path), name="static")
+        logger.info("✅ 정적 파일 마운트 성공")
+    except Exception as e:
+        logger.warning(f"정적 파일 마운트 실패: {e}")
+else:
+    logger.info("ℹ️ 정적 파일 디렉토리가 없습니다. 건너뜁니다.")
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -125,7 +130,8 @@ async def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "server": "railway_stable",
-        "version": "2.0.0"
+        "version": "2.0.0",
+        "port": 8005
     }
 
 @app.get("/api/sessions")
@@ -257,7 +263,8 @@ async def test_endpoint():
     return {
         "message": "Railway 안정 서버가 정상 작동 중입니다!",
         "timestamp": datetime.now().isoformat(),
-        "status": "stable"
+        "status": "stable",
+        "port": 8005
     }
 
 if __name__ == "__main__":
@@ -265,7 +272,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "railway_server:app",
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", 8000)),
+        port=8005,  # 포트를 8005로 변경
         reload=False,  # 재시작 완전 차단
         log_level="info"
     ) 

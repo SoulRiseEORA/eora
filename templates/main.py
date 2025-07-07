@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 EORA AI System - 감정 중심 인공지능 플랫폼
 FAISS 기반 임베딩 대화 관리 시스템 포함
@@ -90,9 +91,10 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "eora_ai")
 
-# OpenAI 클라이언트 초기화
+# OpenAI 클라이언트 초기화 (Railway 호환)
 if OPENAI_API_KEY:
     try:
+        # Railway 환경에서 OpenAI 클라이언트 초기화
         openai.api_key = OPENAI_API_KEY
         logger.info("✅ OpenAI API 키 설정 성공")
     except Exception as e:
@@ -241,19 +243,23 @@ def get_current_user(token: dict = Depends(verify_token)):
         raise HTTPException(status_code=401, detail="Invalid token")
     return {"_id": user_id}
 
-# Lifespan 이벤트 핸들러
+# Lifespan 이벤트 핸들러 (Railway 호환)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 시작 시 실행
     logger.info("🚀 EORA AI System 시작 중...")
     await init_redis()
     
-    # MongoDB 인덱스 생성
+    # MongoDB 인덱스 생성 (Railway 호환)
     try:
-        chat_logs_collection.create_index([("timestamp", pymongo.DESCENDING)])
-        chat_logs_collection.create_index([("user_id", pymongo.ASCENDING)])
-        sessions_collection.create_index([("user_id", pymongo.ASCENDING)])
-        users_collection.create_index([("email", pymongo.ASCENDING)])
+        # 컬렉션이 존재하는지 확인 후 인덱스 생성
+        if chat_logs_collection is not None:
+            chat_logs_collection.create_index([("timestamp", pymongo.DESCENDING)])
+            chat_logs_collection.create_index([("user_id", pymongo.ASCENDING)])
+        if sessions_collection is not None:
+            sessions_collection.create_index([("user_id", pymongo.ASCENDING)])
+        if users_collection is not None:
+            users_collection.create_index([("email", pymongo.ASCENDING)])
         logger.info("✅ MongoDB 인덱스 생성 완료")
     except Exception as e:
         logger.warning(f"⚠️ MongoDB 인덱스 생성 실패: {e}")
