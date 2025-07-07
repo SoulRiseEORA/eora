@@ -137,20 +137,44 @@ except ImportError as e:
     logger.info(f"ℹ️ FAISS 또는 sentence-transformers, numpy 미설치: {e}. 고급 대화 기능 비활성화.")
 
 # Redis 연결 (Graceful Fallback - Railway 환경에서 선택적 사용)
+redis_client = None
+redis_connected = False
+
+# 메모리 기반 캐시 (Redis 대체)
+memory_cache = {}
+
 async def init_redis():
     global redis_client, redis_connected
-    if not FAISS_AVAILABLE:
-        logger.info("ℹ️ Redis 모듈이 사용 불가능합니다. 메모리 기반 캐시를 사용합니다.")
-        return
     try:
         import redis.asyncio as redis
         redis_client = redis.from_url(REDIS_URL, decode_responses=True)
         await redis_client.ping()
         redis_connected = True
         logger.info("✅ Redis 연결 성공")
-    except Exception as e:
-        logger.info(f"ℹ️ Redis 클라이언트 연결 실패: {e}. Redis 없이 실행됩니다.")
+    except ImportError:
+        logger.info("ℹ️ Redis 모듈이 설치되지 않았습니다. 메모리 기반 캐시를 사용합니다.")
         redis_connected = False
+    except Exception as e:
+        logger.info(f"ℹ️ Redis 클라이언트 연결 실패: {e}. 메모리 기반 캐시를 사용합니다.")
+        redis_connected = False
+
+# 메모리 기반 캐시 함수들
+async def get_cache(key: str):
+    if redis_connected and redis_client:
+        try:
+            return await redis_client.get(key)
+        except:
+            return memory_cache.get(key)
+    return memory_cache.get(key)
+
+async def set_cache(key: str, value: str, expire: int = 3600):
+    if redis_connected and redis_client:
+        try:
+            await redis_client.setex(key, expire, value)
+        except:
+            memory_cache[key] = value
+    else:
+        memory_cache[key] = value
 
 # ObjectId JSON 직렬화를 위한 헬퍼 함수
 def convert_objectid(data):
