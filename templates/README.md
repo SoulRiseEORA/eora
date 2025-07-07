@@ -10,6 +10,8 @@
 - **상담 기록 저장 및 회고 기능**: 모든 대화 내용을 안전하게 저장하고 회고
 - **개인정보 보호를 위한 안전한 시스템**: 최고 수준의 보안 시스템
 - **감정 목표 추적 및 동기 부여 시스템**: 감정과 목표를 연결한 실질적인 변화
+- **FAISS 임베딩 기반 대화 관리**: 과거 대화 내용을 임베딩으로 저장하고 유사한 대화 검색
+- **지능형 대화 회상 시스템**: 문맥을 이해하고 관련된 과거 대화를 참조하여 더 나은 응답 제공
 
 ## 🛠️ 기술 스택
 
@@ -17,6 +19,7 @@
 - **Database**: MongoDB
 - **Cache**: Redis (Graceful Fallback 지원)
 - **AI**: OpenAI GPT-4
+- **Embedding**: FAISS, Sentence Transformers
 - **Frontend**: HTML5, CSS3, JavaScript
 - **Deployment**: Railway
 
@@ -48,7 +51,7 @@ REDIS_DB=0
 1. **GitHub에 코드 푸시**
    ```bash
    git add .
-   git commit -m "Add Redis graceful fallback support"
+   git commit -m "Add FAISS embedding system and optimize deployment"
    git push origin main
    ```
 
@@ -91,10 +94,10 @@ REDIS_DB=0
 
 ```
 src/
-├── main.py              # FastAPI 메인 애플리케이션
+├── main.py              # FastAPI 메인 애플리케이션 (FAISS 임베딩 시스템 포함)
 ├── start_server.py      # 배포용 서버 실행 스크립트
 ├── redis_manager.py     # Redis 연결 관리자 (Graceful Fallback)
-├── requirements.txt     # Python 의존성
+├── requirements.txt     # Python 의존성 (FAISS, Sentence Transformers 포함)
 ├── railway.json         # Railway 배포 설정
 ├── deploy.bat          # Windows 배포 스크립트
 ├── RAILWAY_REDIS_SETUP.md # Redis 설정 가이드
@@ -113,18 +116,49 @@ src/
 - `GET /chat` - 채팅 인터페이스
 - `GET /dashboard` - 사용자 대시보드
 - `GET /health` - 서버 상태 확인
-- `POST /api/chat` - 채팅 API
+- `POST /api/chat` - 채팅 API (FAISS 임베딩 기반)
 - `POST /api/auth/login` - 로그인 API
 - `GET /api/sessions` - 세션 목록 API
+- `WebSocket /ws/{session_id}` - 실시간 채팅
+
+## 🧠 FAISS 임베딩 시스템
+
+### 주요 기능
+- **대화 임베딩 저장**: 모든 대화를 벡터로 변환하여 저장
+- **유사도 검색**: 현재 대화와 유사한 과거 대화 검색
+- **컨텍스트 제공**: 관련된 과거 대화를 참조하여 더 나은 응답 생성
+- **실시간 학습**: 새로운 대화가 추가될 때마다 임베딩 인덱스 업데이트
+
+### 기술적 특징
+- **Sentence Transformers**: 한국어에 최적화된 임베딩 모델 사용
+- **FAISS**: Facebook AI Similarity Search로 빠른 벡터 검색
+- **Cosine Similarity**: 벡터 간 유사도 계산
+- **메타데이터 저장**: 각 임베딩에 대화 정보 저장
+
+### 사용 예시
+```python
+# 메시지 임베딩 추가
+embedding_manager.add_message("안녕하세요", "user", "session_123")
+
+# 유사한 대화 검색
+similar_messages = embedding_manager.search_similar("안녕하세요", k=5)
+
+# AI 응답 생성 시 컨텍스트 활용
+context = "관련된 과거 대화:\n"
+for msg in similar_messages:
+    context += f"{msg['role']}: {msg['message']}\n"
+```
 
 ## 🐛 문제 해결
 
 ### 서버 재시작 문제
 - `--reload` 옵션을 비활성화하여 안정성 확보
 - `start_server.py`에서 `reload=False` 설정
+- 타임아웃 및 연결 제한 설정 최적화
 
 ### 의존성 문제
 - `requirements.txt`에 모든 필요한 패키지 포함
+- `faiss-cpu`, `sentence-transformers` 의존성 추가
 - `numpy` 의존성 추가로 aura 시스템 안정화
 
 ### 환경 변수 문제
@@ -136,10 +170,16 @@ src/
 - **Railway Redis**: `RAILWAY_REDIS_SETUP.md` 참조하여 Redis 서비스 추가
 - **로컬 Redis**: Docker 또는 로컬 Redis 서버 설치
 
+### FAISS 모듈 문제
+- **CPU 버전 사용**: `faiss-cpu`로 메모리 사용량 최적화
+- **모델 다운로드**: 첫 실행 시 Sentence Transformers 모델 자동 다운로드
+- **메모리 관리**: 대용량 임베딩 데이터의 경우 메모리 사용량 모니터링
+
 ### 배포 안정성
 - Redis 의존성 유지하면서 graceful fallback 지원
 - 포트 환경 변수 지원으로 유연한 배포
 - 서버 타임아웃 설정 최적화
+- FAISS 임베딩 시스템 초기화 실패 시 기본 모드로 전환
 
 ## 🔄 Redis Graceful Fallback
 
@@ -165,6 +205,7 @@ src/
 4. API 키 유효성
 5. 포트 설정 확인
 6. Redis 연결 상태 (선택사항)
+7. FAISS 임베딩 시스템 상태
 
 ## 📄 라이선스
 

@@ -16,7 +16,7 @@ git add .
 echo.
 
 echo 💾 커밋 생성...
-git commit -m "Remove Redis dependency and optimize deployment configuration"
+git commit -m "Add FAISS embedding system and optimize deployment configuration"
 echo.
 
 echo 🚀 GitHub에 푸시...
@@ -33,9 +33,10 @@ echo 3. 배포 상태 모니터링
 echo.
 
 echo 🔧 주요 수정사항:
-echo - Redis 의존성 제거로 배포 안정성 향상
-echo - 포트 환경 변수 지원 추가
-echo - 서버 타임아웃 설정 최적화
+echo - FAISS 임베딩 기반 대화 관리 시스템 추가
+echo - Sentence Transformers 모델 통합
+echo - 배포 안정성 최적화
+echo - 서버 타임아웃 및 연결 제한 설정
 echo.
 
 echo 🌐 접속 주소: https://your-app-name.railway.app

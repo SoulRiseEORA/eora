@@ -27,7 +27,7 @@ def main():
     print(f"🗄️ MongoDB URI: {'설정됨' if mongodb_uri else '미설정'}")
     print(f"🌐 포트: {port}")
     
-    # 서버 설정
+    # 서버 설정 - 배포 안정성 최적화
     config = {
         "app": "main:app",
         "host": "0.0.0.0",  # 모든 인터페이스에서 접근 가능
@@ -36,8 +36,11 @@ def main():
         "workers": 1,       # 단일 워커로 안정성 확보
         "log_level": "info",
         "access_log": True,
-        "timeout_keep_alive": 30,
-        "timeout_graceful_shutdown": 30
+        "timeout_keep_alive": 60,  # 타임아웃 증가
+        "timeout_graceful_shutdown": 60,  # 종료 타임아웃 증가
+        "limit_concurrency": 1000,  # 동시 연결 제한
+        "limit_max_requests": 10000,  # 최대 요청 수 제한
+        "backlog": 2048,  # 백로그 크기 증가
     }
     
     print("⚙️ 서버 설정:")
