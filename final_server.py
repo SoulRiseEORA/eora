@@ -15,6 +15,7 @@ import os
 import openai
 import jwt
 import redis.asyncio as aioredis
+from bson import ObjectId
 
 try:
     from dotenv import load_dotenv
@@ -711,7 +712,7 @@ def setup_openai_client():
         return False
     
     try:
-        # OpenAI 클라이언트 초기화
+        # OpenAI 클라이언트 초기화 (proxies 인자 제거)
         openai.api_key = openai_api_key
         client = openai.OpenAI(api_key=openai_api_key)
         
@@ -735,21 +736,37 @@ openai_api_key = None
 client = None
 openai_available = setup_openai_client()
 
-# Redis 클라이언트 초기화
+# Redis 클라이언트 초기화 (연결 실패 시 None으로 처리)
 redis_client = None
-if REDIS_AVAILABLE:
-    try:
-        redis_client = redis.Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", 6379)),
-            db=int(os.getenv("REDIS_DB", 0)),
-            decode_responses=True
-        )
-        redis_client.ping()
-        print("✅ Redis 클라이언트 연결 성공")
-    except Exception as e:
-        print(f"⚠️ Redis 클라이언트 연결 실패: {e}")
-        redis_client = None
+try:
+    redis_client = redis.Redis(
+        host=os.getenv("REDIS_HOST", "localhost"),
+        port=int(os.getenv("REDIS_PORT", 6379)),
+        db=int(os.getenv("REDIS_DB", 0)),
+        decode_responses=True,
+        socket_connect_timeout=5,  # 연결 타임아웃 추가
+        socket_timeout=5
+    )
+    redis_client.ping()
+    print("✅ Redis 클라이언트 연결 성공")
+except Exception as e:
+    print(f"⚠️ Redis 클라이언트 연결 실패: {e}")
+    print("ℹ️ Redis 없이 기본 기능으로 실행됩니다.")
+    redis_client = None
+
+# MongoDB ObjectId를 문자열로 변환하는 함수
+def convert_objectid_to_str(data):
+    """MongoDB ObjectId를 문자열로 변환"""
+    if isinstance(data, dict):
+        return {k: convert_objectid_to_str(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [convert_objectid_to_str(item) for item in data]
+    elif isinstance(data, ObjectId):
+        return str(data)
+    elif isinstance(data, datetime):
+        return data.isoformat()
+    else:
+        return data
 
 # 저장공간 관리자 초기화
 storage_manager_instance = None
@@ -764,6 +781,15 @@ if STORAGE_MANAGER_AVAILABLE:
 # Railway API 설정
 RAILWAY_API_URL = "https://railway.com/project/8eadf3cc-4066-4de1-a342-2fef5fa5b843/service/fffde6bf-4da3-4b54-8526-36d62c9b8c75/variables"
 RAILWAY_ENVIRONMENT_ID = "2f521e06-ef3a-46c4-a3c9-499500d94a53"
+
+# JSON 인코더에 ObjectId 지원 추가
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 # Pydantic 모델
 class UserCreate(BaseModel):
