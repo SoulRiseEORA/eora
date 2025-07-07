@@ -768,13 +768,40 @@ async def get_realtime_conversation(session_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    # 파일 변경 감지 완전 비활성화로 안정성 확보
-    uvicorn.run(
-        app, 
-        host="0.0.0.0", 
-        port=int(os.environ.get("PORT", 8000)),
-        reload=False,  # 재시작 완전 비활성화
-        log_level="info",
-        access_log=True,
-        use_colors=True
-    ) 
+    # Railway 최종 서버로 강제 리다이렉트
+    logger.info("🔄 Railway 최종 서버(railway_final.py)로 강제 리다이렉트 중...")
+    import subprocess
+    import sys
+    import os
+    
+    # railway_final.py 파일 존재 확인
+    if os.path.exists("railway_final.py"):
+        logger.info("✅ railway_final.py 파일 발견 - 실행 중...")
+        try:
+            # railway_final.py 실행
+            subprocess.run([sys.executable, "railway_final.py"] + sys.argv[1:], check=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"❌ railway_final.py 실행 실패: {e}")
+            # fallback: 현재 서버 실행
+            logger.info("⚠️ fallback: 현재 서버로 실행")
+            uvicorn.run(
+                app, 
+                host="0.0.0.0", 
+                port=int(os.environ.get("PORT", 8000)),
+                reload=False,
+                log_level="info",
+                access_log=True,
+                use_colors=True
+            )
+    else:
+        logger.error("❌ railway_final.py 파일이 없습니다!")
+        # 현재 서버 실행
+        uvicorn.run(
+            app, 
+            host="0.0.0.0", 
+            port=int(os.environ.get("PORT", 8000)),
+            reload=False,
+            log_level="info",
+            access_log=True,
+            use_colors=True
+        ) 
