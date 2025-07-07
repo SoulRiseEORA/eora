@@ -674,11 +674,13 @@ async def get_realtime_conversation(session_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    # 파일 변경 감지 비활성화로 안정성 향상
+    # 파일 변경 감지 완전 비활성화로 안정성 확보
     uvicorn.run(
         app, 
         host="0.0.0.0", 
         port=8000,
-        reload=False,  # 재시작 비활성화
-        log_level="info"
+        reload=False,  # 재시작 완전 비활성화
+        log_level="info",
+        access_log=True,
+        use_colors=True
     ) 
