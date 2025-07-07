@@ -14,7 +14,7 @@ from typing import Dict, List, Optional
 import os
 import openai
 import jwt
-import aioredis
+import redis.asyncio as aioredis
 
 try:
     from dotenv import load_dotenv
