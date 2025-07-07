@@ -14,7 +14,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 # FastAPI 및 관련 라이브러리
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -32,6 +32,10 @@ import redis.asyncio as redis
 import openai
 import numpy as np
 
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # FAISS 임베딩 시스템 (선택적)
 try:
     from sentence_transformers import SentenceTransformer
@@ -47,10 +51,6 @@ except ImportError as e:
 import jwt
 from passlib.context import CryptContext
 from dotenv import load_dotenv
-
-# 로깅 설정
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # 환경 변수 로드
 load_dotenv()
@@ -101,6 +101,7 @@ redis_connected = False
 async def init_redis():
     global redis_client, redis_connected
     try:
+        # redis.asyncio 사용 (aioredis 대신)
         redis_client = redis.from_url(REDIS_URL, decode_responses=True)
         await redis_client.ping()
         redis_connected = True
@@ -194,9 +195,6 @@ class EmbeddingManager:
             logger.error(f"유사도 검색 실패: {e}")
             return []
 
-# 전역 임베딩 매니저
-embedding_manager = EmbeddingManager()
-
 # 웹소켓 연결 관리
 class ConnectionManager:
     def __init__(self):
@@ -218,6 +216,10 @@ class ConnectionManager:
         for connection in self.active_connections:
             await connection.send_text(message)
 
+# 전역 임베딩 매니저
+embedding_manager = EmbeddingManager()
+
+# 웹소켓 연결 관리자 인스턴스
 manager = ConnectionManager()
 
 # 유틸리티 함수들
@@ -242,9 +244,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         payload = jwt.decode(credentials.credentials, JWT_SECRET_KEY, algorithms=["HS256"])
         email: str = payload.get("sub")
         if email is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
     except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
     user = users_collection.find_one({"email": email})
     if user is None:
@@ -297,7 +299,7 @@ app.add_middleware(
 )
 
 # 템플릿 및 정적 파일 설정
-templates_path = Path(__file__).parent / "templates"
+templates_path = Path(__file__).parent
 templates = Jinja2Templates(directory=str(templates_path))
 
 # 정적 파일 마운트
@@ -307,28 +309,48 @@ if static_path.exists():
 
 # 라우트 정의
 @app.get("/", response_class=HTMLResponse)
-async def home(request):
+async def home(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
 
 @app.get("/chat", response_class=HTMLResponse)
-async def chat(request):
+async def chat(request: Request):
     return templates.TemplateResponse("chat.html", {"request": request})
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request):
+async def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
 
 @app.get("/login", response_class=HTMLResponse)
-async def login_page(request):
+async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/api_test", response_class=HTMLResponse)
-async def api_test(request):
+async def api_test(request: Request):
     return templates.TemplateResponse("api_test.html", {"request": request})
 
 @app.get("/debug", response_class=HTMLResponse)
-async def debug(request):
+async def debug(request: Request):
     return templates.TemplateResponse("debug.html", {"request": request})
+
+@app.get("/simple-chat", response_class=HTMLResponse)
+async def simple_chat(request: Request):
+    return templates.TemplateResponse("test_chat_simple.html", {"request": request})
+
+@app.get("/points", response_class=HTMLResponse)
+async def points(request: Request):
+    return templates.TemplateResponse("points.html", {"request": request})
+
+@app.get("/memory", response_class=HTMLResponse)
+async def memory(request: Request):
+    return templates.TemplateResponse("memory.html", {"request": request})
+
+@app.get("/prompts", response_class=HTMLResponse)
+async def prompts(request: Request):
+    return templates.TemplateResponse("prompts.html", {"request": request})
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin(request: Request):
+    return templates.TemplateResponse("admin.html", {"request": request})
 
 @app.get("/health")
 async def health_check():
@@ -439,6 +461,256 @@ async def get_sessions(current_user: dict = Depends(get_current_user)):
         logger.error(f"세션 조회 오류: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+@app.get("/api/status")
+async def api_status():
+    return {
+        "status": "running",
+        "version": "2.0.0",
+        "timestamp": datetime.now().isoformat(),
+        "services": {
+            "mongodb": "connected" if client else "disconnected",
+            "redis": "connected" if redis_connected else "disconnected",
+            "openai": "available" if OPENAI_API_KEY else "unavailable",
+            "faiss": "initialized" if embedding_manager.available else "uninitialized"
+        }
+    }
+
+@app.get("/api/user/info")
+async def get_user_info(current_user: dict = Depends(get_current_user)):
+    return {
+        "user_id": str(current_user["_id"]),
+        "email": current_user["email"],
+        "points": current_user.get("points", 0),
+        "created_at": current_user["created_at"].isoformat()
+    }
+
+@app.get("/api/user/stats")
+async def get_user_stats(current_user: dict = Depends(get_current_user)):
+    try:
+        # 사용자 통계 계산
+        total_messages = chat_logs_collection.count_documents({"user_id": str(current_user["_id"])})
+        total_sessions = sessions_collection.count_documents({"user_id": str(current_user["_id"])})
+        
+        return {
+            "total_messages": total_messages,
+            "total_sessions": total_sessions,
+            "points": current_user.get("points", 0)
+        }
+    except Exception as e:
+        logger.error(f"사용자 통계 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/user/activity")
+async def get_user_activity(current_user: dict = Depends(get_current_user)):
+    try:
+        # 최근 활동 조회
+        recent_activity = list(chat_logs_collection.find(
+            {"user_id": str(current_user["_id"])},
+            {"_id": 0, "user_message": 1, "timestamp": 1}
+        ).sort("timestamp", -1).limit(10))
+        
+        return {"recent_activity": recent_activity}
+    except Exception as e:
+        logger.error(f"사용자 활동 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/user/points")
+async def get_user_points(current_user: dict = Depends(get_current_user)):
+    return {"points": current_user.get("points", 0)}
+
+@app.get("/api/points/packages")
+async def get_points_packages():
+    return {
+        "packages": [
+            {"id": 1, "name": "기본 패키지", "points": 1000, "price": 10000},
+            {"id": 2, "name": "프리미엄 패키지", "points": 5000, "price": 45000},
+            {"id": 3, "name": "VIP 패키지", "points": 10000, "price": 80000}
+        ]
+    }
+
+@app.post("/api/points/purchase")
+async def purchase_points(package_id: int, current_user: dict = Depends(get_current_user)):
+    try:
+        # 포인트 구매 로직 (실제로는 결제 시스템과 연동)
+        packages = {
+            1: {"points": 1000, "price": 10000},
+            2: {"points": 5000, "price": 45000},
+            3: {"points": 10000, "price": 80000}
+        }
+        
+        if package_id not in packages:
+            raise HTTPException(status_code=400, detail="Invalid package")
+        
+        package = packages[package_id]
+        
+        # 사용자 포인트 업데이트
+        users_collection.update_one(
+            {"_id": current_user["_id"]},
+            {"$inc": {"points": package["points"]}}
+        )
+        
+        return {"message": "포인트 구매 완료", "added_points": package["points"]}
+    except Exception as e:
+        logger.error(f"포인트 구매 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/aura/status")
+async def get_aura_status(current_user: dict = Depends(get_current_user)):
+    return {"status": "active", "level": "normal"}
+
+@app.post("/api/aura/save")
+async def save_aura(aura_data: dict, current_user: dict = Depends(get_current_user)):
+    try:
+        # 아우라 데이터 저장
+        aura_data["user_id"] = str(current_user["_id"])
+        aura_data["timestamp"] = datetime.now()
+        
+        # MongoDB에 저장 (aura 컬렉션 생성 필요)
+        if "aura" not in db.list_collection_names():
+            db.create_collection("aura")
+        
+        db.aura.insert_one(aura_data)
+        return {"message": "아우라 저장 완료"}
+    except Exception as e:
+        logger.error(f"아우라 저장 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/aura/recall")
+async def recall_aura(current_user: dict = Depends(get_current_user)):
+    try:
+        # 아우라 데이터 조회
+        if "aura" not in db.list_collection_names():
+            return {"aura_data": []}
+        
+        aura_data = list(db.aura.find(
+            {"user_id": str(current_user["_id"])},
+            {"_id": 0}
+        ).sort("timestamp", -1).limit(10))
+        
+        return {"aura_data": aura_data}
+    except Exception as e:
+        logger.error(f"아우라 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/aura/memory/stats")
+async def get_aura_memory_stats(current_user: dict = Depends(get_current_user)):
+    try:
+        if "aura" not in db.list_collection_names():
+            return {"total_aura_entries": 0, "recent_activity": 0}
+        
+        total_entries = db.aura.count_documents({"user_id": str(current_user["_id"])})
+        recent_activity = db.aura.count_documents({
+            "user_id": str(current_user["_id"]),
+            "timestamp": {"$gte": datetime.now() - timedelta(days=7)}
+        })
+        
+        return {
+            "total_aura_entries": total_entries,
+            "recent_activity": recent_activity
+        }
+    except Exception as e:
+        logger.error(f"아우라 통계 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/conversations")
+async def get_conversations(current_user: dict = Depends(get_current_user)):
+    try:
+        conversations = list(sessions_collection.find(
+            {"user_id": str(current_user["_id"])},
+            {"_id": 0}
+        ).sort("created_at", -1))
+        
+        return {"conversations": conversations}
+    except Exception as e:
+        logger.error(f"대화 목록 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/conversations/{session_id}/messages")
+async def get_session_messages(session_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        messages = list(chat_logs_collection.find(
+            {"session_id": session_id, "user_id": str(current_user["_id"])},
+            {"_id": 0}
+        ).sort("timestamp", 1))
+        
+        return {"messages": messages}
+    except Exception as e:
+        logger.error(f"세션 메시지 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/conversations/{session_id}/history")
+async def get_conversation_history(session_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        history = list(chat_logs_collection.find(
+            {"session_id": session_id, "user_id": str(current_user["_id"])},
+            {"_id": 0}
+        ).sort("timestamp", 1))
+        
+        return {"history": history}
+    except Exception as e:
+        logger.error(f"대화 기록 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/user/{user_id}/sessions")
+async def get_user_sessions(user_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        sessions = list(sessions_collection.find(
+            {"user_id": user_id},
+            {"_id": 0}
+        ).sort("created_at", -1))
+        
+        return {"sessions": sessions}
+    except Exception as e:
+        logger.error(f"사용자 세션 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.delete("/api/conversations/{session_id}")
+async def delete_conversation(session_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        # 세션 삭제
+        sessions_collection.delete_one({
+            "session_id": session_id,
+            "user_id": str(current_user["_id"])
+        })
+        
+        # 관련 메시지 삭제
+        chat_logs_collection.delete_many({
+            "session_id": session_id,
+            "user_id": str(current_user["_id"])
+        })
+        
+        return {"message": "대화 삭제 완료"}
+    except Exception as e:
+        logger.error(f"대화 삭제 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/conversations/{session_id}/export")
+async def export_conversation(session_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        messages = list(chat_logs_collection.find(
+            {"session_id": session_id, "user_id": str(current_user["_id"])},
+            {"_id": 0}
+        ).sort("timestamp", 1))
+        
+        return {"export_data": messages}
+    except Exception as e:
+        logger.error(f"대화 내보내기 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/conversations/{session_id}/realtime")
+async def get_realtime_conversation(session_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        # 실시간 대화 데이터 (최근 메시지)
+        recent_messages = list(chat_logs_collection.find(
+            {"session_id": session_id, "user_id": str(current_user["_id"])},
+            {"_id": 0}
+        ).sort("timestamp", -1).limit(5))
+        
+        return {"recent_messages": recent_messages}
+    except Exception as e:
+        logger.error(f"실시간 대화 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     await manager.connect(websocket)
@@ -469,4 +741,4 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host="0.0.0.0", port=8016) 
