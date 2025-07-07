@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 EORA AI System - 감정 중심 인공지능 플랫폼
-Railway 배포 최적화 버전
+Railway 배포 최적화 버전 - 점진적 업데이트
 """
 
 import os
@@ -27,6 +27,18 @@ from contextlib import asynccontextmanager
 import pymongo
 from pymongo import MongoClient
 from bson import ObjectId
+
+# Redis 연결 (선택적 - Railway 환경에서 사용하지 않음)
+REDIS_AVAILABLE = False
+redis_client = None
+redis_connected = False
+
+try:
+    import redis.asyncio as redis
+    REDIS_AVAILABLE = True
+    logger.info("✅ Redis 모듈 로드 성공")
+except ImportError:
+    logger.info("ℹ️ Redis 모듈이 설치되지 않았습니다. 메모리 기반 캐시를 사용합니다.")
 
 # AI 및 임베딩 (선택적)
 try:
@@ -82,6 +94,7 @@ if DOTENV_AVAILABLE:
 # 환경변수 설정
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "eora_ai")
 
@@ -130,6 +143,23 @@ try:
 except Exception as e:
     logger.error(f"❌ MongoDB 연결 실패: {e}")
     # MongoDB 연결 실패 시에도 서버는 계속 실행
+
+# Redis 연결 (Graceful Fallback - Railway 환경에서 선택적 사용)
+async def init_redis():
+    global redis_client, redis_connected
+    if not REDIS_AVAILABLE:
+        logger.info("ℹ️ Redis 모듈이 사용 불가능합니다. 메모리 기반 캐시를 사용합니다.")
+        return
+        
+    try:
+        redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+        await redis_client.ping()
+        redis_connected = True
+        logger.info("✅ Redis 연결 성공")
+    except Exception as e:
+        logger.warning(f"⚠️ Redis 클라이언트 연결 실패: {e}")
+        logger.info("ℹ️ Redis 없이 기본 기능으로 실행됩니다.")
+        redis_connected = False
 
 # ObjectId JSON 직렬화를 위한 헬퍼 함수
 class JSONEncoder(json.JSONEncoder):
@@ -274,6 +304,9 @@ async def lifespan(app: FastAPI):
     # 시작 시 실행
     logger.info("🚀 EORA AI System 시작 중...")
     
+    # Redis 초기화 (선택적)
+    await init_redis()
+    
     # MongoDB 인덱스 생성 (Railway 호환)
     if client is not None:
         try:
@@ -294,6 +327,14 @@ async def lifespan(app: FastAPI):
     
     # 종료 시 실행
     logger.info("🛑 EORA AI System 종료 중...")
+    
+    # Redis 연결 해제 (선택적)
+    if redis_connected and redis_client and REDIS_AVAILABLE:
+        try:
+            await redis_client.close()
+            logger.info("✅ Redis 연결 해제")
+        except Exception as e:
+            logger.warning(f"⚠️ Redis 연결 해제 실패: {e}")
     
     # 시스템 종료 로그
     if system_logs_collection is not None:
@@ -379,6 +420,7 @@ async def health():
         "timestamp": datetime.now().isoformat(),
         "services": {
             "mongodb": "connected" if client else "disconnected",
+            "redis": "connected" if redis_connected else "disconnected",
             "openai": "configured" if OPENAI_API_KEY and OPENAI_AVAILABLE else "not_configured",
             "faiss": "available" if FAISS_AVAILABLE else "not_available",
             "jwt": "available" if JWT_AVAILABLE else "not_available"
