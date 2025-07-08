@@ -4,17 +4,16 @@ nixPkgs = ["python311", "gcc", "gfortran", "openblas", "lapack", "pkg-config", "
 [phases.install]
 cmds = [
   "pip install --upgrade pip",
-  "pip install --no-cache-dir numpy==1.26.4",
-  "pip install --no-cache-dir faiss-cpu==1.7.4",
-  "pip install --no-cache-dir sentence-transformers==2.2.2",
   "pip install --no-cache-dir -r requirements.txt"
 ]
 
 [phases.build]
 cmds = [
-  "echo 'Build completed successfully'",
-  "python -c 'import faiss; print(\"✅ FAISS 설치 성공\")'"
+  "echo '🚀 EORA AI System 빌드 시작'",
+  "python -c 'import fastapi; print(\"✅ FastAPI 설치 성공\")'",
+  "python -c 'import pymongo; print(\"✅ PyMongo 설치 성공\")'",
+  "echo '✅ 빌드 완료'"
 ]
 
 [start]
-cmd = "python final_server.py" 
+cmd = "python main.py" 

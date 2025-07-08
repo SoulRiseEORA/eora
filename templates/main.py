@@ -13,6 +13,8 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from pathlib import Path
+import time
+import uuid
 
 # FastAPI 및 관련 라이브러리
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status, Request
@@ -27,6 +29,13 @@ from contextlib import asynccontextmanager
 import pymongo
 from pymongo import MongoClient
 from bson import ObjectId
+
+# 로깅 설정 (먼저 설정)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Redis 연결 (선택적 - Railway 환경에서 사용하지 않음)
 REDIS_AVAILABLE = False
@@ -80,12 +89,7 @@ try:
 except ImportError:
     DOTENV_AVAILABLE = False
 
-# 로깅 설정
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+
 
 # 환경변수 로드
 if DOTENV_AVAILABLE:
@@ -101,9 +105,16 @@ DATABASE_NAME = os.getenv("DATABASE_NAME", "eora_ai")
 # OpenAI 클라이언트 초기화 (Railway 호환)
 if OPENAI_API_KEY and OPENAI_AVAILABLE:
     try:
-        # Railway 환경에서 OpenAI 클라이언트 초기화 (proxies 제거)
-        openai.api_key = OPENAI_API_KEY
-        logger.info("✅ OpenAI API 키 설정 성공")
+        # OpenAI 1.0.0+ 버전 호환 코드
+        import openai
+        if hasattr(openai, 'OpenAI'):
+            # 새로운 OpenAI 클라이언트 (1.0.0+)
+            openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+)")
+        else:
+            # 구버전 OpenAI 클라이언트
+            openai.api_key = OPENAI_API_KEY
+            logger.info("✅ OpenAI API 키 설정 성공 (구버전)")
     except Exception as e:
         logger.warning(f"⚠️ OpenAI API 키 설정 실패: {e}")
         logger.info("🔧 API 키가 올바른지 확인하고 Railway 환경변수를 다시 설정해주세요.")
@@ -123,14 +134,33 @@ aura_collection = None
 system_logs_collection = None
 
 try:
-    client = MongoClient(MONGODB_URL, serverSelectionTimeoutMS=5000)
+    # Railway 환경에서 MongoDB URL 파싱 문제 해결
+    if MONGODB_URL and '"' in MONGODB_URL:
+        # 따옴표가 포함된 URL 정리
+        MONGODB_URL = MONGODB_URL.strip('"').strip("'")
+        logger.info(f"🔧 MongoDB URL 정리됨: {MONGODB_URL[:50]}...")
+    
+    # 연결 옵션 설정
+    client = MongoClient(
+        MONGODB_URL, 
+        serverSelectionTimeoutMS=10000,
+        connectTimeoutMS=10000,
+        socketTimeoutMS=10000
+    )
+    
+    # 연결 테스트
+    client.admin.command('ping')
+    
     db = client[DATABASE_NAME]
     chat_logs_collection = db["chat_logs"]
     sessions_collection = db["sessions"]
     users_collection = db["users"]
     aura_collection = db["aura"]
     system_logs_collection = db["system_logs"]
+    
     logger.info("✅ MongoDB 연결 성공")
+    logger.info(f"📊 데이터베이스: {DATABASE_NAME}")
+    logger.info(f"📊 컬렉션 상태 - chat_logs: {'연결됨' if chat_logs_collection is not None else 'None'}, sessions: {'연결됨' if sessions_collection is not None else 'None'}")
     
     # 시스템 로그 저장
     if system_logs_collection is not None:
@@ -142,6 +172,8 @@ try:
         })
 except Exception as e:
     logger.error(f"❌ MongoDB 연결 실패: {e}")
+    logger.warning("⚠️ MongoDB 연결 실패로 인해 일부 기능이 제한됩니다.")
+    logger.info("🔧 Railway 환경변수 MONGODB_URL을 확인해주세요.")
     # MongoDB 연결 실패 시에도 서버는 계속 실행
 
 # Redis 연결 (Graceful Fallback - Railway 환경에서 선택적 사용)
@@ -259,9 +291,24 @@ class ConnectionManager:
                 logger.warning(f"브로드캐스트 실패: {e}")
                 self.disconnect(connection)
 
-# 템플릿 및 정적 파일 설정
+# 템플릿 및 정적 파일 설정 (Railway 호환)
 templates_path = Path(__file__).parent
-templates = Jinja2Templates(directory=str(templates_path))
+if not templates_path.exists():
+    # Railway 환경에서 대체 경로 시도
+    templates_path = Path("/app")
+    if not templates_path.exists():
+        templates_path = Path.cwd()
+
+logger.info(f"📁 템플릿 경로: {templates_path}")
+logger.info(f"📁 템플릿 존재: {templates_path.exists()}")
+
+try:
+    templates = Jinja2Templates(directory=str(templates_path))
+    logger.info("✅ Jinja2 템플릿 초기화 성공")
+except Exception as e:
+    logger.error(f"❌ 템플릿 초기화 실패: {e}")
+    # 기본 템플릿 객체 생성 (오류 방지)
+    templates = Jinja2Templates(directory=str(Path.cwd()))
 
 # 전역 임베딩 매니저
 embedding_manager = EmbeddingManager()
@@ -367,10 +414,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 정적 파일 마운트 (app 생성 후)
+# 정적 파일 마운트 (app 생성 후) - Railway 호환
 static_path = Path(__file__).parent / "static"
+if not static_path.exists():
+    # Railway 환경에서 대체 경로 시도
+    static_path = Path("/app/static")
+    if not static_path.exists():
+        static_path = Path.cwd() / "static"
+
 if static_path.exists():
-    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+    try:
+        app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+        logger.info(f"✅ 정적 파일 마운트 성공: {static_path}")
+    except Exception as e:
+        logger.warning(f"⚠️ 정적 파일 마운트 실패: {e}")
+else:
+    logger.info("ℹ️ 정적 파일 디렉토리가 없습니다. 건너뜁니다.")
 
 # 라우트 정의
 @app.get("/", response_class=HTMLResponse)
@@ -436,32 +495,256 @@ async def api_status():
         "timestamp": datetime.now().isoformat()
     }
 
-# 기본 세션 및 메시지 API (인증 없이)
+# 세션 관리 API
 @app.get("/api/sessions")
 async def get_sessions():
     try:
-        # 기본 세션 반환
-        default_session = {
-            "_id": "default_session",
-            "name": "기본 세션",
-            "created_at": datetime.now().isoformat(),
-            "last_activity": datetime.now().isoformat()
-        }
-        return {"sessions": [default_session]}
+        if sessions_collection is not None:
+            # null session_id 데이터 정리
+            try:
+                sessions_collection.delete_many({"session_id": None})
+                logger.info("null session_id 데이터 정리 완료")
+            except Exception as e:
+                logger.warning(f"null session_id 정리 실패: {e}")
+            
+            # undefined, null, 빈 문자열 세션 ID 데이터 정리
+            try:
+                sessions_collection.delete_many({
+                    "$or": [
+                        {"session_id": "undefined"},
+                        {"session_id": "null"},
+                        {"session_id": ""},
+                        {"session_id": {"$exists": False}}
+                    ]
+                })
+                logger.info("유효하지 않은 session_id 데이터 정리 완료")
+            except Exception as e:
+                logger.warning(f"유효하지 않은 session_id 정리 실패: {e}")
+            
+            # MongoDB에서 실제 세션 목록 조회 (유효한 세션만)
+            sessions = list(sessions_collection.find({
+                "session_id": {
+                    "$ne": None,
+                    "$nin": ["undefined", "null", ""],
+                    "$exists": True
+                }
+            }).sort("created_at", -1))
+            
+            # 추가 필터링: 유효하지 않은 세션 ID 완전 제거
+            valid_sessions = []
+            for session in sessions:
+                session_id = session.get("session_id")
+                
+                # 완전한 유효성 검사
+                if not session_id:
+                    logger.warning(f"🚫 null/undefined 세션 ID 발견 및 제거")
+                    continue
+                    
+                if not isinstance(session_id, str):
+                    logger.warning(f"🚫 문자열이 아닌 세션 ID 발견 및 제거: {type(session_id)}")
+                    continue
+                
+                session_id = session_id.strip()
+                
+                # undefined, null, 빈 문자열 완전 차단
+                if (session_id == "undefined" or 
+                    session_id == "null" or 
+                    session_id == "" or
+                    session_id.lower() == "undefined" or
+                    session_id.lower() == "null" or
+                    len(session_id) == 0):
+                    logger.warning(f"🚫 유효하지 않은 세션 ID 발견 및 제거: '{session_id}'")
+                    continue
+                
+                # session_ 접두사 또는 충분한 길이 확인
+                if not session_id.startswith("session_") and len(session_id) < 10:
+                    logger.warning(f"🚫 잘못된 세션 ID 형식 발견 및 제거: '{session_id}'")
+                    continue
+                
+                # 프론트엔드 호환성을 위해 id 필드 추가
+                session["id"] = session_id
+                
+                convert_objectid(session)
+                valid_sessions.append(session)
+                logger.debug(f"✅ 유효한 세션 추가: {session_id}")
+            
+            sessions = valid_sessions
+            
+            # 세션이 없으면 기본 세션 생성
+            if not sessions:
+                default_session = {
+                    "_id": str(ObjectId()),
+                    "session_id": "default",
+                    "id": "default",  # 프론트엔드 호환성
+                    "name": "기본 세션",
+                    "created_at": datetime.now(),
+                    "last_activity": datetime.now(),
+                    "message_count": 0,
+                    "user_id": "anonymous"
+                }
+                try:
+                    sessions_collection.insert_one(default_session)
+                    convert_objectid(default_session)
+                    sessions = [default_session]
+                    logger.info("기본 세션 생성 완료")
+                except Exception as e:
+                    logger.error(f"기본 세션 생성 실패: {e}")
+                    # 메모리 기반 세션으로 fallback
+                    default_session = {
+                        "_id": "default",
+                        "session_id": "default",
+                        "id": "default",  # 프론트엔드 호환성
+                        "name": "기본 세션",
+                        "created_at": datetime.now().isoformat(),
+                        "last_activity": datetime.now().isoformat(),
+                        "message_count": 0,
+                        "user_id": "anonymous"
+                    }
+                    sessions = [default_session]
+            
+            logger.info(f"세션 조회 완료: {len(sessions)}개 세션")
+            return {"sessions": sessions}
+        else:
+            # MongoDB 연결 실패 시 기본 세션 반환
+            default_session = {
+                "_id": "default",
+                "session_id": "default",
+                "id": "default",  # 프론트엔드 호환성
+                "name": "기본 세션",
+                "created_at": datetime.now().isoformat(),
+                "last_activity": datetime.now().isoformat(),
+                "message_count": 0,
+                "user_id": "anonymous"
+            }
+            return {"sessions": [default_session]}
     except Exception as e:
         logger.error(f"세션 조회 오류: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        # 오류 시에도 기본 세션 반환
+        default_session = {
+            "_id": "default",
+            "session_id": "default",
+            "id": "default",  # 프론트엔드 호환성
+            "name": "기본 세션",
+            "created_at": datetime.now().isoformat(),
+            "last_activity": datetime.now().isoformat(),
+            "message_count": 0,
+            "user_id": "anonymous"
+        }
+        return {"sessions": [default_session]}
+
+# 세션 생성 API에서 session_id 유효성 검사 추가
+@app.post("/api/sessions")
+async def create_session(request: Request):
+    data = await request.json()
+    session_id = data.get("id")
+    if not session_id or str(session_id).lower() in ["undefined", "null", "", None]:
+        # 강제 생성
+        session_id = f"session_{int(time.time())}_{uuid.uuid4().hex[:12]}"
+    session_name = data.get("name", f"세션 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    if sessions_collection is not None:
+        try:
+            sessions_collection.delete_many({"session_id": None})
+            logger.info("null session_id 데이터 정리 완료")
+        except Exception as e:
+            logger.warning(f"null session_id 정리 실패: {e}")
+        new_session = {
+            "session_id": session_id,
+            "id": session_id,  # 프론트엔드 호환성
+            "name": session_name,
+            "created_at": datetime.now(),
+            "last_activity": datetime.now(),
+            "message_count": 0,
+            "user_id": data.get("user_id", "anonymous")
+        }
+        result = sessions_collection.insert_one(new_session)
+        new_session["_id"] = str(result.inserted_id)
+        convert_objectid(new_session)
+        logger.info(f"새 세션 생성 완료 (MongoDB): {session_id}")
+        return new_session
+    else:
+        new_session = {
+            "_id": session_id,
+            "session_id": session_id,
+            "id": session_id,  # 프론트엔드 호환성
+            "name": session_name,
+            "created_at": datetime.now().isoformat(),
+            "last_activity": datetime.now().isoformat(),
+            "message_count": 0,
+            "user_id": data.get("user_id", "anonymous")
+        }
+        logger.info(f"새 세션 생성 완료 (메모리): {session_id}")
+        return new_session
+
+@app.put("/api/sessions/{session_id}")
+async def update_session(session_id: str, request: Request):
+    try:
+        data = await request.json()
+        new_name = data.get("name", "")
+        
+        if not new_name:
+            return {"error": "세션 이름이 필요합니다."}
+        
+        if sessions_collection is not None:
+            result = sessions_collection.update_one(
+                {"session_id": session_id},
+                {"$set": {"name": new_name, "last_activity": datetime.now()}}
+            )
+            
+            if result.modified_count > 0:
+                logger.info(f"세션 이름 변경 완료: {session_id} -> {new_name}")
+                return {"message": "세션 이름이 변경되었습니다.", "session_id": session_id, "name": new_name}
+            else:
+                logger.warning(f"세션 이름 변경 실패 - 세션을 찾을 수 없음: {session_id}")
+                return {"error": "세션을 찾을 수 없습니다."}
+        else:
+            logger.warning("MongoDB 연결 없음 - 세션 이름 변경 불가")
+            return {"error": "데이터베이스 연결 오류"}
+    except Exception as e:
+        logger.error(f"세션 이름 변경 오류: {e}")
+        return {"error": "세션 이름 변경 실패"}
+
+def is_valid_session_id(session_id):
+    return (
+        isinstance(session_id, str)
+        and session_id
+        and session_id != 'undefined'
+        and session_id != 'null'
+        and session_id.strip() != ''
+    )
 
 @app.get("/api/sessions/{session_id}/messages")
 async def get_session_messages(session_id: str):
+    if not is_valid_session_id(session_id):
+        return JSONResponse(status_code=400, content={"error": "유효하지 않은 세션 ID입니다."})
     try:
+        # undefined/null/빈 문자열 방지 및 실제 메시지가 있는 세션으로 보정
+        if not session_id or session_id in ["undefined", "null", "", None]:
+            # chat_logs에서 실제로 메시지가 있는 세션을 찾아서 보정
+            if chat_logs_collection is not None:
+                # 가장 최근에 메시지가 저장된 세션을 찾음
+                recent_message = chat_logs_collection.find_one(
+                    {"session_id": {"$ne": None}},
+                    sort=[("timestamp", -1)]
+                )
+                if recent_message:
+                    session_id = recent_message["session_id"]
+                    logger.info(f"메시지 조회 세션 보정: {session_id}")
+                else:
+                    # 메시지가 없으면 default 세션 사용 (채팅 API에서 사용하는 세션)
+                    session_id = "default"
+                    logger.info(f"기본 세션 사용: {session_id}")
+            else:
+                session_id = "default"
+                logger.info(f"기본 세션 사용 (MongoDB 연결 없음): {session_id}")
+        
         if chat_logs_collection is not None:
             messages = list(chat_logs_collection.find({"session_id": session_id}).sort("timestamp", 1))
-            # ObjectId를 문자열로 변환
             for message in messages:
                 convert_objectid(message)
+            logger.info(f"세션 메시지 조회: {session_id}, 메시지 수: {len(messages)}")
             return {"messages": messages}
         else:
+            logger.info(f"메모리 기반 메시지 조회: {session_id}")
             return {"messages": []}
     except Exception as e:
         logger.error(f"메시지 조회 오류: {e}")
@@ -471,41 +754,99 @@ async def get_session_messages(session_id: str):
 async def save_message(request: Request):
     try:
         data = await request.json()
+        session_id = data.get("session_id")
+        
+        # undefined/null/빈 문자열 세션 ID 처리 및 최근 세션 자동 보정
+        if not session_id or session_id in ["undefined", "null", "", None]:
+            # 가장 최근 세션의 session_id로 보정
+            if sessions_collection is not None:
+                recent_session = sessions_collection.find_one(
+                    {"session_id": {"$ne": None}},
+                    sort=[("created_at", -1)]
+                )
+                if recent_session:
+                    session_id = recent_session["session_id"]
+                else:
+                    session_id = "default"
+            else:
+                session_id = "default"
+        
+        # 세션이 존재하지 않으면 자동 생성
+        if sessions_collection is not None and not sessions_collection.find_one({"session_id": session_id}):
+            new_session = {
+                "session_id": session_id,
+                "name": f"자동 생성 세션 ({session_id})",
+                "created_at": datetime.now(),
+                "last_activity": datetime.now(),
+                "message_count": 0,
+                "user_id": data.get("user_id", "anonymous")
+            }
+            sessions_collection.insert_one(new_session)
+            logger.info(f"자동 세션 생성: {session_id}")
+        
+        # HTML 내용을 원본 그대로 저장 (이스케이프하지 않음)
+        content = data.get("content", "")
+        
+        # 시간 처리 - 프론트엔드에서 전송한 시간이 있으면 사용, 없으면 현재 시간
+        timestamp = data.get("timestamp")
+        if timestamp:
+            try:
+                # ISO 형식 문자열을 datetime 객체로 변환
+                if isinstance(timestamp, str):
+                    timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                elif isinstance(timestamp, (int, float)):
+                    timestamp = datetime.fromtimestamp(timestamp)
+                else:
+                    timestamp = datetime.now()
+            except (ValueError, TypeError, OSError):
+                logger.warning(f"잘못된 시간 형식: {timestamp}, 현재 시간 사용")
+                timestamp = datetime.now()
+        else:
+            timestamp = datetime.now()
+        
         message_data = {
-            "session_id": data.get("session_id", "default_session"),
+            "session_id": session_id,
             "user_id": data.get("user_id", "anonymous"),
-            "content": data.get("content", ""),
+            "content": content,  # 원본 HTML 그대로 저장
             "role": data.get("role", "user"),
-            "timestamp": datetime.now()
+            "timestamp": timestamp
         }
         
         if chat_logs_collection is not None:
-            result = chat_logs_collection.insert_one(message_data)
-            message_data["_id"] = str(result.inserted_id)
-            message_data["timestamp"] = message_data["timestamp"].isoformat()
-            
-            # 세션 업데이트
-            if sessions_collection is not None:
-                sessions_collection.update_one(
-                    {"_id": message_data["session_id"]},
-                    {
-                        "$set": {
+            try:
+                result = chat_logs_collection.insert_one(message_data)
+                message_data["_id"] = str(result.inserted_id)
+                message_data["timestamp"] = message_data["timestamp"].isoformat()
+                # 세션 업데이트
+                if sessions_collection is not None:
+                    sessions_collection.update_one(
+                        {"session_id": session_id},
+                        {"$set": {
                             "last_activity": datetime.now(),
-                            "message_count": chat_logs_collection.count_documents({"session_id": message_data["session_id"]})
-                        }
-                    },
-                    upsert=True
-                )
-            
-            logger.info(f"메시지 저장 완료: {result.inserted_id}")
+                            "message_count": chat_logs_collection.count_documents({"session_id": session_id})
+                        }},
+                        upsert=True
+                    )
+                logger.info(f"메시지 저장 완료: {result.inserted_id}, 세션: {session_id}")
+            except Exception as db_error:
+                logger.error(f"MongoDB 메시지 저장 실패: {db_error}")
+                message_data["_id"] = f"temp_{int(datetime.now().timestamp())}"
+                message_data["timestamp"] = message_data["timestamp"].isoformat()
         else:
-            message_data["_id"] = "temp_id"
+            message_data["_id"] = f"temp_{int(datetime.now().timestamp())}"
             message_data["timestamp"] = message_data["timestamp"].isoformat()
-        
         return message_data
     except Exception as e:
         logger.error(f"메시지 저장 오류: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        fallback_message = {
+            "_id": f"error_{int(datetime.now().timestamp())}",
+            "session_id": "default",
+            "user_id": "anonymous",
+            "content": data.get("content", "") if 'data' in locals() else "",
+            "role": data.get("role", "user") if 'data' in locals() else "user",
+            "timestamp": datetime.now().isoformat()
+        }
+        return fallback_message
 
 @app.post("/api/chat")
 async def chat_endpoint(request: Request):
@@ -515,22 +856,36 @@ async def chat_endpoint(request: Request):
         session_id = data.get("session_id", "default_session")
         user_id = data.get("user_id", "anonymous")
         
-        # 사용자 메시지 저장
-        user_msg_data = {
-            "session_id": session_id,
-            "user_id": user_id,
-            "content": user_message,
-            "role": "user",
-            "timestamp": datetime.now()
-        }
+        logger.info(f"채팅 요청 수신 - 사용자: {user_id}, 세션: {session_id}, 메시지: {user_message[:50]}...")
+        logger.info(f"MongoDB 상태 - chat_logs_collection: {'연결됨' if chat_logs_collection is not None else 'None'}")
         
-        if chat_logs_collection is not None:
-            chat_logs_collection.insert_one(user_msg_data)
+        # undefined/null/빈 문자열 세션 ID 처리 및 최근 세션 자동 보정
+        if not session_id or session_id in ["undefined", "null", "", None]:
+            # 가장 최근 세션의 session_id로 보정
+            if sessions_collection is not None:
+                recent_session = sessions_collection.find_one(
+                    {"session_id": {"$ne": None}},
+                    sort=[("created_at", -1)]
+                )
+                if recent_session:
+                    session_id = recent_session["session_id"]
+                    logger.info(f"세션 ID 보정: {session_id}")
+                else:
+                    session_id = "default"
+                    logger.info(f"기본 세션 사용: {session_id}")
+            else:
+                session_id = "default"
+                logger.info(f"기본 세션 사용 (MongoDB 연결 없음): {session_id}")
+        
+        # 사용자 메시지는 프론트엔드에서 저장하므로 여기서는 저장하지 않음
+        logger.info(f"사용자 메시지 - 프론트엔드에서 저장 예정: {user_message[:50]}...")
         
         # EORA 응답 생성
         if OPENAI_API_KEY and OPENAI_AVAILABLE:
             try:
-                response = openai.ChatCompletion.create(
+                # OpenAI API 1.0.0 호환성
+                client = openai.OpenAI(api_key=OPENAI_API_KEY)
+                response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "당신은 EORA라는 감정 중심 인공지능입니다. 친근하고 따뜻한 톤으로 대화해주세요."},
@@ -546,45 +901,46 @@ async def chat_endpoint(request: Request):
         else:
             eora_response = f"안녕하세요! '{user_message}'에 대해 이야기하고 싶으시군요. 현재 AI 서비스가 설정되지 않아 기본 응답을 드립니다."
         
-        # EORA 응답 저장
-        eora_msg_data = {
-            "session_id": session_id,
-            "user_id": user_id,
-            "content": eora_response,
-            "role": "assistant",
-            "timestamp": datetime.now()
-        }
-        
-        if chat_logs_collection is not None:
-            result = chat_logs_collection.insert_one(eora_msg_data)
-            message_id = str(result.inserted_id)
-        else:
-            message_id = "temp_id"
+        # EORA 응답은 프론트엔드에서 저장하므로 여기서는 저장하지 않음
+        message_id = f"temp_{int(datetime.now().timestamp())}"
+        logger.info(f"EORA 응답 - 프론트엔드에서 저장 예정: {eora_response[:50]}...")
         
         # 아우라 데이터 저장
         if aura_collection is not None:
-            aura_data = {
-                "user_id": user_id,
-                "session_id": session_id,
-                "aura_level": 5.0,
-                "aura_type": "creative",
-                "timestamp": datetime.now(),
-                "interaction_count": 1
-            }
-            aura_collection.insert_one(aura_data)
+            try:
+                aura_data = {
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "aura_level": 5.0,
+                    "aura_type": "creative",
+                    "timestamp": datetime.now(),
+                    "interaction_count": 1
+                }
+                aura_collection.insert_one(aura_data)
+                logger.info(f"✅ 아우라 데이터 저장 완료 - 사용자: {user_id}")
+            except Exception as e:
+                logger.error(f"❌ 아우라 데이터 저장 실패: {e}")
+        else:
+            logger.warning("⚠️ aura_collection이 None입니다. 아우라 데이터 저장 건너뜀")
         
         # 상호작용 로그
         if system_logs_collection is not None:
-            interaction_data = {
-                "user_id": user_id,
-                "session_id": session_id,
-                "interaction_type": "chat",
-                "timestamp": datetime.now(),
-                "content_length": len(user_message)
-            }
-            system_logs_collection.insert_one(interaction_data)
+            try:
+                interaction_data = {
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "interaction_type": "chat",
+                    "timestamp": datetime.now(),
+                    "content_length": len(user_message)
+                }
+                system_logs_collection.insert_one(interaction_data)
+                logger.info(f"✅ 상호작용 로그 저장 완료")
+            except Exception as e:
+                logger.error(f"❌ 상호작용 로그 저장 실패: {e}")
+        else:
+            logger.warning("⚠️ system_logs_collection이 None입니다. 상호작용 로그 저장 건너뜀")
         
-        logger.info(f"✅ 아우라 데이터 저장 완료 - 사용자: {user_id}")
+        logger.info(f"채팅 처리 완료 - 세션: {session_id}, 응답 길이: {len(eora_response)}")
         
         return {
             "response": eora_response,
@@ -746,6 +1102,65 @@ async def get_conversation_history(session_id: str):
 async def get_user_sessions(user_id: str):
     return {"sessions": []}
 
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    if not is_valid_session_id(session_id):
+        return JSONResponse(status_code=400, content={"error": "유효하지 않은 세션 ID입니다."})
+    try:
+        # 완전한 유효성 검사 - undefined, null, 빈 문자열 완전 차단
+        if not session_id:
+            logger.warning(f"🚫 빈 세션 ID로 삭제 요청 차단")
+            return {"message": "빈 세션 ID", "session_id": session_id, "blocked": True, "deleted": False}
+        
+        session_id_str = str(session_id).strip()
+        
+        # undefined, null, 빈 문자열 완전 차단
+        if (session_id_str in ["undefined", "null", ""] or 
+            session_id_str.lower() in ["undefined", "null"] or
+            session_id_str == "undefined" or
+            session_id_str == "null"):
+            logger.warning(f"🚫 유효하지 않은 세션 ID로 삭제 요청 차단: '{session_id_str}'")
+            return {"message": "유효하지 않은 세션 ID", "session_id": session_id_str, "blocked": True, "deleted": False}
+        
+        # session_ 접두사 또는 충분한 길이 확인
+        if not (session_id_str.startswith("session_") or len(session_id_str) > 10):
+            logger.warning(f"🚫 잘못된 세션 ID 형식 차단: '{session_id_str}'")
+            return {"message": "잘못된 세션 ID 형식", "session_id": session_id_str, "blocked": True, "deleted": False}
+        
+        logger.info(f"✅ 유효한 세션 삭제 요청: {session_id_str}")
+        
+        # 실제로 해당 세션이 존재하는지 확인
+        if sessions_collection is not None:
+            existing_session = sessions_collection.find_one({"session_id": session_id_str})
+            if not existing_session:
+                logger.warning(f"⚠️ 존재하지 않는 세션 삭제 시도: {session_id_str}")
+                return {"message": "존재하지 않는 세션", "session_id": session_id_str, "deleted": False}
+        
+        # 메시지 삭제
+        deleted_messages_count = 0
+        if chat_logs_collection is not None:
+            deleted_messages = chat_logs_collection.delete_many({"session_id": session_id_str})
+            deleted_messages_count = deleted_messages.deleted_count
+            logger.info(f"📝 세션 메시지 삭제: {session_id_str}, 삭제된 메시지 수: {deleted_messages_count}")
+        
+        # 세션 삭제
+        deleted_session_count = 0
+        if sessions_collection is not None:
+            deleted_session = sessions_collection.delete_one({"session_id": session_id_str})
+            deleted_session_count = deleted_session.deleted_count
+            logger.info(f"🗑️ 세션 삭제: {session_id_str}, 삭제됨: {deleted_session_count > 0}")
+        
+        if deleted_session_count > 0 or deleted_messages_count > 0:
+            logger.info(f"✅ 세션 삭제 완료: {session_id_str}")
+            return {"message": "세션 삭제 완료", "session_id": session_id_str, "deleted": True}
+        else:
+            logger.warning(f"⚠️ 삭제할 세션이 없음: {session_id_str}")
+            return {"message": "삭제할 세션이 없음", "session_id": session_id_str, "deleted": False}
+            
+    except Exception as e:
+        logger.error(f"❌ 세션 삭제 오류: {e}")
+        return {"message": "세션 삭제 실패", "error": str(e), "deleted": False}
+
 @app.delete("/api/conversations/{session_id}")
 async def delete_conversation(session_id: str):
     try:
@@ -768,42 +1183,43 @@ async def get_realtime_conversation(session_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    # Railway 최종 서버로 강제 리다이렉트
-    logger.info("🔄 Railway 최종 서버(railway_final.py)로 강제 리다이렉트 중...")
-    import subprocess
     import sys
-    import os
     
-    # railway_final.py 파일 존재 확인
-    if os.path.exists("railway_final.py"):
-        logger.info("✅ railway_final.py 파일 발견 - 실행 중...")
-        logger.info("🚀 이 파일이 실행되면 모든 문제가 해결된 것입니다!")
-        try:
-            # railway_final.py 실행
-            subprocess.run([sys.executable, "railway_final.py"] + sys.argv[1:], check=True)
-        except subprocess.CalledProcessError as e:
-            logger.error(f"❌ railway_final.py 실행 실패: {e}")
-            # fallback: 현재 서버 실행
-            logger.info("⚠️ fallback: 현재 서버로 실행")
-            uvicorn.run(
-                app, 
-                host="0.0.0.0", 
-                port=int(os.environ.get("PORT", 8000)),
-                reload=False,
-                log_level="info",
-                access_log=True,
-                use_colors=True
-            )
-    else:
-        logger.error("❌ railway_final.py 파일이 없습니다!")
-        logger.error("❌ 이는 Railway 캐시 문제입니다. Clear build cache를 실행하세요!")
-        # 현재 서버 실행
-        uvicorn.run(
-            app, 
-            host="0.0.0.0", 
-            port=int(os.environ.get("PORT", 8000)),
-            reload=False,
-            log_level="info",
-            access_log=True,
-            use_colors=True
-        ) 
+    # Railway 환경 감지 및 최적화
+    is_railway = os.environ.get("RAILWAY_ENVIRONMENT", "").lower() in ["production", "true", "1"]
+    
+    # 명령행 인수에서 포트 확인
+    port = 8000
+    for i, arg in enumerate(sys.argv):
+        if arg == "--port" and i + 1 < len(sys.argv):
+            try:
+                port = int(sys.argv[i + 1])
+                break
+            except ValueError:
+                pass
+    
+    # 환경변수에서 포트 확인 (Railway 우선)
+    if is_railway:
+        port = int(os.environ.get("PORT", 8000))
+    elif port == 8000:
+        port = int(os.environ.get("PORT", 8000))
+    
+    # Railway 환경 로깅
+    if is_railway:
+        logger.info("🚂 Railway 환경에서 실행 중")
+        logger.info(f"🔧 Railway 포트: {port}")
+        logger.info(f"🔧 Railway 환경변수: {list(os.environ.keys())}")
+    
+    logger.info(f"🚀 EORA AI System 서버 시작 - 포트: {port}")
+    
+    # Railway 환경에서 최적화된 설정
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=port,
+        reload=False,  # Railway에서는 reload 비활성화
+        log_level="info",
+        access_log=True,
+        use_colors=False if is_railway else True,  # Railway에서는 색상 비활성화
+        workers=1  # Railway에서는 단일 워커 사용
+    ) 
