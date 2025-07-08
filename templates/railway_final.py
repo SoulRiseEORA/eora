@@ -355,15 +355,15 @@ def setup_templates():
     """템플릿 디렉토리 설정 - Railway 환경 최적화"""
     # Railway 환경에서 가능한 모든 경로 시도
     possible_paths = [
-        Path("/app/templates"),  # Railway 템플릿 경로 (우선순위 1)
+        Path.cwd(),  # 현재 작업 디렉토리 (우선순위 1 - Railway에서 가장 안정적)
         Path(__file__).parent,  # 현재 파일 디렉토리
-        Path.cwd() / "templates",  # 현재 디렉토리의 templates
-        Path.cwd(),  # 현재 작업 디렉토리
         Path("/app"),  # Railway 기본 경로
-        Path("/workspace/templates"),  # Railway 작업 공간
+        Path("/app/templates"),  # Railway 템플릿 경로
+        Path.cwd() / "templates",  # 현재 디렉토리의 templates
         Path("/workspace"),  # Railway 작업 공간
-        Path("/tmp/templates"),  # 임시 디렉토리
+        Path("/workspace/templates"),  # Railway 작업 공간
         Path("/tmp"),  # 임시 디렉토리
+        Path("/tmp/templates"),  # 임시 디렉토리
     ]
     
     for path in possible_paths:
@@ -404,6 +404,17 @@ try:
         # 현재 디렉토리의 모든 파일 목록 출력
         all_files = list(templates_path.glob("*"))
         logger.info(f"📁 현재 디렉토리 파일들: {[f.name for f in all_files]}")
+        
+        # Railway 환경에서 파일 시스템 전체 스캔
+        logger.info("🔍 Railway 환경 파일 시스템 스캔 중...")
+        scan_paths = [Path("/app"), Path.cwd(), Path("/workspace"), Path("/tmp")]
+        for scan_path in scan_paths:
+            if scan_path.exists():
+                try:
+                    html_files = list(scan_path.rglob("*.html"))
+                    logger.info(f"📁 {scan_path}에서 발견된 HTML 파일들: {[f.name for f in html_files[:10]]}")
+                except Exception as e:
+                    logger.warning(f"⚠️ {scan_path} 스캔 실패: {e}")
         
 except Exception as e:
     logger.error(f"❌ 템플릿 초기화 실패: {e}")
