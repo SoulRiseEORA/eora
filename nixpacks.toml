@@ -8,4 +8,4 @@ cmds = ["pip install -r requirements.txt"]
 cmds = ["echo 'Build completed'"]
 
 [start]
-cmd = "python /templates/railway_final.py" 
+cmd = "python templates/railway_final.py" 
