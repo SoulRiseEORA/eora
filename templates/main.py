@@ -89,6 +89,8 @@ try:
 except ImportError:
     DOTENV_AVAILABLE = False
 
+
+
 # 환경변수 로드
 if DOTENV_AVAILABLE:
     load_dotenv()
@@ -100,22 +102,21 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "eora_ai")
 
-# OpenAI 클라이언트 초기화 (Railway 호환 - proxies 인수 제거)
-openai_client = None
+# OpenAI 클라이언트 초기화 (Railway 호환)
 if OPENAI_API_KEY and OPENAI_AVAILABLE:
     try:
-        # OpenAI 1.0.0+ 버전 호환 코드 - proxies 인수 제거
+        # OpenAI 1.0.0+ 버전 호환 코드
+        import openai
         if hasattr(openai, 'OpenAI'):
-            # 새로운 OpenAI 클라이언트 (1.0.0+) - proxies 인수 제거
+            # 새로운 OpenAI 클라이언트 (1.0.0+)
             openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
             logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+)")
         else:
             # 구버전 OpenAI 클라이언트
             openai.api_key = OPENAI_API_KEY
-            openai_client = openai
             logger.info("✅ OpenAI API 키 설정 성공 (구버전)")
     except Exception as e:
-        logger.warning(f"❌ OpenAI API 클라이언트 초기화 실패: {e}")
+        logger.warning(f"⚠️ OpenAI API 키 설정 실패: {e}")
         logger.info("🔧 API 키가 올바른지 확인하고 Railway 환경변수를 다시 설정해주세요.")
 else:
     if not OPENAI_API_KEY:
@@ -133,7 +134,7 @@ aura_collection = None
 system_logs_collection = None
 
 def clean_mongodb_url(url):
-    """MongoDB URL 정리 함수 - Railway 환경 특수 케이스 처리"""
+    """MongoDB URL 정리 함수"""
     if not url:
         return url
     
@@ -156,11 +157,6 @@ def clean_mongodb_url(url):
             else:
                 # 인증 정보가 없는 경우
                 url = base_url.replace('mongodb://', f'mongodb://root:{password}@')
-    
-    # 포트 파싱 오류 수정
-    if '26594"MONGO_INITDB_ROOT_PASSWORD=' in url:
-        # Railway 환경에서 발생하는 특수한 포트 파싱 오류 처리
-        url = url.replace('26594"MONGO_INITDB_ROOT_PASSWORD=', '27017?authSource=admin&authMechanism=SCRAM-SHA-1&password=')
     
     return url
 
@@ -376,36 +372,16 @@ class ConnectionManager:
                 logger.warning(f"브로드캐스트 실패: {e}")
                 self.disconnect(connection)
 
-# 템플릿 및 정적 파일 설정 (Railway 호환 - 경로 문제 해결)
-def setup_templates():
-    """템플릿 디렉토리 설정 - Railway 환경 최적화"""
-    # 여러 경로 시도
-    possible_paths = [
-        Path(__file__).parent,  # 현재 파일 디렉토리
-        Path("/app"),  # Railway 기본 경로
-        Path("/app/templates"),  # Railway 템플릿 경로
-        Path.cwd(),  # 현재 작업 디렉토리
-        Path.cwd() / "templates",  # 현재 디렉토리의 templates
-    ]
-    
-    for path in possible_paths:
-        logger.info(f"📁 템플릿 경로 시도: {path}")
-        logger.info(f"📁 템플릿 존재: {path.exists()}")
-        
-        if path.exists():
-            # HTML 파일이 있는지 확인
-            html_files = list(path.glob("*.html"))
-            if html_files:
-                logger.info(f"✅ 템플릿 파일 발견: {len(html_files)}개")
-                logger.info(f"📄 발견된 파일: {[f.name for f in html_files[:5]]}")
-                return path
-    
-    # 기본값 반환
-    logger.warning("⚠️ 템플릿 디렉토리를 찾을 수 없습니다. 기본 경로 사용")
-    return Path.cwd()
+# 템플릿 및 정적 파일 설정 (Railway 호환)
+templates_path = Path(__file__).parent
+if not templates_path.exists():
+    # Railway 환경에서 대체 경로 시도
+    templates_path = Path("/app")
+    if not templates_path.exists():
+        templates_path = Path.cwd()
 
-templates_path = setup_templates()
-logger.info(f"📁 최종 템플릿 경로: {templates_path}")
+logger.info(f"📁 템플릿 경로: {templates_path}")
+logger.info(f"📁 템플릿 존재: {templates_path.exists()}")
 
 try:
     templates = Jinja2Templates(directory=str(templates_path))
@@ -450,7 +426,7 @@ else:
     verify_token = None
     get_current_user = None
 
-# Lifespan 이벤트 핸들러 (Railway 호환 - Deprecation 경고 해결)
+# Lifespan 이벤트 핸들러 (Railway 호환)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 시작 시 실행
@@ -473,7 +449,6 @@ async def lifespan(app: FastAPI):
             logger.info("✅ MongoDB 인덱스 생성 완료")
         except Exception as e:
             logger.warning(f"⚠️ MongoDB 인덱스 생성 실패: {e}")
-            logger.info("ℹ️ 인덱스가 이미 존재하거나 권한 문제일 수 있습니다.")
     
     logger.info("✅ EORA AI System 시작 완료")
     yield
@@ -521,26 +496,21 @@ app.add_middleware(
 )
 
 # 정적 파일 마운트 (app 생성 후) - Railway 호환
-def setup_static_files():
-    """정적 파일 디렉토리 설정 - Railway 환경 최적화"""
-    possible_paths = [
-        Path(__file__).parent / "static",
-        Path("/app/static"),
-        Path.cwd() / "static",
-    ]
-    
-    for path in possible_paths:
-        if path.exists():
-            try:
-                app.mount("/static", StaticFiles(directory=str(path)), name="static")
-                logger.info(f"✅ 정적 파일 마운트 성공: {path}")
-                return
-            except Exception as e:
-                logger.warning(f"⚠️ 정적 파일 마운트 실패: {e}")
-    
-    logger.info("ℹ️ 정적 파일 디렉토리가 없습니다. 건너뜁니다.")
+static_path = Path(__file__).parent / "static"
+if not static_path.exists():
+    # Railway 환경에서 대체 경로 시도
+    static_path = Path("/app/static")
+    if not static_path.exists():
+        static_path = Path.cwd() / "static"
 
-setup_static_files()
+if static_path.exists():
+    try:
+        app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+        logger.info(f"✅ 정적 파일 마운트 성공: {static_path}")
+    except Exception as e:
+        logger.warning(f"⚠️ 정적 파일 마운트 실패: {e}")
+else:
+    logger.info("ℹ️ 정적 파일 디렉토리가 없습니다. 건너뜁니다.")
 
 # 라우트 정의
 @app.get("/", response_class=HTMLResponse)
