@@ -8,8 +8,4 @@ cmds = ["pip install -r requirements.txt"]
 cmds = ["echo 'Build completed'"]
 
 [start]
-<<<<<<< Updated upstream
-cmd = "python /templates/railway_final.py" 
-=======
-cmd = "python templates/railway_final.py" 
->>>>>>> Stashed changes
+cmd = "python templates/railway_final.py"
