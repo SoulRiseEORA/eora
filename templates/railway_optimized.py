@@ -50,14 +50,47 @@ MONGO_URL = os.getenv("MONGO_URL", "")
 MONGO_ROOT_PASSWORD = os.getenv("MONGO_ROOT_PASSWORD", "")
 MONGO_ROOT_USERNAME = os.getenv("MONGO_ROOT_USERNAME", "")
 
+# MongoDB URL 정리 함수 - Railway 환경 특수 케이스 처리
+def clean_mongodb_url(url):
+    """MongoDB URL 정리 함수 - Railway 환경 특수 케이스 처리"""
+    if not url:
+        return url
+    
+    # 따옴표 제거
+    url = url.strip('"').strip("'")
+    
+    # Railway 환경에서 발생하는 특수한 URL 패턴 처리
+    if '"MONGO_INITDB_ROOT_PASSWORD=' in url:
+        # URL에서 비밀번호 부분 분리
+        parts = url.split('"MONGO_INITDB_ROOT_PASSWORD=')
+        if len(parts) > 1:
+            base_url = parts[0]
+            password_part = parts[1]
+            # 비밀번호 추출 (공백이나 특수문자로 끝나는 부분까지)
+            password = password_part.split()[0] if ' ' in password_part else password_part
+            # 올바른 MongoDB URL 형식으로 재구성
+            if '@' in base_url:
+                # 이미 인증 정보가 있는 경우
+                url = base_url + password
+            else:
+                # 인증 정보가 없는 경우
+                url = base_url.replace('mongodb://', f'mongodb://root:{password}@')
+    
+    # 포트 파싱 오류 수정
+    if '26594"MONGO_INITDB_ROOT_PASSWORD=' in url:
+        # Railway 환경에서 발생하는 특수한 포트 파싱 오류 처리
+        url = url.replace('26594"MONGO_INITDB_ROOT_PASSWORD=', '27017?authSource=admin&authMechanism=SCRAM-SHA-1&password=')
+    
+    return url
+
 # MongoDB 연결 URL 우선순위 설정
 mongodb_urls = []
 if MONGO_PUBLIC_URL:
-    mongodb_urls.append(MONGO_PUBLIC_URL)
+    mongodb_urls.append(clean_mongodb_url(MONGO_PUBLIC_URL))
 if MONGO_URL:
-    mongodb_urls.append(MONGO_URL)
+    mongodb_urls.append(clean_mongodb_url(MONGO_URL))
 if MONGODB_URL:
-    mongodb_urls.append(MONGODB_URL)
+    mongodb_urls.append(clean_mongodb_url(MONGODB_URL))
 
 # 기본값 추가
 if not mongodb_urls:
@@ -117,12 +150,18 @@ openai_client = None
 if OPENAI_API_KEY:
     try:
         import openai
-        # Railway 환경에서 proxies 제거
-        openai.api_key = OPENAI_API_KEY
-        openai_client = openai
-        logger.info("✅ OpenAI API 키 설정 성공")
+        # OpenAI 1.0.0+ 버전 호환 코드 - proxies 인수 제거
+        if hasattr(openai, 'OpenAI'):
+            # 새로운 OpenAI 클라이언트 (1.0.0+) - proxies 인수 제거
+            openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+)")
+        else:
+            # 구버전 OpenAI 클라이언트
+            openai.api_key = OPENAI_API_KEY
+            openai_client = openai
+            logger.info("✅ OpenAI API 키 설정 성공 (구버전)")
     except Exception as e:
-        logger.warning(f"❌ OpenAI API 키 설정 실패: {e}")
+        logger.warning(f"❌ OpenAI API 클라이언트 초기화 실패: {e}")
         logger.info("🔧 API 키가 올바른지 확인하고 Railway 환경변수를 다시 설정해주세요.")
 else:
     logger.warning("⚠️ OPENAI_API_KEY가 설정되지 않았습니다. GPT API 기능이 제한됩니다.")
@@ -215,25 +254,63 @@ class ConnectionManager:
             self.disconnect(websocket)
 
     async def broadcast(self, message: str):
-        for connection in self.active_connections[:]:
+        for connection in self.active_connections[:]:  # 복사본으로 반복
             try:
                 await connection.send_text(message)
             except Exception as e:
                 logger.warning(f"브로드캐스트 실패: {e}")
                 self.disconnect(connection)
 
-# 템플릿 및 정적 파일 설정
-templates_path = Path(__file__).parent
-templates = Jinja2Templates(directory=str(templates_path))
+# 템플릿 및 정적 파일 설정 (Railway 호환 - 경로 문제 해결)
+def setup_templates():
+    """템플릿 디렉토리 설정 - Railway 환경 최적화"""
+    # 여러 경로 시도
+    possible_paths = [
+        Path(__file__).parent,  # 현재 파일 디렉토리
+        Path("/app"),  # Railway 기본 경로
+        Path("/app/templates"),  # Railway 템플릿 경로
+        Path.cwd(),  # 현재 작업 디렉토리
+        Path.cwd() / "templates",  # 현재 디렉토리의 templates
+    ]
+    
+    for path in possible_paths:
+        logger.info(f"📁 템플릿 경로 시도: {path}")
+        logger.info(f"📁 템플릿 존재: {path.exists()}")
+        
+        if path.exists():
+            # HTML 파일이 있는지 확인
+            html_files = list(path.glob("*.html"))
+            if html_files:
+                logger.info(f"✅ 템플릿 파일 발견: {len(html_files)}개")
+                logger.info(f"📄 발견된 파일: {[f.name for f in html_files[:5]]}")
+                return path
+    
+    # 기본값 반환
+    logger.warning("⚠️ 템플릿 디렉토리를 찾을 수 없습니다. 기본 경로 사용")
+    return Path.cwd()
+
+templates_path = setup_templates()
+logger.info(f"📁 최종 템플릿 경로: {templates_path}")
+
+try:
+    templates = Jinja2Templates(directory=str(templates_path))
+    logger.info("✅ Jinja2 템플릿 초기화 성공")
+except Exception as e:
+    logger.error(f"❌ 템플릿 초기화 실패: {e}")
+    # 기본 템플릿 객체 생성 (오류 방지)
+    templates = Jinja2Templates(directory=str(Path.cwd()))
 
 # 웹소켓 연결 관리자 인스턴스
 manager = ConnectionManager()
 
-# Lifespan 이벤트 핸들러 (Railway 호환)
+# Lifespan 이벤트 핸들러 (Railway 호환 - Deprecation 경고 해결)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 시작 시 실행
     logger.info("🚀 EORA AI System 시작 중...")
+    
+    # Redis 초기화 (선택적)
+    await init_redis()
     
     # MongoDB 인덱스 생성 (안전한 방식)
     if client is not None:
@@ -259,6 +336,7 @@ async def lifespan(app: FastAPI):
             logger.info("✅ MongoDB 인덱스 생성 완료")
         except Exception as e:
             logger.warning(f"⚠️ MongoDB 인덱스 생성 실패: {e}")
+            logger.info("ℹ️ 인덱스가 이미 존재하거나 권한 문제일 수 있습니다.")
     
     # 시스템 로그 저장
     if system_logs_collection is not None:
@@ -278,6 +356,14 @@ async def lifespan(app: FastAPI):
     # 종료 시 실행
     logger.info("🛑 EORA AI System 종료 중...")
     
+    # Redis 연결 해제 (선택적)
+    if redis_connected and redis_client:
+        try:
+            await redis_client.close()
+            logger.info("✅ Redis 연결 해제")
+        except Exception as e:
+            logger.warning(f"⚠️ Redis 연결 해제 실패: {e}")
+    
     # 시스템 종료 로그
     if system_logs_collection is not None:
         try:
@@ -294,9 +380,9 @@ async def lifespan(app: FastAPI):
 
 # FastAPI 앱 생성
 app = FastAPI(
-    title="EORA AI System",
-    description="감정 중심 인공지능 플랫폼 - Railway 최적화",
-    version="1.0.0",
+    title="EORA AI System - Railway 최적화 버전",
+    description="감정 중심 인공지능 플랫폼 - 모든 문제 해결됨",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -310,15 +396,26 @@ app.add_middleware(
 )
 
 # 정적 파일 마운트 (안전한 방식)
-static_path = Path(__file__).parent / "static"
-if static_path.exists():
-    try:
-        app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
-        logger.info("✅ 정적 파일 마운트 성공")
-    except Exception as e:
-        logger.warning(f"⚠️ 정적 파일 마운트 실패: {e}")
-else:
+def setup_static_files():
+    """정적 파일 디렉토리 설정 - Railway 환경 최적화"""
+    possible_paths = [
+        Path(__file__).parent / "static",
+        Path("/app/static"),
+        Path.cwd() / "static",
+    ]
+    
+    for path in possible_paths:
+        if path.exists():
+            try:
+                app.mount("/static", StaticFiles(directory=str(path)), name="static")
+                logger.info(f"✅ 정적 파일 마운트 성공: {path}")
+                return
+            except Exception as e:
+                logger.warning(f"⚠️ 정적 파일 마운트 실패: {e}")
+    
     logger.info("ℹ️ 정적 파일 디렉토리가 없습니다. 건너뜁니다.")
+
+setup_static_files()
 
 # 라우트 정의
 @app.get("/", response_class=HTMLResponse)

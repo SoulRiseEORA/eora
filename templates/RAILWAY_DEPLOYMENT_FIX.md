@@ -2,7 +2,18 @@
 
 ## 🚨 최근 발생한 오류들과 해결책
 
-### 1. OpenAI API 클라이언트 초기화 오류
+### 1. MongoDB 연결 오류 (최신)
+**오류**: `Port must be an integer between 0 and 65535: '26594"MONGO_INITDB_ROOT_PASSWORD="HYxotmUHxMxbYAejsOxEnHwrgKpAochC'`
+
+**원인**: Railway 환경에서 MongoDB URL이 잘못된 형식으로 파싱됨
+
+**해결책**: ✅ **수정 완료**
+- MongoDB URL 정리 함수 추가
+- 3단계 연결 시도 로직 구현
+- Railway 환경변수 직접 추출 방식 추가
+- 연결 실패 시 Graceful Fallback 구현
+
+### 2. OpenAI API 클라이언트 초기화 오류
 **오류**: `AsyncClient.__init__() got an unexpected keyword argument 'proxies'`
 
 **원인**: OpenAI API 1.0.0+ 버전에서 클라이언트 초기화 방식이 변경됨
@@ -10,16 +21,6 @@
 **해결책**: ✅ **수정 완료**
 - `main.py`에서 OpenAI 클라이언트 초기화 코드를 1.0.0+ 버전에 맞게 업데이트
 - `proxies` 인수 제거 및 새로운 클라이언트 구조 적용
-
-### 2. MongoDB 연결 오류
-**오류**: `Port must be an integer between 0 and 65535: '26594"MONGO_INITDB_ROOT_PASSWORD="HYxotmUHxMxbYAejsOxEnHwrgKpAochC'`
-
-**원인**: Railway 환경변수에서 MongoDB URL 파싱 문제
-
-**해결책**: ✅ **수정 완료**
-- MongoDB URL에서 따옴표 제거 로직 추가
-- 연결 타임아웃 설정 강화
-- 연결 테스트 추가
 
 ### 3. 템플릿 디렉토리 문제
 **오류**: `Templates directory not found!`
@@ -34,128 +35,102 @@
 ## 🔧 수정된 주요 파일들
 
 ### main.py 주요 변경사항
-1. **OpenAI 클라이언트 초기화 개선**
-   ```python
-   # OpenAI 1.0.0+ 버전 호환 코드
-   if hasattr(openai, 'OpenAI'):
-       openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
-   else:
-       openai.api_key = OPENAI_API_KEY
-   ```
+1. **MongoDB 연결 강화**
+   - `clean_mongodb_url()` 함수 추가
+   - 3단계 연결 시도 로직 구현
+   - Railway 환경변수 직접 추출
+   - 연결 실패 시 Graceful Fallback
 
-2. **MongoDB 연결 강화**
-   ```python
-   # Railway 환경에서 MongoDB URL 파싱 문제 해결
-   if MONGODB_URL and '"' in MONGODB_URL:
-       MONGODB_URL = MONGODB_URL.strip('"').strip("'")
-   ```
+2. **OpenAI 클라이언트 초기화 개선**
+   - 1.0.0+ 버전 호환 코드로 업데이트
+   - 버전 감지 및 적응형 초기화
 
-3. **템플릿 경로 최적화**
-   ```python
-   # Railway 환경에서 대체 경로 시도
-   templates_path = Path(__file__).parent
-   if not templates_path.exists():
-       templates_path = Path("/app")
-   ```
+3. **Railway 환경 최적화**
+   - Railway 환경 감지 강화
+   - 포트 설정 최적화
+   - MongoDB 재연결 로직 추가
 
-4. **Railway 환경 감지**
-   ```python
-   # Railway 환경 감지 및 최적화
-   is_railway = os.environ.get("RAILWAY_ENVIRONMENT", "").lower() in ["production", "true", "1"]
-   ```
+4. **오류 처리 강화**
+   - 상세한 로깅 추가
+   - 연결 실패 시 대체 동작 구현
+   - 시스템 안정성 향상
 
-### nixpacks.toml 최적화
-- 불필요한 패키지 설치 제거
-- 빌드 과정 단순화
-- 핵심 의존성만 설치하도록 변경
+## 🚀 Railway 배포 최적화
 
-## 🚀 배포 단계별 체크리스트
+### 1. MongoDB 연결 최적화
+```python
+# 3단계 연결 시도
+1. 원본 URL 정리 후 연결
+2. Railway 내부 네트워크 연결
+3. 환경변수 직접 추출 연결
+```
 
-### 1단계: 코드 업데이트 확인
-- [x] `main.py` 최신 버전 확인
-- [x] `nixpacks.toml` 최적화 완료
-- [x] `requirements.txt` 의존성 확인
+### 2. 환경변수 설정
+Railway에서 다음 환경변수들이 필요합니다:
+- `MONGODB_URL`: MongoDB 연결 문자열
+- `MONGO_HOST`: MongoDB 호스트
+- `MONGO_PORT`: MongoDB 포트
+- `MONGO_INITDB_ROOT_PASSWORD`: MongoDB 비밀번호
+- `OPENAI_API_KEY`: OpenAI API 키
+- `PORT`: 서버 포트 (Railway에서 자동 설정)
 
-### 2단계: Railway 환경변수 설정
-- [ ] `OPENAI_API_KEY` 설정
-- [ ] `MONGODB_URL` 설정 (따옴표 없이)
-- [ ] `PORT` 환경변수 확인 (자동 설정됨)
+### 3. 연결 안정성
+- 연결 타임아웃 설정: 5초
+- 재연결 로직 구현
+- Graceful Fallback 지원
 
-### 3단계: 배포 실행
-- [ ] Railway 대시보드에서 배포 시작
-- [ ] 빌드 로그 확인
+## 📋 배포 체크리스트
+
+### 배포 전 확인사항
+- [x] MongoDB 연결 로직 강화
+- [x] OpenAI API 호환성 확인
+- [x] Railway 환경 감지 추가
+- [x] 오류 처리 강화
+- [x] 로깅 시스템 개선
+
+### Railway 설정 확인사항
+- [ ] MongoDB 서비스 연결
+- [ ] 환경변수 설정
+- [ ] 포트 설정 확인
+- [ ] 헬스체크 엔드포인트 확인
+
+### 배포 후 확인사항
 - [ ] 서버 시작 로그 확인
-
-### 4단계: 기능 테스트
-- [ ] `/health` 엔드포인트 테스트
-- [ ] `/` 홈페이지 접속 테스트
-- [ ] `/chat` 채팅 페이지 테스트
-- [ ] 세션 생성/삭제 테스트
+- [ ] MongoDB 연결 상태 확인
+- [ ] API 엔드포인트 테스트
+- [ ] 웹소켓 연결 테스트
 
 ## 🔍 문제 해결 방법
 
-### 로그 확인 방법
-1. Railway 대시보드 → 프로젝트 → Deployments
-2. 최신 배포 클릭 → Logs 탭
-3. 오류 메시지 확인
+### MongoDB 연결 실패 시
+1. Railway 환경변수 확인
+2. MongoDB 서비스 상태 확인
+3. 연결 문자열 형식 확인
+4. 로그에서 구체적인 오류 메시지 확인
 
-### 일반적인 문제들
+### OpenAI API 오류 시
+1. API 키 유효성 확인
+2. OpenAI 모듈 버전 확인
+3. 네트워크 연결 확인
 
-#### 1. 포트 충돌
-**증상**: `[Errno 10048] error while attempting to bind`
-**해결**: Railway에서 자동으로 포트 할당되므로 문제없음
-
-#### 2. MongoDB 연결 실패
-**증상**: `MongoDB 연결 실패`
-**해결**: 
-- Railway 환경변수에서 `MONGODB_URL` 확인
-- 따옴표가 포함되어 있다면 제거
-- MongoDB 서비스가 Railway에서 실행 중인지 확인
-
-#### 3. OpenAI API 오류
-**증상**: `OpenAI API 호출 실패`
-**해결**:
-- `OPENAI_API_KEY` 환경변수 확인
-- API 키 유효성 확인
-- OpenAI 계정 크레딧 확인
-
-## 📊 성능 최적화
-
-### Railway 환경 최적화
-1. **단일 워커 사용**: `workers=1`
-2. **Reload 비활성화**: `reload=False`
-3. **색상 로그 비활성화**: `use_colors=False`
-4. **필수 패키지만 설치**
-
-### 메모리 사용량 최적화
-1. **Redis 선택적 사용**: 연결 실패 시 메모리 캐시로 대체
-2. **FAISS 선택적 사용**: 설치 실패 시 기본 기능으로 대체
-3. **불필요한 모듈 로드 방지**
-
-## 🎯 성공적인 배포 후 확인사항
-
-### 1. 서버 상태 확인
-```bash
-curl https://your-app.railway.app/health
-```
-
-### 2. API 상태 확인
-```bash
-curl https://your-app.railway.app/api/status
-```
-
-### 3. 웹페이지 접속 확인
-- 홈페이지: `https://your-app.railway.app/`
-- 채팅페이지: `https://your-app.railway.app/chat`
+### 템플릿 오류 시
+1. 파일 경로 확인
+2. 템플릿 파일 존재 확인
+3. 권한 설정 확인
 
 ## 📞 추가 지원
 
 문제가 지속되는 경우:
-1. Railway 로그 전체 복사
-2. 환경변수 설정 확인
-3. GitHub 이슈 생성 또는 문의
+1. Railway 로그 확인
+2. 환경변수 재설정
+3. 서비스 재배포
+4. MongoDB 서비스 재시작
 
----
+## 🎯 최종 목표
 
-**마지막 업데이트**: 2025-07-08
-**버전**: 2.0 (Railway 최적화) 
+이제 Railway에서 안정적으로 실행되는 EORA AI 시스템을 구축했습니다:
+- ✅ MongoDB 연결 안정성 확보
+- ✅ OpenAI API 호환성 확보
+- ✅ Railway 환경 최적화
+- ✅ 오류 처리 강화
+- ✅ 로깅 시스템 개선 

@@ -89,8 +89,6 @@ try:
 except ImportError:
     DOTENV_AVAILABLE = False
 
-
-
 # 환경변수 로드
 if DOTENV_AVAILABLE:
     load_dotenv()
@@ -102,21 +100,22 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "eora_ai")
 
-# OpenAI 클라이언트 초기화 (Railway 호환)
+# OpenAI 클라이언트 초기화 (Railway 호환 - proxies 인수 제거)
+openai_client = None
 if OPENAI_API_KEY and OPENAI_AVAILABLE:
     try:
-        # OpenAI 1.0.0+ 버전 호환 코드
-        import openai
+        # OpenAI 1.0.0+ 버전 호환 코드 - proxies 인수 제거
         if hasattr(openai, 'OpenAI'):
-            # 새로운 OpenAI 클라이언트 (1.0.0+)
+            # 새로운 OpenAI 클라이언트 (1.0.0+) - proxies 인수 제거
             openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
             logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+)")
         else:
             # 구버전 OpenAI 클라이언트
             openai.api_key = OPENAI_API_KEY
+            openai_client = openai
             logger.info("✅ OpenAI API 키 설정 성공 (구버전)")
     except Exception as e:
-        logger.warning(f"⚠️ OpenAI API 키 설정 실패: {e}")
+        logger.warning(f"❌ OpenAI API 클라이언트 초기화 실패: {e}")
         logger.info("🔧 API 키가 올바른지 확인하고 Railway 환경변수를 다시 설정해주세요.")
 else:
     if not OPENAI_API_KEY:
@@ -124,7 +123,7 @@ else:
     if not OPENAI_AVAILABLE:
         logger.warning("⚠️ OpenAI 모듈이 설치되지 않았습니다. GPT API 기능이 제한됩니다.")
 
-# MongoDB 연결
+# MongoDB 연결 (Railway 환경 최적화)
 client = None
 db = None
 chat_logs_collection = None
@@ -133,24 +132,106 @@ users_collection = None
 aura_collection = None
 system_logs_collection = None
 
+def clean_mongodb_url(url):
+    """MongoDB URL 정리 함수 - Railway 환경 특수 케이스 처리"""
+    if not url:
+        return url
+    
+    # 따옴표 제거
+    url = url.strip('"').strip("'")
+    
+    # Railway 환경에서 발생하는 특수한 URL 패턴 처리
+    if '"MONGO_INITDB_ROOT_PASSWORD=' in url:
+        # URL에서 비밀번호 부분 분리
+        parts = url.split('"MONGO_INITDB_ROOT_PASSWORD=')
+        if len(parts) > 1:
+            base_url = parts[0]
+            password_part = parts[1]
+            # 비밀번호 추출 (공백이나 특수문자로 끝나는 부분까지)
+            password = password_part.split()[0] if ' ' in password_part else password_part
+            # 올바른 MongoDB URL 형식으로 재구성
+            if '@' in base_url:
+                # 이미 인증 정보가 있는 경우
+                url = base_url + password
+            else:
+                # 인증 정보가 없는 경우
+                url = base_url.replace('mongodb://', f'mongodb://root:{password}@')
+    
+    # 포트 파싱 오류 수정
+    if '26594"MONGO_INITDB_ROOT_PASSWORD=' in url:
+        # Railway 환경에서 발생하는 특수한 포트 파싱 오류 처리
+        url = url.replace('26594"MONGO_INITDB_ROOT_PASSWORD=', '27017?authSource=admin&authMechanism=SCRAM-SHA-1&password=')
+    
+    return url
+
 try:
     # Railway 환경에서 MongoDB URL 파싱 문제 해결
-    if MONGODB_URL and '"' in MONGODB_URL:
-        # 따옴표가 포함된 URL 정리
-        MONGODB_URL = MONGODB_URL.strip('"').strip("'")
-        logger.info(f"🔧 MongoDB URL 정리됨: {MONGODB_URL[:50]}...")
+    logger.info(f"🔗 연결 시도할 URL 수: 3")
     
-    # 연결 옵션 설정
-    client = MongoClient(
-        MONGODB_URL, 
-        serverSelectionTimeoutMS=10000,
-        connectTimeoutMS=10000,
-        socketTimeoutMS=10000
-    )
+    # 첫 번째 시도: 원본 URL
+    logger.info(f"🔗 MongoDB 연결 시도: 1/3")
+    logger.info(f"📝 연결 URL: {MONGODB_URL}")
     
-    # 연결 테스트
-    client.admin.command('ping')
+    try:
+        cleaned_url = clean_mongodb_url(MONGODB_URL)
+        client = MongoClient(
+            cleaned_url, 
+            serverSelectionTimeoutMS=5000,
+            connectTimeoutMS=5000,
+            socketTimeoutMS=5000
+        )
+        client.admin.command('ping')
+        logger.info("✅ MongoDB 연결 성공 (1/3)")
+    except Exception as e1:
+        logger.warning(f"❌ MongoDB 연결 실패 (1/3): {type(e1).__name__} - {e1}")
+        
+        # 두 번째 시도: Railway 내부 네트워크
+        logger.info(f"🔗 MongoDB 연결 시도: 2/3")
+        try:
+            internal_url = "mongodb://mongo:@web.railway.internal:27017"
+            logger.info(f"📝 연결 URL: {internal_url}")
+            client = MongoClient(
+                internal_url,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=5000
+            )
+            client.admin.command('ping')
+            logger.info("✅ MongoDB 연결 성공 (2/3)")
+        except Exception as e2:
+            logger.warning(f"❌ MongoDB 연결 실패 (2/3): {type(e2).__name__} - {e2}")
+            
+            # 세 번째 시도: 환경변수에서 직접 추출
+            logger.info(f"🔗 MongoDB 연결 시도: 3/3")
+            try:
+                # Railway 환경변수에서 직접 추출
+                mongo_host = os.getenv("MONGO_HOST", "")
+                mongo_port = os.getenv("MONGO_PORT", "27017")
+                mongo_user = os.getenv("MONGO_USER", "")
+                mongo_password = os.getenv("MONGO_INITDB_ROOT_PASSWORD", "")
+                
+                if mongo_host and mongo_password:
+                    if mongo_user:
+                        direct_url = f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}"
+                    else:
+                        direct_url = f"mongodb://root:{mongo_password}@{mongo_host}:{mongo_port}"
+                else:
+                    direct_url = f"mongodb://localhost:27017"
+                
+                logger.info(f"📝 연결 URL: {direct_url}")
+                client = MongoClient(
+                    direct_url,
+                    serverSelectionTimeoutMS=5000,
+                    connectTimeoutMS=5000,
+                    socketTimeoutMS=5000
+                )
+                client.admin.command('ping')
+                logger.info("✅ MongoDB 연결 성공 (3/3)")
+            except Exception as e3:
+                logger.warning(f"❌ MongoDB 연결 실패 (3/3): {type(e3).__name__} - {e3}")
+                raise Exception("모든 MongoDB 연결 시도 실패")
     
+    # 연결 성공 시 컬렉션 초기화
     db = client[DATABASE_NAME]
     chat_logs_collection = db["chat_logs"]
     sessions_collection = db["sessions"]
@@ -164,14 +245,18 @@ try:
     
     # 시스템 로그 저장
     if system_logs_collection is not None:
-        system_logs_collection.insert_one({
-            "event": "system_startup",
-            "timestamp": datetime.now(),
-            "status": "success",
-            "message": "EORA 시스템 시작 - MongoDB 연결 완료"
-        })
+        try:
+            system_logs_collection.insert_one({
+                "event": "system_startup",
+                "timestamp": datetime.now(),
+                "status": "success",
+                "message": "EORA 시스템 시작 - MongoDB 연결 완료"
+            })
+        except Exception as log_error:
+            logger.warning(f"⚠️ 시스템 로그 저장 실패: {log_error}")
+            
 except Exception as e:
-    logger.error(f"❌ MongoDB 연결 실패: {e}")
+    logger.error(f"❌ 모든 MongoDB 연결 시도 실패")
     logger.warning("⚠️ MongoDB 연결 실패로 인해 일부 기능이 제한됩니다.")
     logger.info("🔧 Railway 환경변수 MONGODB_URL을 확인해주세요.")
     # MongoDB 연결 실패 시에도 서버는 계속 실행
@@ -291,16 +376,36 @@ class ConnectionManager:
                 logger.warning(f"브로드캐스트 실패: {e}")
                 self.disconnect(connection)
 
-# 템플릿 및 정적 파일 설정 (Railway 호환)
-templates_path = Path(__file__).parent
-if not templates_path.exists():
-    # Railway 환경에서 대체 경로 시도
-    templates_path = Path("/app")
-    if not templates_path.exists():
-        templates_path = Path.cwd()
+# 템플릿 및 정적 파일 설정 (Railway 호환 - 경로 문제 해결)
+def setup_templates():
+    """템플릿 디렉토리 설정 - Railway 환경 최적화"""
+    # 여러 경로 시도
+    possible_paths = [
+        Path(__file__).parent,  # 현재 파일 디렉토리
+        Path("/app"),  # Railway 기본 경로
+        Path("/app/templates"),  # Railway 템플릿 경로
+        Path.cwd(),  # 현재 작업 디렉토리
+        Path.cwd() / "templates",  # 현재 디렉토리의 templates
+    ]
+    
+    for path in possible_paths:
+        logger.info(f"📁 템플릿 경로 시도: {path}")
+        logger.info(f"📁 템플릿 존재: {path.exists()}")
+        
+        if path.exists():
+            # HTML 파일이 있는지 확인
+            html_files = list(path.glob("*.html"))
+            if html_files:
+                logger.info(f"✅ 템플릿 파일 발견: {len(html_files)}개")
+                logger.info(f"📄 발견된 파일: {[f.name for f in html_files[:5]]}")
+                return path
+    
+    # 기본값 반환
+    logger.warning("⚠️ 템플릿 디렉토리를 찾을 수 없습니다. 기본 경로 사용")
+    return Path.cwd()
 
-logger.info(f"📁 템플릿 경로: {templates_path}")
-logger.info(f"📁 템플릿 존재: {templates_path.exists()}")
+templates_path = setup_templates()
+logger.info(f"📁 최종 템플릿 경로: {templates_path}")
 
 try:
     templates = Jinja2Templates(directory=str(templates_path))
@@ -345,7 +450,7 @@ else:
     verify_token = None
     get_current_user = None
 
-# Lifespan 이벤트 핸들러 (Railway 호환)
+# Lifespan 이벤트 핸들러 (Railway 호환 - Deprecation 경고 해결)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 시작 시 실행
@@ -368,6 +473,7 @@ async def lifespan(app: FastAPI):
             logger.info("✅ MongoDB 인덱스 생성 완료")
         except Exception as e:
             logger.warning(f"⚠️ MongoDB 인덱스 생성 실패: {e}")
+            logger.info("ℹ️ 인덱스가 이미 존재하거나 권한 문제일 수 있습니다.")
     
     logger.info("✅ EORA AI System 시작 완료")
     yield
@@ -415,21 +521,26 @@ app.add_middleware(
 )
 
 # 정적 파일 마운트 (app 생성 후) - Railway 호환
-static_path = Path(__file__).parent / "static"
-if not static_path.exists():
-    # Railway 환경에서 대체 경로 시도
-    static_path = Path("/app/static")
-    if not static_path.exists():
-        static_path = Path.cwd() / "static"
-
-if static_path.exists():
-    try:
-        app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
-        logger.info(f"✅ 정적 파일 마운트 성공: {static_path}")
-    except Exception as e:
-        logger.warning(f"⚠️ 정적 파일 마운트 실패: {e}")
-else:
+def setup_static_files():
+    """정적 파일 디렉토리 설정 - Railway 환경 최적화"""
+    possible_paths = [
+        Path(__file__).parent / "static",
+        Path("/app/static"),
+        Path.cwd() / "static",
+    ]
+    
+    for path in possible_paths:
+        if path.exists():
+            try:
+                app.mount("/static", StaticFiles(directory=str(path)), name="static")
+                logger.info(f"✅ 정적 파일 마운트 성공: {path}")
+                return
+            except Exception as e:
+                logger.warning(f"⚠️ 정적 파일 마운트 실패: {e}")
+    
     logger.info("ℹ️ 정적 파일 디렉토리가 없습니다. 건너뜁니다.")
+
+setup_static_files()
 
 # 라우트 정의
 @app.get("/", response_class=HTMLResponse)
@@ -1187,6 +1298,7 @@ if __name__ == "__main__":
     
     # Railway 환경 감지 및 최적화
     is_railway = os.environ.get("RAILWAY_ENVIRONMENT", "").lower() in ["production", "true", "1"]
+    is_railway_port = os.environ.get("PORT", "").isdigit()
     
     # 명령행 인수에서 포트 확인
     port = 8000
@@ -1199,16 +1311,54 @@ if __name__ == "__main__":
                 pass
     
     # 환경변수에서 포트 확인 (Railway 우선)
-    if is_railway:
+    if is_railway or is_railway_port:
         port = int(os.environ.get("PORT", 8000))
     elif port == 8000:
         port = int(os.environ.get("PORT", 8000))
     
     # Railway 환경 로깅
-    if is_railway:
+    if is_railway or is_railway_port:
         logger.info("🚂 Railway 환경에서 실행 중")
         logger.info(f"🔧 Railway 포트: {port}")
         logger.info(f"🔧 Railway 환경변수: {list(os.environ.keys())}")
+        
+        # Railway 환경에서 MongoDB 연결 재시도
+        if client is None:
+            logger.info("🔄 Railway 환경에서 MongoDB 연결 재시도 중...")
+            try:
+                # Railway 환경변수에서 직접 추출
+                mongo_host = os.getenv("MONGO_HOST", "")
+                mongo_port = os.getenv("MONGO_PORT", "27017")
+                mongo_user = os.getenv("MONGO_USER", "")
+                mongo_password = os.getenv("MONGO_INITDB_ROOT_PASSWORD", "")
+                
+                if mongo_host and mongo_password:
+                    if mongo_user:
+                        direct_url = f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}"
+                    else:
+                        direct_url = f"mongodb://root:{mongo_password}@{mongo_host}:{mongo_port}"
+                    
+                    logger.info(f"🔄 Railway MongoDB 재연결 시도: {direct_url}")
+                    client = MongoClient(
+                        direct_url,
+                        serverSelectionTimeoutMS=10000,
+                        connectTimeoutMS=10000,
+                        socketTimeoutMS=10000
+                    )
+                    client.admin.command('ping')
+                    
+                    db = client[DATABASE_NAME]
+                    chat_logs_collection = db["chat_logs"]
+                    sessions_collection = db["sessions"]
+                    users_collection = db["users"]
+                    aura_collection = db["aura"]
+                    system_logs_collection = db["system_logs"]
+                    
+                    logger.info("✅ Railway MongoDB 재연결 성공")
+                else:
+                    logger.warning("⚠️ Railway MongoDB 환경변수가 설정되지 않음")
+            except Exception as e:
+                logger.warning(f"⚠️ Railway MongoDB 재연결 실패: {e}")
     
     logger.info(f"🚀 EORA AI System 서버 시작 - 포트: {port}")
     
@@ -1220,6 +1370,6 @@ if __name__ == "__main__":
         reload=False,  # Railway에서는 reload 비활성화
         log_level="info",
         access_log=True,
-        use_colors=False if is_railway else True,  # Railway에서는 색상 비활성화
+        use_colors=False if (is_railway or is_railway_port) else True,  # Railway에서는 색상 비활성화
         workers=1  # Railway에서는 단일 워커 사용
     ) 
