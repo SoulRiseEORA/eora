@@ -63,110 +63,100 @@ MONGO_URL = os.getenv("MONGO_URL", "")
 MONGO_ROOT_PASSWORD = os.getenv("MONGO_ROOT_PASSWORD", "")
 MONGO_ROOT_USERNAME = os.getenv("MONGO_ROOT_USERNAME", "")
 
-# MongoDB 연결 함수 개선
+# MongoDB URL 정리 함수 - Railway 환경 특수 케이스 처리
 def clean_mongodb_url(url):
-    """Railway 환경에서 MongoDB URL을 정리합니다."""
+    """MongoDB URL 정리 함수 - Railway 환경 특수 케이스 처리"""
     if not url:
-        return None
-    
-    # Railway 환경 변수에서 특수한 형식 처리
-    url = str(url).strip()
-    
-    # 포트와 비밀번호가 섞여있는 경우 처리
-    if '"' in url:
-        # "trolley.proxy.rlwy.net:26594"MONGO_INITDB_ROOT_PASSWORD="HYxotmUHxMxbYAejsOxEnHwrgKpAochC" 형태 처리
-        parts = url.split('"')
-        if len(parts) >= 3:
-            host_port = parts[1]  # trolley.proxy.rlwy.net:26594
-            password = parts[3]   # HYxotmUHxMxbYAejsOxEnHwrgKpAochC
-            return f"mongodb://mongo:{password}@{host_port}"
-    
-    # 일반적인 URL 정리
-    if url.startswith('mongodb://'):
         return url
-    elif ':' in url and '@' in url:
-        # 이미 완전한 URL인 경우
-        return f"mongodb://{url}"
-    else:
-        # 단순한 호스트:포트 형태인 경우
-        return f"mongodb://mongo:@{url}"
+    
+    # 따옴표 제거
+    url = url.strip('"').strip("'")
+    
+    # Railway 환경에서 발생하는 특수한 URL 패턴 처리
+    if '"MONGO_INITDB_ROOT_PASSWORD=' in url:
+        # URL에서 비밀번호 부분 분리
+        parts = url.split('"MONGO_INITDB_ROOT_PASSWORD=')
+        if len(parts) > 1:
+            base_url = parts[0]
+            password_part = parts[1]
+            # 비밀번호 추출 (공백이나 특수문자로 끝나는 부분까지)
+            password = password_part.split()[0] if ' ' in password_part else password_part
+            # 올바른 MongoDB URL 형식으로 재구성
+            if '@' in base_url:
+                # 이미 인증 정보가 있는 경우
+                url = base_url + password
+            else:
+                # 인증 정보가 없는 경우
+                url = base_url.replace('mongodb://', f'mongodb://root:{password}@')
+    
+    # 포트 파싱 오류 수정
+    if '26594"MONGO_INITDB_ROOT_PASSWORD=' in url:
+        # Railway 환경에서 발생하는 특수한 포트 파싱 오류 처리
+        url = url.replace('26594"MONGO_INITDB_ROOT_PASSWORD=', '27017?authSource=admin&authMechanism=SCRAM-SHA-1&password=')
+    
+    return url
 
-# MongoDB 연결 시도 함수 개선
-def try_mongodb_connection():
-    """Railway 환경에서 MongoDB 연결을 시도합니다."""
-    logger.info("🔗 연결 시도할 URL 수: 3")
-    
-    # Railway 환경 변수에서 직접 추출
-    mongo_host = os.getenv('MONGO_HOST', '')
-    mongo_port = os.getenv('MONGO_PORT', '27017')
-    mongo_password = os.getenv('MONGO_INITDB_ROOT_PASSWORD', '')
-    mongo_url = os.getenv('MONGODB_URL', '')
-    
-    # 시도할 URL 목록
-    urls_to_try = []
-    
-    # 1. MONGODB_URL 환경 변수
-    if mongo_url:
-        urls_to_try.append(clean_mongodb_url(mongo_url))
-    
-    # 2. 개별 환경 변수로 조합
-    if mongo_host and mongo_password:
-        urls_to_try.append(f"mongodb://mongo:{mongo_password}@{mongo_host}:{mongo_port}")
-    
-    # 3. Railway 내부 네트워크
-    if mongo_host:
-        urls_to_try.append(f"mongodb://mongo:{mongo_password}@{mongo_host}.railway.internal:{mongo_port}")
-    
-    # 중복 제거
-    urls_to_try = list(dict.fromkeys([url for url in urls_to_try if url]))
-    
-    logger.info(f"🔗 연결 시도할 URL 수: {len(urls_to_try)}")
-    
-    for i, url in enumerate(urls_to_try, 1):
-        logger.info(f"🔗 MongoDB 연결 시도: {i}/{len(urls_to_try)}")
-        logger.info(f"📝 연결 URL: {url}")
-        
-        try:
-            # MongoDB 클라이언트 생성
-            client = MongoClient(url, serverSelectionTimeoutMS=5000)
-            
-            # 연결 테스트
-            client.admin.command('ping')
-            
-            logger.info(f"✅ MongoDB 연결 성공: {i}/{len(urls_to_try)}")
-            return client
-            
-        except Exception as e:
-            logger.warning(f"❌ MongoDB 연결 실패 ({i}/{len(urls_to_try)}): {type(e).__name__} - {str(e)}")
-            continue
-    
-    logger.error("❌ 모든 MongoDB 연결 시도 실패")
-    return None
+# MongoDB 연결 URL 우선순위 설정
+mongodb_urls = []
+if MONGO_PUBLIC_URL:
+    mongodb_urls.append(clean_mongodb_url(MONGO_PUBLIC_URL))
+if MONGO_URL:
+    mongodb_urls.append(clean_mongodb_url(MONGO_URL))
+if MONGODB_URL:
+    mongodb_urls.append(clean_mongodb_url(MONGODB_URL))
+
+# 기본값 추가
+if not mongodb_urls:
+    mongodb_urls.append("mongodb://localhost:27017")
+
+logger.info(f"🔗 연결 시도할 URL 수: {len(mongodb_urls)}")
+
+# MongoDB 연결
+client = None
+db = None
+chat_logs_collection = None
+sessions_collection = None
+users_collection = None
+aura_collection = None
+system_logs_collection = None
+points_collection = None
 
 # MongoDB 연결 시도
-client = try_mongodb_connection()
+for i, url in enumerate(mongodb_urls):
+    try:
+        logger.info(f"🔗 MongoDB 연결 시도: {i+1}/{len(mongodb_urls)}")
+        logger.info(f"📝 연결 URL: {url}")
+        
+        client = MongoClient(url, serverSelectionTimeoutMS=5000)
+        # 연결 테스트
+        client.admin.command('ping')
+        
+        db = client[DATABASE_NAME]
+        chat_logs_collection = db["chat_logs"]
+        sessions_collection = db["sessions"]
+        users_collection = db["users"]
+        aura_collection = db["aura"]
+        system_logs_collection = db["system_logs"]
+        points_collection = db["points"]
+        
+        logger.info(f"✅ MongoDB ping 성공: {i+1}/{len(mongodb_urls)}")
+        logger.info(f"✅ MongoDB 연결 성공: {i+1}/{len(mongodb_urls)}")
+        logger.info(f"📊 데이터베이스: {DATABASE_NAME}")
+        
+        # 컬렉션 목록 확인
+        collections = db.list_collection_names()
+        logger.info(f"📊 컬렉션 목록: {collections}")
+        
+        break
+    except Exception as e:
+        logger.warning(f"❌ MongoDB 연결 실패 ({i+1}/{len(mongodb_urls)}): {type(e).__name__} - {e}")
+        if client:
+            client.close()
+            client = None
 
 if client is None:
     logger.error("❌ 모든 MongoDB 연결 시도 실패")
     # 연결 실패 시에도 서버는 계속 실행
-else:
-    # 데이터베이스 및 컬렉션 설정
-    db = client[DATABASE_NAME]
-    chat_logs_collection = db["chat_logs"]
-    sessions_collection = db["sessions"]
-    users_collection = db["users"]
-    aura_collection = db["aura"]
-    system_logs_collection = db["system_logs"]
-    points_collection = db["points"]
-    
-    logger.info(f"📊 데이터베이스: {DATABASE_NAME}")
-    
-    # 컬렉션 목록 확인
-    try:
-        collections = db.list_collection_names()
-        logger.info(f"📊 컬렉션 목록: {collections}")
-    except Exception as e:
-        logger.warning(f"⚠️ 컬렉션 목록 조회 실패: {e}")
 
 # OpenAI 클라이언트 초기화 (Railway 호환 - proxies 제거)
 openai_client = None
