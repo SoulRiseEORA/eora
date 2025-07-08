@@ -427,16 +427,16 @@ async def lifespan(app: FastAPI):
             logger.info("ℹ️ 인덱스가 이미 존재하거나 권한 문제일 수 있습니다.")
     
     # 시스템 로그 저장
-    if system_logs_collection is not None:
-        try:
+    try:
+        if 'system_logs_collection' in globals() and system_logs_collection is not None:
             system_logs_collection.insert_one({
                 "event": "system_startup",
                 "timestamp": datetime.now(),
                 "status": "success",
                 "message": "EORA 시스템 시작 - Railway 최종 버전"
             })
-        except Exception as e:
-            logger.warning(f"⚠️ 시스템 시작 로그 저장 실패: {e}")
+    except Exception as e:
+        logger.warning(f"⚠️ 시스템 시작 로그 저장 실패: {e}")
     
     logger.info("✅ EORA AI System 시작 완료")
     yield
@@ -445,16 +445,16 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 EORA AI System 종료 중...")
     
     # 시스템 종료 로그
-    if system_logs_collection is not None:
-        try:
+    try:
+        if 'system_logs_collection' in globals() and system_logs_collection is not None:
             system_logs_collection.insert_one({
                 "event": "system_shutdown",
                 "timestamp": datetime.now(),
                 "status": "success",
                 "message": "EORA 시스템 종료"
             })
-        except Exception as e:
-            logger.warning(f"⚠️ 시스템 종료 로그 저장 실패: {e}")
+    except Exception as e:
+        logger.warning(f"⚠️ 시스템 종료 로그 저장 실패: {e}")
     
     logger.info("✅ EORA AI System 종료 완료")
 
