@@ -354,13 +354,11 @@ def setup_templates():
     """템플릿 디렉토리 설정 - Railway 환경 최적화"""
     # Railway 환경에서 가능한 모든 경로 시도
     possible_paths = [
+        Path("/app/templates"),  # Railway 템플릿 경로 (우선순위 1)
         Path(__file__).parent,  # 현재 파일 디렉토리 (/app/templates)
-        Path("/app/templates"),  # Railway 템플릿 경로
-        Path.cwd(),  # 현재 작업 디렉토리
         Path.cwd() / "templates",  # 현재 디렉토리의 templates
+        Path.cwd(),  # 현재 작업 디렉토리
         Path("/app"),  # Railway 기본 경로
-        Path("/app/templates"),  # Railway 컨테이너 내부
-        Path("/workspace/templates"),  # Railway 작업 공간
     ]
     
     for path in possible_paths:
