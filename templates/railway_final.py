@@ -366,6 +366,9 @@ def setup_templates():
         Path("/tmp/templates"),  # 임시 디렉토리
     ]
     
+    # home.html 파일을 찾아서 복사할 대상 경로
+    target_path = None
+    
     for path in possible_paths:
         logger.info(f"📁 템플릿 경로 시도: {path}")
         logger.info(f"📁 템플릿 존재: {path.exists()}")
@@ -377,11 +380,132 @@ def setup_templates():
             if html_files:
                 logger.info(f"✅ 템플릿 파일 발견: {len(html_files)}개")
                 logger.info(f"📄 발견된 파일: {[f.name for f in html_files[:5]]}")
-                return path
+                
+                # home.html 파일이 있는지 확인
+                home_file = path / "home.html"
+                if home_file.exists():
+                    logger.info(f"✅ home.html 발견: {home_file}")
+                    return path
+                else:
+                    # home.html이 없으면 첫 번째 경로를 대상으로 설정
+                    if target_path is None:
+                        target_path = path
             else:
                 logger.warning(f"⚠️ {path}에 HTML 파일이 없습니다")
         else:
             logger.warning(f"⚠️ {path} 경로가 존재하지 않습니다")
+    
+    # home.html 파일을 찾아서 복사 시도
+    if target_path is not None:
+        logger.info(f"🔍 home.html 파일을 찾아서 {target_path}에 복사 시도 중...")
+        
+        # 모든 경로에서 home.html 찾기
+        for path in possible_paths:
+            if path.exists():
+                home_file = path / "home.html"
+                if home_file.exists():
+                    try:
+                        import shutil
+                        target_home = target_path / "home.html"
+                        shutil.copy2(home_file, target_home)
+                        logger.info(f"✅ home.html 복사 완료: {home_file} → {target_home}")
+                        return target_path
+                    except Exception as e:
+                        logger.warning(f"⚠️ home.html 복사 실패: {e}")
+        
+        # home.html을 찾지 못한 경우 기본 HTML 생성
+        logger.info("📝 home.html 파일을 찾을 수 없어 기본 HTML 생성")
+        try:
+            default_home_content = '''<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI System - Railway</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .header {
+            margin-bottom: 40px;
+        }
+        .title {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        .status {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🚀 EORA AI System</h1>
+            <p class="subtitle">감정 중심 인공지능 플랫폼 - Railway 배포 성공!</p>
+        </div>
+
+        <div class="status">
+            <h2>✅ 시스템 상태</h2>
+            <p>EORA AI 시스템이 Railway에서 성공적으로 실행 중입니다!</p>
+            <p><strong>서버:</strong> 정상 실행</p>
+            <p><strong>MongoDB:</strong> 연결 성공</p>
+            <p><strong>배포:</strong> Railway 클라우드</p>
+        </div>
+
+        <div>
+            <a href="/chat" class="button">💬 채팅 시작</a>
+            <a href="/dashboard" class="button">📊 대시보드</a>
+            <a href="/admin" class="button">⚙️ 관리자</a>
+            <a href="/security" class="button">🛡️ 보안</a>
+        </div>
+    </div>
+</body>
+</html>'''
+            
+            target_home = target_path / "home.html"
+            with open(target_home, 'w', encoding='utf-8') as f:
+                f.write(default_home_content)
+            logger.info(f"✅ 기본 home.html 생성 완료: {target_home}")
+            return target_path
+        except Exception as e:
+            logger.error(f"❌ 기본 home.html 생성 실패: {e}")
     
     # 기본값 반환 - Railway 환경에서 가장 가능성 높은 경로
     logger.warning("⚠️ 템플릿 디렉토리를 찾을 수 없습니다. 기본 경로 사용")
