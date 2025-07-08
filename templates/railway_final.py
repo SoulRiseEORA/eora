@@ -438,6 +438,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ 시스템 시작 로그 저장 실패: {e}")
     
+    # system_logs_collection이 정의되지 않은 경우 안전하게 처리
+    try:
+        if 'system_logs_collection' not in globals():
+            logger.info("ℹ️ system_logs_collection이 정의되지 않았습니다. 시스템 로그 기능을 건너뜁니다.")
+    except Exception as e:
+        logger.warning(f"⚠️ 시스템 로그 컬렉션 확인 실패: {e}")
+    
     logger.info("✅ EORA AI System 시작 완료")
     yield
     
@@ -455,6 +462,13 @@ async def lifespan(app: FastAPI):
             })
     except Exception as e:
         logger.warning(f"⚠️ 시스템 종료 로그 저장 실패: {e}")
+    
+    # system_logs_collection이 정의되지 않은 경우 안전하게 처리
+    try:
+        if 'system_logs_collection' not in globals():
+            logger.info("ℹ️ system_logs_collection이 정의되지 않았습니다. 시스템 종료 로그를 건너뜁니다.")
+    except Exception as e:
+        logger.warning(f"⚠️ 시스템 종료 로그 컬렉션 확인 실패: {e}")
     
     logger.info("✅ EORA AI System 종료 완료")
 
