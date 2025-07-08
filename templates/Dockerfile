@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["python", "templates/railway_final.py"] 
+CMD ["python", "app.py"] 
