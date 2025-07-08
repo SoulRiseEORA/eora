@@ -124,7 +124,7 @@ else:
     if not OPENAI_AVAILABLE:
         logger.warning("⚠️ OpenAI 모듈이 설치되지 않았습니다. GPT API 기능이 제한됩니다.")
 
-# MongoDB 연결
+# MongoDB 연결 (Railway 환경 최적화)
 client = None
 db = None
 chat_logs_collection = None
@@ -133,24 +133,101 @@ users_collection = None
 aura_collection = None
 system_logs_collection = None
 
+def clean_mongodb_url(url):
+    """MongoDB URL 정리 함수"""
+    if not url:
+        return url
+    
+    # 따옴표 제거
+    url = url.strip('"').strip("'")
+    
+    # Railway 환경에서 발생하는 특수한 URL 패턴 처리
+    if '"MONGO_INITDB_ROOT_PASSWORD=' in url:
+        # URL에서 비밀번호 부분 분리
+        parts = url.split('"MONGO_INITDB_ROOT_PASSWORD=')
+        if len(parts) > 1:
+            base_url = parts[0]
+            password_part = parts[1]
+            # 비밀번호 추출 (공백이나 특수문자로 끝나는 부분까지)
+            password = password_part.split()[0] if ' ' in password_part else password_part
+            # 올바른 MongoDB URL 형식으로 재구성
+            if '@' in base_url:
+                # 이미 인증 정보가 있는 경우
+                url = base_url + password
+            else:
+                # 인증 정보가 없는 경우
+                url = base_url.replace('mongodb://', f'mongodb://root:{password}@')
+    
+    return url
+
 try:
     # Railway 환경에서 MongoDB URL 파싱 문제 해결
-    if MONGODB_URL and '"' in MONGODB_URL:
-        # 따옴표가 포함된 URL 정리
-        MONGODB_URL = MONGODB_URL.strip('"').strip("'")
-        logger.info(f"🔧 MongoDB URL 정리됨: {MONGODB_URL[:50]}...")
+    logger.info(f"🔗 연결 시도할 URL 수: 3")
     
-    # 연결 옵션 설정
-    client = MongoClient(
-        MONGODB_URL, 
-        serverSelectionTimeoutMS=10000,
-        connectTimeoutMS=10000,
-        socketTimeoutMS=10000
-    )
+    # 첫 번째 시도: 원본 URL
+    logger.info(f"🔗 MongoDB 연결 시도: 1/3")
+    logger.info(f"📝 연결 URL: {MONGODB_URL}")
     
-    # 연결 테스트
-    client.admin.command('ping')
+    try:
+        cleaned_url = clean_mongodb_url(MONGODB_URL)
+        client = MongoClient(
+            cleaned_url, 
+            serverSelectionTimeoutMS=5000,
+            connectTimeoutMS=5000,
+            socketTimeoutMS=5000
+        )
+        client.admin.command('ping')
+        logger.info("✅ MongoDB 연결 성공 (1/3)")
+    except Exception as e1:
+        logger.warning(f"❌ MongoDB 연결 실패 (1/3): {type(e1).__name__} - {e1}")
+        
+        # 두 번째 시도: Railway 내부 네트워크
+        logger.info(f"🔗 MongoDB 연결 시도: 2/3")
+        try:
+            internal_url = "mongodb://mongo:@web.railway.internal:27017"
+            logger.info(f"📝 연결 URL: {internal_url}")
+            client = MongoClient(
+                internal_url,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=5000
+            )
+            client.admin.command('ping')
+            logger.info("✅ MongoDB 연결 성공 (2/3)")
+        except Exception as e2:
+            logger.warning(f"❌ MongoDB 연결 실패 (2/3): {type(e2).__name__} - {e2}")
+            
+            # 세 번째 시도: 환경변수에서 직접 추출
+            logger.info(f"🔗 MongoDB 연결 시도: 3/3")
+            try:
+                # Railway 환경변수에서 직접 추출
+                mongo_host = os.getenv("MONGO_HOST", "")
+                mongo_port = os.getenv("MONGO_PORT", "27017")
+                mongo_user = os.getenv("MONGO_USER", "")
+                mongo_password = os.getenv("MONGO_INITDB_ROOT_PASSWORD", "")
+                
+                if mongo_host and mongo_password:
+                    if mongo_user:
+                        direct_url = f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}"
+                    else:
+                        direct_url = f"mongodb://root:{mongo_password}@{mongo_host}:{mongo_port}"
+                else:
+                    direct_url = f"mongodb://localhost:27017"
+                
+                logger.info(f"📝 연결 URL: {direct_url}")
+                client = MongoClient(
+                    direct_url,
+                    serverSelectionTimeoutMS=5000,
+                    connectTimeoutMS=5000,
+                    socketTimeoutMS=5000
+                )
+                client.admin.command('ping')
+                logger.info("✅ MongoDB 연결 성공 (3/3)")
+            except Exception as e3:
+                logger.warning(f"❌ MongoDB 연결 실패 (3/3): {type(e3).__name__} - {e3}")
+                raise Exception("모든 MongoDB 연결 시도 실패")
     
+    # 연결 성공 시 컬렉션 초기화
     db = client[DATABASE_NAME]
     chat_logs_collection = db["chat_logs"]
     sessions_collection = db["sessions"]
@@ -164,14 +241,18 @@ try:
     
     # 시스템 로그 저장
     if system_logs_collection is not None:
-        system_logs_collection.insert_one({
-            "event": "system_startup",
-            "timestamp": datetime.now(),
-            "status": "success",
-            "message": "EORA 시스템 시작 - MongoDB 연결 완료"
-        })
+        try:
+            system_logs_collection.insert_one({
+                "event": "system_startup",
+                "timestamp": datetime.now(),
+                "status": "success",
+                "message": "EORA 시스템 시작 - MongoDB 연결 완료"
+            })
+        except Exception as log_error:
+            logger.warning(f"⚠️ 시스템 로그 저장 실패: {log_error}")
+            
 except Exception as e:
-    logger.error(f"❌ MongoDB 연결 실패: {e}")
+    logger.error(f"❌ 모든 MongoDB 연결 시도 실패")
     logger.warning("⚠️ MongoDB 연결 실패로 인해 일부 기능이 제한됩니다.")
     logger.info("🔧 Railway 환경변수 MONGODB_URL을 확인해주세요.")
     # MongoDB 연결 실패 시에도 서버는 계속 실행
@@ -1187,6 +1268,7 @@ if __name__ == "__main__":
     
     # Railway 환경 감지 및 최적화
     is_railway = os.environ.get("RAILWAY_ENVIRONMENT", "").lower() in ["production", "true", "1"]
+    is_railway_port = os.environ.get("PORT", "").isdigit()
     
     # 명령행 인수에서 포트 확인
     port = 8000
@@ -1199,16 +1281,54 @@ if __name__ == "__main__":
                 pass
     
     # 환경변수에서 포트 확인 (Railway 우선)
-    if is_railway:
+    if is_railway or is_railway_port:
         port = int(os.environ.get("PORT", 8000))
     elif port == 8000:
         port = int(os.environ.get("PORT", 8000))
     
     # Railway 환경 로깅
-    if is_railway:
+    if is_railway or is_railway_port:
         logger.info("🚂 Railway 환경에서 실행 중")
         logger.info(f"🔧 Railway 포트: {port}")
         logger.info(f"🔧 Railway 환경변수: {list(os.environ.keys())}")
+        
+        # Railway 환경에서 MongoDB 연결 재시도
+        if client is None:
+            logger.info("🔄 Railway 환경에서 MongoDB 연결 재시도 중...")
+            try:
+                # Railway 환경변수에서 직접 추출
+                mongo_host = os.getenv("MONGO_HOST", "")
+                mongo_port = os.getenv("MONGO_PORT", "27017")
+                mongo_user = os.getenv("MONGO_USER", "")
+                mongo_password = os.getenv("MONGO_INITDB_ROOT_PASSWORD", "")
+                
+                if mongo_host and mongo_password:
+                    if mongo_user:
+                        direct_url = f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}"
+                    else:
+                        direct_url = f"mongodb://root:{mongo_password}@{mongo_host}:{mongo_port}"
+                    
+                    logger.info(f"🔄 Railway MongoDB 재연결 시도: {direct_url}")
+                    client = MongoClient(
+                        direct_url,
+                        serverSelectionTimeoutMS=10000,
+                        connectTimeoutMS=10000,
+                        socketTimeoutMS=10000
+                    )
+                    client.admin.command('ping')
+                    
+                    db = client[DATABASE_NAME]
+                    chat_logs_collection = db["chat_logs"]
+                    sessions_collection = db["sessions"]
+                    users_collection = db["users"]
+                    aura_collection = db["aura"]
+                    system_logs_collection = db["system_logs"]
+                    
+                    logger.info("✅ Railway MongoDB 재연결 성공")
+                else:
+                    logger.warning("⚠️ Railway MongoDB 환경변수가 설정되지 않음")
+            except Exception as e:
+                logger.warning(f"⚠️ Railway MongoDB 재연결 실패: {e}")
     
     logger.info(f"🚀 EORA AI System 서버 시작 - 포트: {port}")
     
@@ -1220,6 +1340,6 @@ if __name__ == "__main__":
         reload=False,  # Railway에서는 reload 비활성화
         log_level="info",
         access_log=True,
-        use_colors=False if is_railway else True,  # Railway에서는 색상 비활성화
+        use_colors=False if (is_railway or is_railway_port) else True,  # Railway에서는 색상 비활성화
         workers=1  # Railway에서는 단일 워커 사용
     ) 
