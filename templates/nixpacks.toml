@@ -12,8 +12,11 @@ cmds = [
   "echo '🚀 EORA AI System 빌드 시작'",
   "python -c 'import fastapi; print(\"✅ FastAPI 설치 성공\")'",
   "python -c 'import pymongo; print(\"✅ PyMongo 설치 성공\")'",
+  "echo '📁 템플릿 파일 확인 중...'",
+  "ls -la *.html || echo '⚠️ HTML 파일이 현재 디렉토리에 없습니다'",
+  "find . -name '*.html' -type f | head -10 || echo '⚠️ HTML 파일을 찾을 수 없습니다'",
   "echo '✅ 빌드 완료'"
 ]
 
 [start]
-cmd = "python main.py" 
+cmd = "python railway_final.py" 

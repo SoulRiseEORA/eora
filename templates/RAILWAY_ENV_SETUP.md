@@ -1,84 +1,132 @@
-# Railway 환경변수 설정 가이드
+# Railway 환경 변수 설정 가이드
 
-## 1. Railway 대시보드에서 환경변수 설정
+## 🎯 목표
+Railway에서 EORA AI 시스템이 MongoDB에 정상적으로 연결되도록 환경 변수를 설정합니다.
 
-### 필수 환경변수
-```
-OPENAI_API_KEY=sk-your-openai-api-key-here
-DATABASE_NAME=eora_ai
-PORT=8000
-```
+## 📋 필수 환경 변수 목록
 
-### MongoDB 환경변수 (Railway MongoDB 플러그인 사용 시)
+### 1. MongoDB 연결 정보
 ```
-MONGO_PUBLIC_URL=mongodb://username:password@host:port/database
-MONGO_URL=mongodb://username:password@host:port/database
-MONGO_ROOT_USERNAME=your_username
-MONGO_ROOT_PASSWORD=your_password
+MONGODB_URL=mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@trolley.proxy.rlwy.net:26594
 ```
 
-### Redis 환경변수 (Railway Redis 플러그인 사용 시)
+### 2. 개별 MongoDB 변수 (선택사항)
 ```
-REDIS_URL=redis://username:password@host:port
-```
-
-### 선택적 환경변수
-```
-JWT_SECRET=your-secret-key-here
+MONGO_HOST=trolley.proxy.rlwy.net
+MONGO_PORT=26594
+MONGO_INITDB_ROOT_PASSWORD=HYxotmUHxMxbYAejsOxEnHwrgKpAochC
 ```
 
-## 2. Railway 플러그인 추가 방법
+### 3. OpenAI API 키
+```
+OPENAI_API_KEY=your_openai_api_key_here
+```
 
-### MongoDB 플러그인 추가
-1. Railway 대시보드 → 프로젝트 선택
-2. "New" → "Database" → "MongoDB"
-3. 생성 후, 환경변수 자동 주입 확인
+### 4. 포트 설정
+```
+PORT=8080
+```
 
-### Redis 플러그인 추가 (선택사항)
-1. Railway 대시보드 → 프로젝트 선택  
-2. "New" → "Database" → "Redis"
-3. 생성 후, REDIS_URL 환경변수 자동 주입 확인
+## 🛠️ 설정 방법
 
-## 3. 환경변수 확인 방법
+### 방법 1: Railway 대시보드 (권장)
 
-### Railway CLI 사용
+1. **Railway 대시보드 접속**
+   - https://railway.app/dashboard
+   - EORA AI 프로젝트 선택
+
+2. **Variables 탭 클릭**
+   - 프로젝트 페이지에서 "Variables" 탭 선택
+
+3. **환경 변수 추가**
+   - "New Variable" 버튼 클릭
+   - 위의 변수들을 하나씩 추가
+
+### 방법 2: Railway CLI
+
+1. **Railway CLI 설치**
+   ```bash
+   npm install -g @railway/cli
+   ```
+
+2. **로그인**
+   ```bash
+   railway login
+   ```
+
+3. **프로젝트 연결**
+   ```bash
+   railway link
+   ```
+
+4. **환경 변수 설정**
+   ```bash
+   # MongoDB URL
+   railway variables set MONGODB_URL="mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@trolley.proxy.rlwy.net:26594"
+   
+   # OpenAI API 키
+   railway variables set OPENAI_API_KEY="your_api_key_here"
+   
+   # 포트
+   railway variables set PORT="8080"
+   ```
+
+### 방법 3: 자동 스크립트 실행
+
+```bash
+# 스크립트 실행 권한 부여
+chmod +x railway_env_setup.sh
+
+# 스크립트 실행
+./railway_env_setup.sh
+```
+
+## 🔍 설정 확인
+
+### Railway 대시보드에서 확인
+- Variables 탭에서 설정된 변수들 확인
+- 각 변수의 값이 올바른지 검증
+
+### CLI로 확인
 ```bash
 railway variables list
 ```
 
-### Railway 대시보드에서 확인
-1. 프로젝트 → Settings → Variables
-2. 모든 환경변수가 올바르게 설정되었는지 확인
+## 🚀 배포 후 확인
 
-## 4. 배포 후 확인
+환경 변수 설정 후:
 
-### 로그 확인
-```bash
-railway logs
-```
+1. **자동 재배포**
+   - Railway가 자동으로 새로운 환경 변수로 재배포
 
-### 헬스체크
-```
-https://your-app.railway.app/health
-```
+2. **로그 확인**
+   - 배포 로그에서 MongoDB 연결 성공 메시지 확인
+   - 오류가 있다면 환경 변수 값 재확인
 
-## 5. 문제 해결
+3. **Health Check**
+   - 애플리케이션이 정상적으로 응답하는지 확인
 
-### OpenAI API 키 오류
-- API 키가 올바른지 확인
-- OpenAI 계정에서 API 키 생성 및 복사
-- Railway 환경변수에 정확히 입력
+## ⚠️ 주의사항
 
-### MongoDB 연결 오류
-- MongoDB 플러그인이 추가되었는지 확인
-- 연결 URL이 올바른지 확인
-- 네트워크 접근 권한 확인
+1. **보안**
+   - API 키와 비밀번호는 절대 코드에 하드코딩하지 마세요
+   - 환경 변수로만 관리하세요
 
-### Redis 연결 오류
-- Redis 플러그인이 추가되었는지 확인
-- REDIS_URL 환경변수 확인
-- Redis 없이도 서비스는 정상 동작
+2. **형식**
+   - MongoDB URL의 형식을 정확히 지켜주세요
+   - 포트 번호는 문자열로 설정하세요
 
-### faiss 설치 오류
-- nixpacks.toml 파일이 프로젝트에 포함되었는지 확인
-- 빌드 로그에서 faiss 설치 과정 확인 
+3. **재배포**
+   - 환경 변수 변경 후 자동 재배포가 필요할 수 있습니다
+
+## 🆘 문제 해결
+
+### MongoDB 연결 실패 시
+1. 환경 변수 값 확인
+2. MongoDB 서비스가 Railway에서 실행 중인지 확인
+3. 네트워크 연결 상태 확인
+
+### OpenAI API 오류 시
+1. API 키가 올바른지 확인
+2. API 키에 충분한 크레딧이 있는지 확인
+3. API 사용량 제한 확인 
