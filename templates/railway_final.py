@@ -359,6 +359,8 @@ def setup_templates():
         Path.cwd(),  # 현재 작업 디렉토리
         Path.cwd() / "templates",  # 현재 디렉토리의 templates
         Path("/app"),  # Railway 기본 경로
+        Path("/app/templates"),  # Railway 컨테이너 내부
+        Path("/workspace/templates"),  # Railway 작업 공간
     ]
     
     for path in possible_paths:
@@ -388,6 +390,18 @@ logger.info(f"📁 최종 템플릿 경로: {templates_path}")
 try:
     templates = Jinja2Templates(directory=str(templates_path))
     logger.info("✅ Jinja2 템플릿 초기화 성공")
+    
+    # 템플릿 파일 존재 확인
+    home_template_path = templates_path / "home.html"
+    logger.info(f"📄 home.html 경로: {home_template_path}")
+    logger.info(f"📄 home.html 존재: {home_template_path.exists()}")
+    
+    if not home_template_path.exists():
+        logger.error(f"❌ home.html 파일이 존재하지 않습니다!")
+        # 현재 디렉토리의 모든 파일 목록 출력
+        all_files = list(templates_path.glob("*"))
+        logger.info(f"📁 현재 디렉토리 파일들: {[f.name for f in all_files]}")
+        
 except Exception as e:
     logger.error(f"❌ 템플릿 초기화 실패: {e}")
     # 기본 템플릿 객체 생성 (오류 방지)
