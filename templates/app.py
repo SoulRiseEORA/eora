@@ -140,12 +140,12 @@ def setup_redis():
 # 템플릿 설정
 def setup_templates():
     """템플릿 디렉토리 설정 - Railway 환경 최적화"""
-    # Railway 환경에서 가능한 모든 경로 시도
+    # Railway 환경에서 가능한 모든 경로 시도 (Railway 우선순위)
     possible_paths = [
-        Path.cwd(),  # 현재 작업 디렉토리 (우선순위 1 - Railway에서 가장 안정적)
-        Path(__file__).parent,  # 현재 파일 디렉토리
+        Path("/app/templates"),  # Railway 템플릿 경로 (최우선)
         Path("/app"),  # Railway 기본 경로
-        Path("/app/templates"),  # Railway 템플릿 경로
+        Path.cwd(),  # 현재 작업 디렉토리
+        Path(__file__).parent,  # 현재 파일 디렉토리
         Path.cwd() / "templates",  # 현재 디렉토리의 templates
         Path("/workspace"),  # Railway 작업 공간
         Path("/workspace/templates"),  # Railway 작업 공간
