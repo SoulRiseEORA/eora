@@ -759,9 +759,19 @@ setup_static_files()
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     try:
-        return templates.TemplateResponse("home.html", {"request": request})
+        # 템플릿 경로 재확인
+        template_path = template_dir / "home.html"
+        logger.info(f"🔍 홈페이지 템플릿 경로: {template_path}")
+        logger.info(f"🔍 템플릿 존재 여부: {template_path.exists()}")
+        
+        if template_path.exists():
+            return templates.TemplateResponse("home.html", {"request": request})
+        else:
+            logger.warning(f"⚠️ home.html 파일이 존재하지 않습니다: {template_path}")
+            raise FileNotFoundError(f"home.html not found at {template_path}")
+            
     except Exception as e:
-        logger.error(f"홈 템플릿 렌더링 오류: {e}")
+        logger.error(f"❌ 홈 템플릿 렌더링 오류: {e}")
         return HTMLResponse(f"""
         <!DOCTYPE html>
         <html>

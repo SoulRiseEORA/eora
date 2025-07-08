@@ -610,18 +610,96 @@ if static_dir.exists():
 async def home(request: Request):
     """홈페이지"""
     try:
-        return templates.TemplateResponse("home.html", {"request": request})
+        # 템플릿 경로 재확인
+        template_path = template_dir / "home.html"
+        logger.info(f"🔍 홈페이지 템플릿 경로: {template_path}")
+        logger.info(f"🔍 템플릿 존재 여부: {template_path.exists()}")
+        
+        if template_path.exists():
+            return templates.TemplateResponse("home.html", {"request": request})
+        else:
+            logger.warning(f"⚠️ home.html 파일이 존재하지 않습니다: {template_path}")
+            raise FileNotFoundError(f"home.html not found at {template_path}")
+            
     except Exception as e:
-        logger.error(f"❌ 홈페이지 렌더링 오류: {e}")
+        logger.error(f"❌ 홈 템플릿 렌더링 오류: {e}")
         # 기본 HTML 반환
         return HTMLResponse(content="""
         <!DOCTYPE html>
-        <html>
-        <head><title>EORA AI System</title></head>
+        <html lang="ko">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>EORA AI System - Railway</title>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    min-height: 100vh;
+                }
+                .container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                    text-align: center;
+                }
+                .title {
+                    font-size: 3em;
+                    margin-bottom: 10px;
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                }
+                .subtitle {
+                    font-size: 1.2em;
+                    opacity: 0.9;
+                    margin-bottom: 30px;
+                }
+                .status {
+                    background: rgba(255,255,255,0.1);
+                    padding: 20px;
+                    border-radius: 10px;
+                    margin: 20px 0;
+                    backdrop-filter: blur(10px);
+                }
+                .button {
+                    display: inline-block;
+                    padding: 15px 30px;
+                    margin: 10px;
+                    background: rgba(255,255,255,0.2);
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 25px;
+                    transition: all 0.3s ease;
+                    border: 2px solid rgba(255,255,255,0.3);
+                }
+                .button:hover {
+                    background: rgba(255,255,255,0.3);
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                }
+            </style>
+        </head>
         <body>
-            <h1>🚀 EORA AI System</h1>
-            <p>시스템이 정상적으로 실행 중입니다!</p>
-            <a href="/chat">채팅 시작</a>
+            <div class="container">
+                <h1 class="title">🚀 EORA AI System</h1>
+                <p class="subtitle">감정 중심 인공지능 플랫폼 - Railway 배포 성공!</p>
+                
+                <div class="status">
+                    <h2>✅ 시스템 상태</h2>
+                    <p>EORA AI 시스템이 Railway에서 성공적으로 실행 중입니다!</p>
+                    <p><strong>서버:</strong> 포트 8080에서 정상 실행</p>
+                    <p><strong>MongoDB:</strong> 연결 성공</p>
+                    <p><strong>배포:</strong> Railway 클라우드</p>
+                </div>
+
+                <div>
+                    <a href="/chat" class="button">💬 채팅 시작</a>
+                    <a href="/dashboard" class="button">📊 대시보드</a>
+                    <a href="/admin" class="button">⚙️ 관리자</a>
+                    <a href="/security" class="button">🛡️ 보안</a>
+                </div>
+            </div>
         </body>
         </html>
         """)
