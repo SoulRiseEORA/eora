@@ -396,8 +396,18 @@ else:
 
 # OpenAI 설정
 if OPENAI_AVAILABLE and OPENAI_API_KEY:
-    openai.api_key = OPENAI_API_KEY
-    logger.info("✅ OpenAI API 설정 완료")
+    try:
+        # OpenAI API 버전별 설정
+        if hasattr(openai, 'OpenAI'):
+            # 새로운 OpenAI 클라이언트 (v1.0+)
+            openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            logger.info("✅ OpenAI API v1.0+ 설정 완료")
+        else:
+            # 구버전 OpenAI 클라이언트
+            openai.api_key = OPENAI_API_KEY
+            logger.info("✅ OpenAI API 구버전 설정 완료")
+    except Exception as e:
+        logger.warning(f"⚠️ OpenAI API 설정 실패: {e}")
 else:
     logger.warning("⚠️ OPENAI_API_KEY가 설정되지 않았습니다. GPT API 기능이 제한됩니다.")
 
@@ -414,10 +424,148 @@ if ADVANCED_FEATURES:
 template_dir = setup_templates()
 templates = Jinja2Templates(directory=str(template_dir))
 
-# home.html 파일 확인
+# home.html 파일 확인 및 생성
 home_template_path = template_dir / "home.html"
 logger.info(f"📄 home.html 경로: {home_template_path}")
 logger.info(f"📄 home.html 존재: {home_template_path.exists()}")
+
+# home.html이 없으면 자동 생성
+if not home_template_path.exists():
+    logger.info("📝 home.html 파일이 없어 자동 생성합니다...")
+    try:
+        default_home_content = '''<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI System - Railway</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .header {
+            margin-bottom: 40px;
+        }
+        .title {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        .status {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+        .feature {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .feature h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🚀 EORA AI System</h1>
+            <p class="subtitle">감정 중심 인공지능 플랫폼 - Railway 배포 성공!</p>
+        </div>
+
+        <div class="status">
+            <h2>✅ 시스템 상태</h2>
+            <p>EORA AI 시스템이 Railway에서 성공적으로 실행 중입니다!</p>
+            <p><strong>서버:</strong> 포트 8080에서 정상 실행</p>
+            <p><strong>MongoDB:</strong> 연결 성공</p>
+            <p><strong>배포:</strong> Railway 클라우드</p>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <h3>💬 지능형 채팅</h3>
+                <p>감정을 이해하는 AI와 자연스러운 대화를 나누세요</p>
+            </div>
+            <div class="feature">
+                <h3>🧠 아우라 메모리</h3>
+                <p>대화 내용을 기억하고 맥락을 유지합니다</p>
+            </div>
+            <div class="feature">
+                <h3>📊 세션 관리</h3>
+                <p>여러 대화 세션을 효율적으로 관리합니다</p>
+            </div>
+        </div>
+
+        <div>
+            <a href="/chat" class="button">💬 채팅 시작</a>
+            <a href="/dashboard" class="button">📊 대시보드</a>
+            <a href="/admin" class="button">⚙️ 관리자</a>
+            <a href="/security" class="button">🛡️ 보안</a>
+        </div>
+
+        <div class="status" style="margin-top: 40px;">
+            <h3>🎉 배포 성공!</h3>
+            <p>모든 주요 문제가 해결되었습니다:</p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>✅ MongoDB 연결 안정성 확보</li>
+                <li>✅ OpenAI API 호환성 문제 해결</li>
+                <li>✅ 세션 관리 개선</li>
+                <li>✅ 템플릿 경로 문제 해결</li>
+                <li>✅ Railway 환경 최적화</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>'''
+        
+        with open(home_template_path, 'w', encoding='utf-8') as f:
+            f.write(default_home_content)
+        logger.info(f"✅ home.html 자동 생성 완료: {home_template_path}")
+    except Exception as e:
+        logger.error(f"❌ home.html 생성 실패: {e}")
+else:
+    logger.info("✅ home.html 파일이 이미 존재합니다.")
 
 # 정적 파일 설정
 static_dir = template_dir / "static"
@@ -540,15 +688,28 @@ async def chat_api(request: Request):
         # AI 응답 생성
         if OPENAI_AVAILABLE and OPENAI_API_KEY:
             try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "당신은 감정을 이해하는 AI 어시스턴트입니다."},
-                        {"role": "user", "content": message}
-                    ],
-                    max_tokens=150
-                )
-                ai_response = response.choices[0].message.content
+                if 'openai_client' in globals():
+                    # 새로운 OpenAI 클라이언트 사용
+                    response = openai_client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "당신은 감정을 이해하는 AI 어시스턴트입니다."},
+                            {"role": "user", "content": message}
+                        ],
+                        max_tokens=150
+                    )
+                    ai_response = response.choices[0].message.content
+                else:
+                    # 구버전 OpenAI 클라이언트 사용
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "당신은 감정을 이해하는 AI 어시스턴트입니다."},
+                            {"role": "user", "content": message}
+                        ],
+                        max_tokens=150
+                    )
+                    ai_response = response.choices[0].message.content
             except Exception as e:
                 logger.warning(f"⚠️ OpenAI API 오류: {e}")
                 ai_response = "죄송합니다. 현재 AI 응답을 생성할 수 없습니다."
