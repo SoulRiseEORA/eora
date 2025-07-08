@@ -5,7 +5,11 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
+<<<<<<< HEAD
     "startCommand": " python app.py",
+=======
+    "startCommand": "python app.py",
+>>>>>>> fa3acd7bee3c7293e9bbb334ccc7a08c45332317
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
