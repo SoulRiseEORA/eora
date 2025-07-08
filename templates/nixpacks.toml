@@ -1,1 +1,1 @@
-cmd = "python src/templates/railway_final.py" 
+cmd = "python templates/railway_final.py" 
