@@ -1,1 +1,1 @@
-web: python main.py 
+web: python templates/railway_final.py 
