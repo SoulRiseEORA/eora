@@ -354,14 +354,11 @@ def setup_templates():
     """템플릿 디렉토리 설정 - Railway 환경 최적화"""
     # Railway 환경에서 가능한 모든 경로 시도
     possible_paths = [
-        Path(__file__).parent,  # 현재 파일 디렉토리
-        Path("/app"),  # Railway 기본 경로
+        Path(__file__).parent,  # 현재 파일 디렉토리 (/app/templates)
         Path("/app/templates"),  # Railway 템플릿 경로
         Path.cwd(),  # 현재 작업 디렉토리
         Path.cwd() / "templates",  # 현재 디렉토리의 templates
-        Path("/app/templates"),  # Railway 컨테이너 내부
-        Path("/workspace"),  # Railway 작업 공간
-        Path("/workspace/templates"),  # Railway 작업 공간의 templates
+        Path("/app"),  # Railway 기본 경로
     ]
     
     for path in possible_paths:
@@ -371,10 +368,15 @@ def setup_templates():
         if path.exists():
             # HTML 파일이 있는지 확인
             html_files = list(path.glob("*.html"))
+            logger.info(f"📄 HTML 파일 수: {len(html_files)}개")
             if html_files:
                 logger.info(f"✅ 템플릿 파일 발견: {len(html_files)}개")
                 logger.info(f"📄 발견된 파일: {[f.name for f in html_files[:5]]}")
                 return path
+            else:
+                logger.warning(f"⚠️ {path}에 HTML 파일이 없습니다")
+        else:
+            logger.warning(f"⚠️ {path} 경로가 존재하지 않습니다")
     
     # 기본값 반환 - Railway 환경에서 가장 가능성 높은 경로
     logger.warning("⚠️ 템플릿 디렉토리를 찾을 수 없습니다. 기본 경로 사용")
