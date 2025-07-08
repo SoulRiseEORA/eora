@@ -24,6 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 
 # 데이터베이스 및 캐시
@@ -355,10 +356,14 @@ def setup_templates():
     # Railway 환경에서 가능한 모든 경로 시도
     possible_paths = [
         Path("/app/templates"),  # Railway 템플릿 경로 (우선순위 1)
-        Path(__file__).parent,  # 현재 파일 디렉토리 (/app/templates)
+        Path(__file__).parent,  # 현재 파일 디렉토리
         Path.cwd() / "templates",  # 현재 디렉토리의 templates
         Path.cwd(),  # 현재 작업 디렉토리
         Path("/app"),  # Railway 기본 경로
+        Path("/workspace/templates"),  # Railway 작업 공간
+        Path("/workspace"),  # Railway 작업 공간
+        Path("/tmp/templates"),  # 임시 디렉토리
+        Path("/tmp"),  # 임시 디렉토리
     ]
     
     for path in possible_paths:
@@ -407,6 +412,79 @@ except Exception as e:
 
 # 웹소켓 연결 관리자 인스턴스
 manager = ConnectionManager()
+
+# 보안 미들웨어 클래스 추가
+class SecurityMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app):
+        super().__init__(app)
+        # 차단할 패턴들
+        self.blocked_patterns = [
+            # WordPress 관련 파일들
+            '/wp-', '/wp-admin', '/wp-content', '/wp-includes',
+            # PHP 파일들
+            '.php', '.phtml', '.php3', '.php4', '.php5', '.php7',
+            # 일반적인 공격 패턴들
+            '/admin.php', '/config.php', '/shell.php', '/backdoor.php',
+            '/upload.php', '/test.php', '/info.php', '/system_log.php',
+            '/vendor/', '/composer.json', '/.env', '/config/',
+            # 기타 의심스러운 패턴들
+            '/sx.php', '/text.php', '/worksec.php', '/x.php', '/xleet.php', '/xox.php'
+        ]
+        
+        # 허용할 정상적인 경로들
+        self.allowed_paths = [
+            '/', '/chat', '/dashboard', '/login', '/admin', '/debug',
+            '/simple-chat', '/points', '/memory', '/prompts', '/security',
+            '/health', '/api/', '/ws/', '/static/', '/favicon.ico'
+        ]
+    
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path.lower()
+        
+        # 허용된 경로인지 확인
+        is_allowed = any(path.startswith(allowed) for allowed in self.allowed_paths)
+        
+        # 차단할 패턴이 포함되어 있는지 확인
+        is_blocked = any(pattern in path for pattern in self.blocked_patterns)
+        
+        if is_blocked and not is_allowed:
+            # 공격 로그 기록
+            client_ip = request.client.host if request.client else "unknown"
+            user_agent = request.headers.get("user-agent", "unknown")
+            referer = request.headers.get("referer", "unknown")
+            
+            # 상세한 보안 로그
+            logger.warning(f"🚫 보안 차단: {client_ip} - {request.method} {path}")
+            logger.warning(f"   User-Agent: {user_agent}")
+            logger.warning(f"   Referer: {referer}")
+            logger.warning(f"   차단 패턴: {[p for p in self.blocked_patterns if p in path]}")
+            
+            # 시스템 로그에 보안 이벤트 기록
+            try:
+                if 'system_logs_collection' in globals() and system_logs_collection is not None:
+                    system_logs_collection.insert_one({
+                        "event": "security_block",
+                        "timestamp": datetime.now(),
+                        "client_ip": client_ip,
+                        "method": request.method,
+                        "path": path,
+                        "user_agent": user_agent,
+                        "referer": referer,
+                        "blocked_patterns": [p for p in self.blocked_patterns if p in path]
+                    })
+            except Exception as e:
+                logger.warning(f"⚠️ 보안 로그 저장 실패: {e}")
+            
+            # 404 응답 반환 (실제 파일이 없다는 것처럼)
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Not Found"},
+                headers={"Server": "nginx/1.18.0"}  # 일반적인 서버 헤더로 위장
+            )
+        
+        # 정상적인 요청 처리
+        response = await call_next(request)
+        return response
 
 # Lifespan 이벤트 핸들러 (Railway 호환 - Deprecation 경고 해결)
 @asynccontextmanager
@@ -494,6 +572,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# 보안 미들웨어 추가 (가장 먼저 실행되도록)
+app.add_middleware(SecurityMiddleware)
+
 # CORS 미들웨어
 app.add_middleware(
     CORSMiddleware,
@@ -536,39 +617,170 @@ async def home(request: Request):
         <!DOCTYPE html>
         <html>
         <head>
-            <title>EORA AI System</title>
+            <title>EORA AI System - 감정 중심 인공지능</title>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                body {{ font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }}
-                .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-                h1 {{ color: #333; text-align: center; }}
-                .status {{ background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; }}
-                .error {{ background: #ffe8e8; padding: 15px; border-radius: 5px; margin: 20px 0; }}
-                .nav {{ text-align: center; margin: 20px 0; }}
-                .nav a {{ display: inline-block; margin: 10px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }}
-                .nav a:hover {{ background: #0056b3; }}
+                body {{ 
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                    margin: 0; 
+                    padding: 0; 
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                }}
+                .container {{ 
+                    max-width: 1200px; 
+                    margin: 0 auto; 
+                    padding: 40px 20px; 
+                }}
+                .header {{ 
+                    text-align: center; 
+                    color: white; 
+                    margin-bottom: 40px; 
+                }}
+                .header h1 {{ 
+                    font-size: 3em; 
+                    margin: 0; 
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                }}
+                .header p {{ 
+                    font-size: 1.2em; 
+                    margin: 10px 0; 
+                    opacity: 0.9;
+                }}
+                .main-content {{ 
+                    background: white; 
+                    border-radius: 20px; 
+                    padding: 40px; 
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                    margin-bottom: 30px;
+                }}
+                .status-grid {{ 
+                    display: grid; 
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+                    gap: 20px; 
+                    margin: 30px 0; 
+                }}
+                .status-card {{ 
+                    background: #f8f9fa; 
+                    padding: 20px; 
+                    border-radius: 15px; 
+                    border-left: 5px solid #28a745; 
+                    text-align: center;
+                }}
+                .status-card.warning {{ border-left-color: #ffc107; }}
+                .status-card.error {{ border-left-color: #dc3545; }}
+                .status-icon {{ 
+                    font-size: 2em; 
+                    margin-bottom: 10px; 
+                }}
+                .nav-grid {{ 
+                    display: grid; 
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+                    gap: 15px; 
+                    margin: 30px 0; 
+                }}
+                .nav-card {{ 
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white; 
+                    padding: 25px; 
+                    border-radius: 15px; 
+                    text-decoration: none; 
+                    text-align: center; 
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                }}
+                .nav-card:hover {{ 
+                    transform: translateY(-5px); 
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+                    text-decoration: none;
+                    color: white;
+                }}
+                .nav-card h3 {{ 
+                    margin: 0 0 10px 0; 
+                    font-size: 1.3em; 
+                }}
+                .nav-card p {{ 
+                    margin: 0; 
+                    opacity: 0.9; 
+                    font-size: 0.9em; 
+                }}
+                .footer {{ 
+                    text-align: center; 
+                    color: white; 
+                    margin-top: 40px; 
+                    opacity: 0.8;
+                }}
+                @media (max-width: 768px) {{
+                    .header h1 {{ font-size: 2em; }}
+                    .main-content {{ padding: 20px; }}
+                    .nav-grid {{ grid-template-columns: 1fr; }}
+                }}
             </style>
         </head>
         <body>
             <div class="container">
-                <h1>🚀 EORA AI System</h1>
-                <div class="status">
-                    <h3>✅ 서버 상태: 정상 실행 중</h3>
-                    <p>Railway 환경에서 성공적으로 배포되었습니다.</p>
-                    <p>MongoDB 연결: ✅ 성공</p>
-                    <p>OpenAI API: ✅ 설정됨</p>
+                <div class="header">
+                    <h1>🚀 EORA AI System</h1>
+                    <p>감정 중심 인공지능 플랫폼</p>
+                    <p>Railway 환경에서 안정적으로 실행 중</p>
                 </div>
-                <div class="error">
-                    <h3>⚠️ 템플릿 파일 경고</h3>
-                    <p>템플릿 파일(home.html)을 찾을 수 없습니다.</p>
-                    <p>오류: {str(e)}</p>
+                
+                <div class="main-content">
+                    <div class="status-grid">
+                        <div class="status-card">
+                            <div class="status-icon">✅</div>
+                            <h3>서버 상태</h3>
+                            <p>정상 실행 중</p>
+                        </div>
+                        <div class="status-card">
+                            <div class="status-icon">🔒</div>
+                            <h3>보안 시스템</h3>
+                            <p>활성화됨</p>
+                        </div>
+                        <div class="status-card warning">
+                            <div class="status-icon">⚠️</div>
+                            <h3>템플릿 파일</h3>
+                            <p>기본 HTML 사용 중</p>
+                        </div>
+                        <div class="status-card">
+                            <div class="status-icon">💬</div>
+                            <h3>채팅 기능</h3>
+                            <p>사용 가능</p>
+                        </div>
+                    </div>
+                    
+                    <div class="nav-grid">
+                        <a href="/chat" class="nav-card">
+                            <h3>💬 채팅</h3>
+                            <p>EORA AI와 대화하기</p>
+                        </a>
+                        <a href="/dashboard" class="nav-card">
+                            <h3>📊 대시보드</h3>
+                            <p>시스템 상태 확인</p>
+                        </a>
+                        <a href="/admin" class="nav-card">
+                            <h3>⚙️ 관리자</h3>
+                            <p>시스템 관리</p>
+                        </a>
+                        <a href="/security" class="nav-card">
+                            <h3>🛡️ 보안</h3>
+                            <p>보안 모니터링</p>
+                        </a>
+                        <a href="/api/status" class="nav-card">
+                            <h3>🔍 API 상태</h3>
+                            <p>API 정보 확인</p>
+                        </a>
+                        <a href="/debug" class="nav-card">
+                            <h3>🐛 디버그</h3>
+                            <p>시스템 진단</p>
+                        </a>
+                    </div>
                 </div>
-                <div class="nav">
-                    <a href="/api/debug/files">파일 시스템 진단</a>
-                    <a href="/api/debug/templates">템플릿 진단</a>
-                    <a href="/api/sessions">세션 목록</a>
-                    <a href="/chat">채팅</a>
+                
+                <div class="footer">
+                    <p>EORA AI System v2.0.0 - Railway 배포 버전</p>
+                    <p>템플릿 오류: {str(e)}</p>
                 </div>
             </div>
         </body>
@@ -801,6 +1013,120 @@ async def prompts(request: Request):
     except Exception as e:
         logger.error(f"프롬프트 템플릿 렌더링 오류: {e}")
         return HTMLResponse(f"<h1>프롬프트</h1><p>템플릿 오류: {str(e)}</p>", status_code=500)
+
+@app.get("/security", response_class=HTMLResponse)
+async def security_dashboard(request: Request):
+    """보안 대시보드 페이지"""
+    return HTMLResponse(f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>EORA AI Security Dashboard</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+            .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }}
+            h1 {{ color: #333; text-align: center; }}
+            .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }}
+            .stat-card {{ background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #dc3545; }}
+            .stat-card.success {{ border-left-color: #28a745; }}
+            .stat-card.warning {{ border-left-color: #ffc107; }}
+            .stat-number {{ font-size: 2em; font-weight: bold; color: #dc3545; }}
+            .stat-number.success {{ color: #28a745; }}
+            .stat-number.warning {{ color: #ffc107; }}
+            .stat-label {{ color: #666; margin-top: 5px; }}
+            .recent-blocks {{ background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin: 20px 0; }}
+            .block-item {{ padding: 10px; border-bottom: 1px solid #eee; }}
+            .block-item:last-child {{ border-bottom: none; }}
+            .block-ip {{ font-weight: bold; color: #dc3545; }}
+            .block-path {{ color: #666; font-family: monospace; }}
+            .block-time {{ color: #999; font-size: 0.9em; }}
+            .nav {{ text-align: center; margin: 20px 0; }}
+            .nav a {{ display: inline-block; margin: 10px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }}
+            .nav a:hover {{ background: #0056b3; }}
+            .refresh-btn {{ background: #28a745; }}
+            .refresh-btn:hover {{ background: #218838; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🛡️ EORA AI Security Dashboard</h1>
+            
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalBlocks">-</div>
+                    <div class="stat-label">24시간 차단 수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="uniqueIPs">-</div>
+                    <div class="stat-label">차단된 IP 수</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-number success" id="systemStatus">✅</div>
+                    <div class="stat-label">시스템 상태</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-number warning" id="lastUpdate">-</div>
+                    <div class="stat-label">마지막 업데이트</div>
+                </div>
+            </div>
+            
+            <div class="recent-blocks">
+                <h3>🚫 최근 차단 기록</h3>
+                <div id="recentBlocks">
+                    <p>데이터를 불러오는 중...</p>
+                </div>
+            </div>
+            
+            <div class="nav">
+                <a href="/" class="refresh-btn" onclick="refreshStats()">🔄 새로고침</a>
+                <a href="/">← 홈으로 돌아가기</a>
+            </div>
+        </div>
+        
+        <script>
+            async function loadSecurityStats() {{
+                try {{
+                    const response = await fetch('/api/security/stats');
+                    const data = await response.json();
+                    
+                    document.getElementById('totalBlocks').textContent = data.total_blocks_24h || 0;
+                    document.getElementById('uniqueIPs').textContent = data.unique_ips_blocked || 0;
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                    
+                    // 최근 차단 기록 표시
+                    const recentBlocksDiv = document.getElementById('recentBlocks');
+                    if (data.recent_blocks && data.recent_blocks.length > 0) {{
+                        recentBlocksDiv.innerHTML = data.recent_blocks.map(block => `
+                            <div class="block-item">
+                                <div class="block-ip">${{block.ip}}</div>
+                                <div class="block-path">${{block.path}}</div>
+                                <div class="block-time">${{new Date(block.timestamp).toLocaleString()}}</div>
+                            </div>
+                        `).join('');
+                    }} else {{
+                        recentBlocksDiv.innerHTML = '<p>차단 기록이 없습니다.</p>';
+                    }}
+                }} catch (error) {{
+                    console.error('보안 통계 로드 실패:', error);
+                    document.getElementById('recentBlocks').innerHTML = '<p>데이터 로드 실패</p>';
+                }}
+            }}
+            
+            function refreshStats() {{
+                loadSecurityStats();
+            }}
+            
+            // 페이지 로드 시 데이터 로드
+            loadSecurityStats();
+            
+            // 30초마다 자동 새로고침
+            setInterval(loadSecurityStats, 30000);
+        </script>
+    </body>
+    </html>
+    """, status_code=200)
 
 @app.get("/health")
 async def health():
@@ -1280,6 +1606,60 @@ async def save_aura(request: Request):
     except Exception as e:
         logger.error(f"아우라 저장 오류: {e}")
         return {"message": "아우라 저장 완료"}
+
+@app.get("/api/security/stats")
+async def get_security_stats():
+    """보안 통계 정보를 반환합니다."""
+    try:
+        if 'system_logs_collection' in globals() and system_logs_collection is not None:
+            # 최근 24시간 보안 차단 통계
+            yesterday = datetime.now() - timedelta(days=1)
+            security_blocks = list(system_logs_collection.find({
+                "event": "security_block",
+                "timestamp": {"$gte": yesterday}
+            }))
+            
+            # IP별 차단 통계
+            ip_stats = {}
+            for block in security_blocks:
+                ip = block.get("client_ip", "unknown")
+                if ip not in ip_stats:
+                    ip_stats[ip] = 0
+                ip_stats[ip] += 1
+            
+            # 패턴별 차단 통계
+            pattern_stats = {}
+            for block in security_blocks:
+                patterns = block.get("blocked_patterns", [])
+                for pattern in patterns:
+                    if pattern not in pattern_stats:
+                        pattern_stats[pattern] = 0
+                    pattern_stats[pattern] += 1
+            
+            return {
+                "total_blocks_24h": len(security_blocks),
+                "unique_ips_blocked": len(ip_stats),
+                "top_blocked_ips": sorted(ip_stats.items(), key=lambda x: x[1], reverse=True)[:10],
+                "top_blocked_patterns": sorted(pattern_stats.items(), key=lambda x: x[1], reverse=True)[:10],
+                "recent_blocks": [
+                    {
+                        "timestamp": block.get("timestamp"),
+                        "ip": block.get("client_ip"),
+                        "path": block.get("path"),
+                        "patterns": block.get("blocked_patterns", [])
+                    }
+                    for block in security_blocks[-10:]  # 최근 10개
+                ]
+            }
+        else:
+            return {
+                "message": "보안 로그가 활성화되지 않았습니다.",
+                "total_blocks_24h": 0,
+                "unique_ips_blocked": 0
+            }
+    except Exception as e:
+        logger.error(f"보안 통계 조회 오류: {e}")
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
