@@ -413,6 +413,20 @@ try:
                 try:
                     html_files = list(scan_path.rglob("*.html"))
                     logger.info(f"📁 {scan_path}에서 발견된 HTML 파일들: {[f.name for f in html_files[:10]]}")
+                    
+                    # home.html 파일을 찾아서 복사하거나 이동
+                    for html_file in html_files:
+                        if html_file.name == "home.html":
+                            logger.info(f"✅ home.html 발견: {html_file}")
+                            # 현재 템플릿 경로에 복사 시도
+                            try:
+                                import shutil
+                                target_path = templates_path / "home.html"
+                                shutil.copy2(html_file, target_path)
+                                logger.info(f"✅ home.html 복사 완료: {target_path}")
+                                break
+                            except Exception as copy_error:
+                                logger.warning(f"⚠️ home.html 복사 실패: {copy_error}")
                 except Exception as e:
                     logger.warning(f"⚠️ {scan_path} 스캔 실패: {e}")
         
@@ -753,6 +767,7 @@ async def home(request: Request):
                             <div class="status-icon">⚠️</div>
                             <h3>템플릿 파일</h3>
                             <p>기본 HTML 사용 중</p>
+                            <small>Railway 환경에서 자동 생성됨</small>
                         </div>
                         <div class="status-card">
                             <div class="status-icon">💬</div>
