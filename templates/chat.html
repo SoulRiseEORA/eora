@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EORA AI System - 채팅</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
     <style>
         * {
             margin: 0;
@@ -194,6 +196,35 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
+        /* 사용자 프로필 스타일 */
+        .user-profile {
+            margin-left: 15px;
+        }
+
+        .user-email {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .user-email:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .user-avatar {
+            font-size: 16px;
+        }
+
         /* 언어 선택기 스타일 */
         .language-selector {
             position: relative;
@@ -244,10 +275,13 @@
             align-items: center;
             gap: 0.5rem;
             font-size: 12px;
+            color: #333;
+            background: white;
         }
 
         .language-option:hover {
             background: #f8f9fa;
+            color: #333;
         }
 
         .language-option.active {
@@ -600,8 +634,17 @@
             <div class="chat-header">
                 <div class="chat-title" data-i18n="chat.title">💬 EORA AI 채팅</div>
                 <div class="header-actions">
+                    <a href="/?from=chat" class="header-btn" data-i18n="chat.home">🏠 HOME</a>
                     <a href="/dashboard" class="header-btn" data-i18n="chat.dashboard">대시보드</a>
                     <a href="/memory" class="header-btn" data-i18n="chat.memory">기억관리</a>
+                    
+                    <!-- 사용자 프로필 표시 -->
+                    <div class="user-profile" id="userProfile" style="display: none;">
+                        <a href="/profile" class="user-email" id="userEmail">
+                            <span class="user-avatar">👤</span>
+                            <span id="userEmailText">user@example.com</span>
+                        </a>
+                    </div>
                     
                     <!-- 언어 선택기 -->
                     <div class="language-selector">
@@ -668,6 +711,26 @@
     </div>
 
     <script>
+        // 페이지 로드 시 사용자 정보 확인
+        document.addEventListener('DOMContentLoaded', function() {
+            checkUserLogin();
+            loadSessions();
+        });
+
+        // 사용자 로그인 상태 확인
+        function checkUserLogin() {
+            const userEmail = localStorage.getItem('user_email');
+            const userProfile = document.getElementById('userProfile');
+            const userEmailText = document.getElementById('userEmailText');
+            
+            if (userEmail) {
+                userEmailText.textContent = userEmail;
+                userProfile.style.display = 'flex';
+            } else {
+                userProfile.style.display = 'none';
+            }
+        }
+
         // 다국적 언어 데이터
         const translations = {
             ko: {
@@ -1011,7 +1074,15 @@
                             console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
                             console.log(`🔒 세션 로딩 완료 - sessionLoadComplete: ${sessionLoadComplete}`);
                             console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
-                            await loadSessionMessages(savedSessionId);
+                            
+                            // 세션 메시지 로드 시도
+                            try {
+                                await loadSessionMessages(savedSessionId);
+                                console.log(`✅ 저장된 세션 메시지 로드 완료: ${savedSessionId}`);
+                            } catch (error) {
+                                console.error(`❌ 저장된 세션 메시지 로드 실패: ${savedSessionId}`, error);
+                                showMessage('세션 메시지 로드에 실패했습니다.', 'error');
+                            }
                         } else {
                             // 저장된 세션이 없거나 존재하지 않는 경우, 첫 번째 유효한 세션 사용
                             const validSession = sessions.find(s => s.id && s.id !== 'undefined' && s.id !== 'null' && s.id !== '' && s.id !== undefined);
@@ -1025,7 +1096,15 @@
                                 console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
                                 console.log(`🔒 세션 로딩 완료 - sessionLoadComplete: ${sessionLoadComplete}`);
                                 console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
-                                await loadSessionMessages(validSession.id);
+                                
+                                // 세션 메시지 로드 시도
+                                try {
+                                    await loadSessionMessages(validSession.id);
+                                    console.log(`✅ 유효한 세션 메시지 로드 완료: ${validSession.id}`);
+                                } catch (error) {
+                                    console.error(`❌ 유효한 세션 메시지 로드 실패: ${validSession.id}`, error);
+                                    showMessage('세션 메시지 로드에 실패했습니다.', 'error');
+                                }
                             } else {
                                 console.error(`❌ 유효한 세션을 찾을 수 없음`);
                                 clearChatMessages();
@@ -1095,13 +1174,18 @@
             try {
                 const response = await fetch(`/api/sessions/${sessionId}/messages`);
                 if (response.ok) {
-                    const messages = await response.json();
+                    const data = await response.json();
+                    const messages = data.messages || [];
                     console.log(`✅ 세션 메시지 로드 성공: ${messages.length}개 메시지`);
                     
                     clearChatMessages();
-                    messages.forEach(msg => {
-                        addMessage(msg.role || 'user', msg.content, msg.timestamp);
-                    });
+                    if (messages.length > 0) {
+                        messages.forEach(msg => {
+                            addMessage(msg.role || 'user', msg.content, msg.timestamp);
+                        });
+                    } else {
+                        console.log(`📝 세션에 메시지가 없음: ${sessionId}`);
+                    }
                 } else {
                     console.error(`❌ 세션 메시지 로드 실패: ${response.status}`);
                     showMessage('메시지 로드에 실패했습니다.', 'error');
@@ -1491,6 +1575,12 @@
             
             console.log(`🔄 세션 로드 시작: ${sessionId}`);
             
+            // 이전 세션과 동일한 경우 중복 로드 방지
+            if (currentSessionId === sessionId && currentSessionIdLocked) {
+                console.log(`ℹ️ 동일한 세션 이미 로드됨: ${sessionId}`);
+                return;
+            }
+            
             currentSessionId = sessionId;
             currentSessionIdLocked = true; // 잠금 설정
             sessionInitialized = true;
@@ -1504,7 +1594,13 @@
             updateSessionList();
             
             // 몽고DB에서 해당 세션의 메시지들을 로드
-            await loadSessionMessages(sessionId);
+            try {
+                await loadSessionMessages(sessionId);
+                console.log(`✅ 세션 로드 완료: ${sessionId}`);
+            } catch (error) {
+                console.error(`❌ 세션 로드 실패: ${sessionId}`, error);
+                showMessage('세션 로드에 실패했습니다.', 'error');
+            }
         }
 
         function clearChatMessages() {
@@ -1754,6 +1850,21 @@
         // 초기화
         connectWebSocket();
         loadSessionsFromDatabase();
+        
+        // 페이지 로드 완료 후 세션 메시지 재로드 (새로고침 대응)
+        window.addEventListener('load', function() {
+            setTimeout(async function() {
+                if (currentSessionId && currentSessionIdLocked) {
+                    console.log(`🔄 페이지 로드 완료 - 세션 메시지 재로드: ${currentSessionId}`);
+                    try {
+                        await loadSessionMessages(currentSessionId);
+                        console.log(`✅ 페이지 로드 후 세션 메시지 재로드 완료: ${currentSessionId}`);
+                    } catch (error) {
+                        console.error(`❌ 페이지 로드 후 세션 메시지 재로드 실패: ${currentSessionId}`, error);
+                    }
+                }
+            }, 1000); // 1초 후 실행
+        });
     </script>
 </body>
 </html> 

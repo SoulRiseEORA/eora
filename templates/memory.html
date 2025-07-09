@@ -321,174 +321,129 @@
     </div>
 
     <script>
-        class MemoryManager {
-            constructor() {
-                this.memories = [];
-                this.filteredMemories = [];
-                this.init();
-            }
-
-            async init() {
-                await this.loadMemories();
-                this.renderMemories();
-                this.updateStats();
-            }
-
-            async loadMemories() {
-                try {
-                    const res = await fetch('/api/memory');
-                    const data = await res.json();
-                    this.memories = data.memories || [];
-                    this.filteredMemories = [...this.memories];
-                } catch (error) {
-                    console.error('기억 로드 오류:', error);
-                    this.memories = [];
-                    this.filteredMemories = [];
-                }
-            }
-
-            renderMemories() {
-                const memoryItems = document.getElementById('memoryItems');
-                
-                if (this.filteredMemories.length === 0) {
-                    memoryItems.innerHTML = `
-                        <div class="empty-state">
-                            <h3>기억이 없습니다</h3>
-                            <p>아직 저장된 기억이 없습니다. 대화를 통해 새로운 기억이 생성될 것입니다.</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                memoryItems.innerHTML = this.filteredMemories.map(memory => `
-                    <div class="memory-item" onclick="memoryManager.viewMemory(${memory.id})">
-                        <div class="memory-title">${memory.title}</div>
-                        <div class="memory-content">${memory.content}</div>
-                        <div class="memory-meta">
-                            <span class="memory-type">${this.getTypeLabel(memory.type)}</span>
-                            <span>중요도: ${Math.round(memory.importance * 100)}%</span>
-                            <span>${this.formatDate(memory.lastAccessed)}</span>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            getTypeLabel(type) {
-                const labels = {
-                    'preference': '선호도',
-                    'pattern': '패턴',
-                    'interest': '관심사',
-                    'style': '스타일',
-                    'approach': '접근법'
-                };
-                return labels[type] || type;
-            }
-
-            formatDate(isoString) {
-                const date = new Date(isoString);
-                const now = new Date();
-                const diff = now - date;
-                
-                if (diff < 60000) return '방금 전';
-                if (diff < 3600000) return Math.floor(diff / 60000) + '분 전';
-                if (diff < 86400000) return Math.floor(diff / 3600000) + '시간 전';
-                return date.toLocaleDateString();
-            }
-
-            updateStats() {
-                document.getElementById('totalMemories').textContent = this.memories.length;
-                document.getElementById('recentMemories').textContent = 
-                    this.memories.filter(m => {
-                        const lastAccessed = new Date(m.lastAccessed);
-                        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-                        return lastAccessed > oneDayAgo;
-                    }).length;
-                
-                const types = new Set(this.memories.map(m => m.type));
-                document.getElementById('memoryTypes').textContent = types.size;
-                
-                const avgImportance = this.memories.reduce((sum, m) => sum + m.importance, 0) / this.memories.length;
-                document.getElementById('memoryScore').textContent = Math.round(avgImportance * 100);
-            }
-
-            searchMemories() {
-                const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-                this.filteredMemories = this.memories.filter(memory => 
-                    memory.title.toLowerCase().includes(searchTerm) ||
-                    memory.content.toLowerCase().includes(searchTerm) ||
-                    this.getTypeLabel(memory.type).toLowerCase().includes(searchTerm)
-                );
-                this.renderMemories();
-            }
-
-            viewMemory(id) {
-                const memory = this.memories.find(m => m.id === id);
-                if (memory) {
-                    alert(`기억 상세 정보\n\n제목: ${memory.title}\n내용: ${memory.content}\n유형: ${this.getTypeLabel(memory.type)}\n중요도: ${Math.round(memory.importance * 100)}%\n생성일: ${new Date(memory.createdAt).toLocaleString()}\n최근 접근: ${new Date(memory.lastAccessed).toLocaleString()}`);
-                }
-            }
-        }
-
-        // 전역 함수들
-        function refreshMemories() {
-            memoryManager.loadMemories().then(() => {
-                memoryManager.renderMemories();
-                memoryManager.updateStats();
-            });
-        }
-
-        function exportMemories() {
-            const content = memoryManager.memories.map(memory => 
-                `제목: ${memory.title}\n내용: ${memory.content}\n유형: ${memoryManager.getTypeLabel(memory.type)}\n중요도: ${Math.round(memory.importance * 100)}%\n생성일: ${new Date(memory.createdAt).toLocaleString()}\n\n`
-            ).join('---\n\n');
-            
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `memories_${new Date().toISOString().split('T')[0]}.txt`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function clearOldMemories() {
-            if (confirm('30일 이상 된 기억을 삭제하시겠습니까?')) {
-                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                memoryManager.memories = memoryManager.memories.filter(memory => 
-                    new Date(memory.lastAccessed) > thirtyDaysAgo
-                );
-                memoryManager.filteredMemories = [...memoryManager.memories];
-                memoryManager.renderMemories();
-                memoryManager.updateStats();
-                alert('오래된 기억이 정리되었습니다.');
-            }
-        }
-
-        function optimizeMemories() {
-            if (confirm('중요도가 낮은 기억을 정리하시겠습니까?')) {
-                memoryManager.memories = memoryManager.memories.filter(memory => 
-                    memory.importance > 0.3
-                );
-                memoryManager.filteredMemories = [...memoryManager.memories];
-                memoryManager.renderMemories();
-                memoryManager.updateStats();
-                alert('기억이 최적화되었습니다.');
-            }
-        }
-
-        function searchMemories() {
-            memoryManager.searchMemories();
-        }
-
-        // 메모리 매니저 초기화
-        let memoryManager;
-        document.addEventListener('DOMContentLoaded', () => {
-            memoryManager = new MemoryManager();
+        // 페이지 로드 시 로그인 상태 확인
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+            loadMemoryData();
         });
 
-        async function deleteMemory(id) {
-            // 실제 삭제 API가 필요하다면 구현
-            alert('삭제 기능은 추후 구현 예정입니다.');
+        // 로그인 상태 확인
+        function checkLoginStatus() {
+            const userEmail = localStorage.getItem('user_email');
+            if (!userEmail) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/';
+                return;
+            }
+        }
+
+        // 기억 데이터 로드
+        function loadMemoryData() {
+            // 기억 통계 로드
+            fetch('/api/aura/memory/stats')
+                .then(response => response.json())
+                .then(data => {
+                    updateMemoryStats(data);
+                })
+                .catch(error => {
+                    console.error('기억 통계 로드 오류:', error);
+                });
+
+            // 기억 목록 로드
+            fetch('/api/aura/recall')
+                .then(response => response.json())
+                .then(data => {
+                    updateMemoryList(data.aura_memories || []);
+                })
+                .catch(error => {
+                    console.error('기억 목록 로드 오류:', error);
+                });
+        }
+
+        // 기억 통계 업데이트
+        function updateMemoryStats(data) {
+            const totalMemories = document.getElementById('totalMemories');
+            const recentActivity = document.getElementById('recentMemories');
+            
+            if (totalMemories) {
+                totalMemories.textContent = data.total_memories || 0;
+            }
+            if (recentActivity) {
+                recentActivity.textContent = data.recent_activity || 0;
+            }
+        }
+
+        // 기억 목록 업데이트
+        function updateMemoryList(memories) {
+            const memoryItems = document.querySelector('.memory-items');
+            if (!memoryItems) return;
+
+            if (memories.length === 0) {
+                memoryItems.innerHTML = '<div class="memory-item"><p style="text-align: center; color: #8e8ea0;">저장된 기억이 없습니다.</p></div>';
+                return;
+            }
+
+            const memoryHTML = memories.map((memory, index) => `
+                <div class="memory-item" onclick="viewMemory(${index})">
+                    <div class="memory-title">기억 ${index + 1}</div>
+                    <div class="memory-content">${memory}</div>
+                    <div class="memory-meta">
+                        <span class="memory-type">자동 저장</span>
+                        <span class="memory-date">방금 전</span>
+                    </div>
+                </div>
+            `).join('');
+
+            memoryItems.innerHTML = memoryHTML;
+        }
+
+        // 기억 보기
+        function viewMemory(index) {
+            alert(`기억 ${index + 1}을 확인합니다.`);
+        }
+
+        // 기억 저장
+        function saveMemory() {
+            const memoryText = prompt('저장할 기억을 입력하세요:');
+            if (memoryText) {
+                fetch('/api/aura/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: memoryText,
+                        type: 'manual'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert('기억이 저장되었습니다.');
+                    loadMemoryData(); // 목록 새로고침
+                })
+                .catch(error => {
+                    console.error('기억 저장 오류:', error);
+                    alert('기억 저장에 실패했습니다.');
+                });
+            }
+        }
+
+        // 기억 삭제
+        function deleteMemory() {
+            if (confirm('모든 기억을 삭제하시겠습니까?')) {
+                alert('기억 삭제 기능은 구현 예정입니다.');
+            }
+        }
+
+        // 기억 내보내기
+        function exportMemory() {
+            alert('기억 내보내기 기능은 구현 예정입니다.');
+        }
+
+        // 검색 기능
+        function searchMemory() {
+            const searchTerm = document.getElementById('searchBox').value;
+            alert(`"${searchTerm}" 검색 기능은 구현 예정입니다.`);
         }
     </script>
 </body>
