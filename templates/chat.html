@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -406,14 +407,23 @@
             animation: typing 1.4s infinite ease-in-out;
         }
 
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
 
         @keyframes typing {
-            0%, 80%, 100% {
+
+            0%,
+            80%,
+            100% {
                 transform: scale(0.8);
                 opacity: 0.5;
             }
+
             40% {
                 transform: scale(1);
                 opacity: 1;
@@ -449,8 +459,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .session-actions {
@@ -490,6 +505,7 @@
                 height: auto;
                 margin: 5px;
             }
+
             .chat-sidebar {
                 width: 100%;
                 height: auto;
@@ -497,67 +513,85 @@
                 border-radius: 12px;
                 margin-bottom: 10px;
             }
+
             .chat-main {
                 height: 480px;
                 border-radius: 12px;
             }
+
             .message-content {
                 max-width: 90%;
                 font-size: 0.98rem;
                 padding: 10px 12px;
             }
+
             .chat-header {
                 padding: 12px 10px;
                 font-size: 1.1rem;
             }
+
             .chat-title {
                 font-size: 1.1rem;
             }
+
             .sidebar-header h3 {
                 font-size: 1.1rem;
             }
-            .sidebar-content, .sidebar-actions {
+
+            .sidebar-content,
+            .sidebar-actions {
                 padding: 10px;
             }
+
             .sidebar-btn {
                 font-size: 1rem;
                 padding: 10px;
             }
+
             .send-btn {
                 min-width: 70px;
                 font-size: 1rem;
                 padding: 10px 12px;
             }
+
             .message-input {
                 font-size: 1rem;
                 padding: 10px 12px;
             }
         }
+
         @media (max-width: 480px) {
             .chat-main {
                 height: 350px;
             }
+
             .chat-header {
                 padding: 8px 4px;
             }
+
             .chat-title {
                 font-size: 1rem;
             }
+
             .sidebar-header h3 {
                 font-size: 1rem;
             }
+
             .sidebar-btn {
                 font-size: 0.95rem;
                 padding: 8px;
             }
+
             .send-btn {
                 font-size: 0.95rem;
                 padding: 8px 8px;
             }
+
             .message-input {
                 font-size: 0.95rem;
                 padding: 8px 8px;
             }
+
             .message-content {
                 font-size: 0.95rem;
                 padding: 8px 8px;
@@ -565,6 +599,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="chat-container">
         <!-- 사이드바 -->
@@ -573,13 +608,15 @@
                 <h3 data-i18n="sidebar.title">대화 세션</h3>
                 <p data-i18n="sidebar.subtitle">대화 기록 관리</p>
             </div>
-            
+
             <div class="sidebar-content">
                 <div class="session-actions">
-                    <button class="session-action-btn" onclick="createNewSession()" data-i18n="sidebar.new_session">➕ 새 세션</button>
-                    <button class="session-action-btn danger" onclick="deleteSelectedSessions()" data-i18n="sidebar.delete">🗑️ 세션 삭제</button>
+                    <button class="session-action-btn" onclick="createNewSession()" data-i18n="sidebar.new_session">➕ 새
+                        세션</button>
+                    <button class="session-action-btn danger" onclick="deleteSelectedSessions()"
+                        data-i18n="sidebar.delete">🗑️ 세션 삭제</button>
                 </div>
-                
+
                 <div class="session-list" id="sessionList">
                     <div class="session-item active" data-session-id="session_1">
                         <input type="checkbox" class="session-checkbox" onchange="toggleSessionSelection(this)">
@@ -588,10 +625,11 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="sidebar-actions">
                 <button class="sidebar-btn" onclick="exportCurrentSession()" data-i18n="sidebar.export">📤 내보내기</button>
-                <button class="sidebar-btn" onclick="clearAllSessions()" data-i18n="sidebar.clear_all">🗑️ 모든 세션 삭제</button>
+                <button class="sidebar-btn" onclick="clearAllSessions()" data-i18n="sidebar.clear_all">🗑️ 모든 세션
+                    삭제</button>
             </div>
         </div>
 
@@ -600,9 +638,10 @@
             <div class="chat-header">
                 <div class="chat-title" data-i18n="chat.title">💬 EORA AI 채팅</div>
                 <div class="header-actions">
+                    <a href="/" class="header-btn" data-i18n="chat.home">🏠 홈</a>
                     <a href="/dashboard" class="header-btn" data-i18n="chat.dashboard">대시보드</a>
                     <a href="/memory" class="header-btn" data-i18n="chat.memory">기억관리</a>
-                    
+
                     <!-- 언어 선택기 -->
                     <div class="language-selector">
                         <button class="language-btn" onclick="toggleLanguageDropdown()">
@@ -647,13 +686,9 @@
 
             <div class="chat-input">
                 <div class="input-container">
-                    <textarea 
-                        id="messageInput" 
-                        class="message-input" 
+                    <textarea id="messageInput" class="message-input"
                         placeholder="메시지를 입력하세요... (Shift + Enter: 줄바꿈, Enter: 전송)"
-                        data-i18n-placeholder="chat.input_placeholder"
-                        rows="1"
-                    ></textarea>
+                        data-i18n-placeholder="chat.input_placeholder" rows="1"></textarea>
                 </div>
                 <button id="sendBtn" class="send-btn" onclick="sendMessage()" data-i18n="chat.send">전송</button>
             </div>
@@ -678,20 +713,21 @@
                 "sidebar.delete": "삭제",
                 "sidebar.export": "내보내기",
                 "sidebar.clear_all": "모든 세션 삭제",
-                
+
                 // 채팅
                 "chat.title": "EORA AI 채팅",
+                "chat.home": "홈",
                 "chat.dashboard": "대시보드",
                 "chat.memory": "기억관리",
                 "chat.typing": "AI가 응답을 생성하고 있습니다...",
                 "chat.input_placeholder": "메시지를 입력하세요...",
                 "chat.send": "전송",
-                
+
                 // 컨텍스트 메뉴
                 "context.rename": "이름 변경",
                 "context.delete": "삭제",
                 "context.export": "복제",
-                
+
                 // 메시지
                 "message.error": "오류가 발생했습니다. 다시 시도해주세요.",
                 "message.session_created": "새 세션이 생성되었습니다.",
@@ -709,20 +745,21 @@
                 "sidebar.delete": "Delete",
                 "sidebar.export": "Export Chats",
                 "sidebar.clear_all": "Clear All Sessions",
-                
+
                 // Chat
                 "chat.title": "EORA AI Chat",
+                "chat.home": "Home",
                 "chat.dashboard": "Dashboard",
                 "chat.memory": "Memory",
                 "chat.typing": "AI is generating a response...",
                 "chat.input_placeholder": "Type your message...",
                 "chat.send": "Send",
-                
+
                 // Context Menu
                 "context.rename": "Rename",
                 "context.delete": "Delete",
                 "context.export": "Export",
-                
+
                 // Messages
                 "message.error": "An error occurred. Please try again.",
                 "message.session_created": "New session created.",
@@ -740,20 +777,21 @@
                 "sidebar.delete": "削除",
                 "sidebar.export": "チャットエクスポート",
                 "sidebar.clear_all": "すべてのセッションを削除",
-                
+
                 // チャット
                 "chat.title": "EORA AI チャット",
+                "chat.home": "ホーム",
                 "chat.dashboard": "ダッシュボード",
                 "chat.memory": "記憶管理",
                 "chat.typing": "AIが応答を生成しています...",
                 "chat.input_placeholder": "メッセージを入力してください...",
                 "chat.send": "送信",
-                
+
                 // コンテキストメニュー
                 "context.rename": "名前変更",
                 "context.delete": "削除",
                 "context.export": "エクスポート",
-                
+
                 // メッセージ
                 "message.error": "エラーが発生しました。もう一度お試しください。",
                 "message.session_created": "新しいセッションが作成されました。",
@@ -771,20 +809,21 @@
                 "sidebar.delete": "删除",
                 "sidebar.export": "导出聊天",
                 "sidebar.clear_all": "清除所有会话",
-                
+
                 // 聊天
                 "chat.title": "EORA AI 聊天",
+                "chat.home": "首页",
                 "chat.dashboard": "仪表板",
                 "chat.memory": "记忆管理",
                 "chat.typing": "AI正在生成回复...",
                 "chat.input_placeholder": "输入您的消息...",
                 "chat.send": "发送",
-                
+
                 // 上下文菜单
                 "context.rename": "重命名",
                 "context.delete": "删除",
                 "context.export": "导出",
-                
+
                 // 消息
                 "message.error": "发生错误。请重试。",
                 "message.session_created": "新会话已创建。",
@@ -800,7 +839,7 @@
         function detectLanguage() {
             const browserLang = navigator.language || navigator.userLanguage;
             const langCode = browserLang.split('-')[0];
-            
+
             if (translations[langCode]) {
                 return langCode;
             }
@@ -810,40 +849,40 @@
         // 언어 변경 함수
         function changeLanguage(langCode) {
             if (!translations[langCode]) return;
-            
+
             const langLabels = {
                 'ko': '🇰🇷 한국어',
                 'en': '🇺🇸 English',
                 'ja': '🇯🇵 日本語',
                 'zh': '🇨🇳 中文'
             };
-            
+
             document.getElementById('current-lang').textContent = langLabels[langCode];
-            
+
             document.querySelectorAll('.language-option').forEach(option => {
                 option.classList.remove('active');
                 if (option.dataset.lang === langCode) {
                     option.classList.add('active');
                 }
             });
-            
+
             document.querySelectorAll('[data-i18n]').forEach(element => {
                 const key = element.getAttribute('data-i18n');
                 if (translations[langCode][key]) {
                     element.textContent = translations[langCode][key];
                 }
             });
-            
+
             document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
                 const key = element.getAttribute('data-i18n-placeholder');
                 if (translations[langCode][key]) {
                     element.placeholder = translations[langCode][key];
                 }
             });
-            
+
             document.documentElement.lang = langCode;
             localStorage.setItem('preferred-language', langCode);
-            
+
             // 서버에 언어 설정 전송
             fetch('/api/set-language', {
                 method: 'POST',
@@ -862,7 +901,7 @@
 
         // 언어 옵션 클릭 이벤트
         document.querySelectorAll('.language-option').forEach(option => {
-            option.addEventListener('click', function() {
+            option.addEventListener('click', function () {
                 const langCode = this.dataset.lang;
                 changeLanguage(langCode);
                 toggleLanguageDropdown();
@@ -870,21 +909,21 @@
         });
 
         // 드롭다운 외부 클릭 시 닫기
-        document.addEventListener('click', function(event) {
+        document.addEventListener('click', function (event) {
             const dropdown = document.getElementById('language-dropdown');
             const languageBtn = document.querySelector('.language-btn');
-            
+
             if (!languageBtn.contains(event.target) && !dropdown.contains(event.target)) {
                 dropdown.classList.remove('show');
             }
         });
 
         // 페이지 로드 시 언어 설정
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const savedLang = localStorage.getItem('preferred-language');
             const detectedLang = detectLanguage();
             const finalLang = savedLang || detectedLang;
-            
+
             changeLanguage(finalLang);
         });
 
@@ -909,43 +948,43 @@
                     console.log('🚫 세션 로딩이 이미 진행 중입니다. 중복 요청 차단.');
                     return;
                 }
-                
+
                 sessionLoadingInProgress = true;
                 console.log('🔄 세션 목록 로드 시작');
-                
+
                 const token = getCookie('access_token');
                 const headers = {
                     'Content-Type': 'application/json',
                 };
-                
+
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
-                
+
                 const response = await fetch('/api/sessions', {
                     method: 'GET',
                     headers: headers
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     let rawSessions = data.sessions || [];
-                    
+
                     console.log(`📂 서버에서 받은 원본 세션 수: ${rawSessions.length}`);
                     console.log(`📂 원본 세션들:`, rawSessions);
-                    
+
                     // 유효하지 않은 세션 ID 필터링 - 완전 차단
                     sessions = rawSessions.filter(session => {
                         if (!session || !session.id) {
                             console.warn(`🚫 null/undefined 세션 객체 차단`);
                             return false;
                         }
-                        
+
                         const sessionId = session.id.toString().trim();
-                        
+
                         // undefined, null, 빈 문자열 완전 차단
-                        if (sessionId === 'undefined' || 
-                            sessionId === 'null' || 
+                        if (sessionId === 'undefined' ||
+                            sessionId === 'null' ||
                             sessionId === '' ||
                             sessionId === 'undefined' ||
                             sessionId === 'null' ||
@@ -954,32 +993,32 @@
                             console.warn(`🚫 유효하지 않은 세션 ID 차단: "${sessionId}"`);
                             return false;
                         }
-                        
+
                         // session_ 접두사 또는 충분한 길이 확인
                         if (!sessionId.startsWith('session_') && sessionId.length < 10) {
                             console.warn(`🚫 잘못된 세션 ID 형식 차단: "${sessionId}"`);
                             return false;
                         }
-                        
+
                         return true;
                     });
-                    
+
                     console.log(`📂 필터링된 유효한 세션 수: ${sessions.length}`);
                     console.log(`📂 유효한 세션들:`, sessions);
-                    
+
                     // localStorage에서 저장된 세션 이름들 로드
                     const savedSessionNames = JSON.parse(localStorage.getItem('sessionNames') || '{}');
                     console.log(`📂 localStorage에서 로드된 세션 이름들:`, savedSessionNames);
-                    
+
                     // 세션 이름이 undefined인 경우 기본값 설정
                     sessions.forEach(session => {
                         console.log(`🔍 세션 처리 중: ${session.id} - 현재 이름: "${session.name}"`);
-                        
+
                         if (!session.name || session.name === 'undefined') {
                             session.name = '새 세션 ' + new Date(session.created_at).toLocaleDateString();
                             console.log(`⚠️ 세션 이름이 undefined - 기본값 설정: "${session.name}"`);
                         }
-                        
+
                         // localStorage에 저장된 이름이 있으면 우선 사용
                         if (savedSessionNames[session.id]) {
                             const oldName = session.name;
@@ -987,18 +1026,18 @@
                             console.log(`💾 localStorage 이름 적용: "${oldName}" -> "${session.name}"`);
                         }
                     });
-                    
+
                     updateSessionList();
-                    
+
                     // 저장된 현재 세션 ID 확인
                     const savedSessionId = localStorage.getItem('currentSessionId');
                     console.log(`💾 localStorage에서 로드된 현재 세션 ID: "${savedSessionId}"`);
-                    
+
                     if (sessions.length > 0) {
                         // 저장된 세션이 있고, 해당 세션이 여전히 존재하는 경우
-                        if (savedSessionId && 
-                            savedSessionId !== 'undefined' && 
-                            savedSessionId !== 'null' && 
+                        if (savedSessionId &&
+                            savedSessionId !== 'undefined' &&
+                            savedSessionId !== 'null' &&
                             savedSessionId !== '' &&
                             savedSessionId !== undefined &&
                             sessions.find(s => s.id === savedSessionId)) {
@@ -1084,20 +1123,20 @@
                 console.error(`🚫 메시지 로드 차단: 유효하지 않은 세션 ID "${sessionId}"`);
                 return;
             }
-            
+
             if (!validateSessionIdForAPI(sessionId, '메시지 로드')) {
                 console.error(`🚫 메시지 로드 차단: 유효하지 않은 세션 ID "${sessionId}"`);
                 return;
             }
 
             console.log(`📥 세션 메시지 로드 시작: ${sessionId}`);
-            
+
             try {
                 const response = await fetch(`/api/sessions/${sessionId}/messages`);
                 if (response.ok) {
                     const messages = await response.json();
                     console.log(`✅ 세션 메시지 로드 성공: ${messages.length}개 메시지`);
-                    
+
                     clearChatMessages();
                     messages.forEach(msg => {
                         addMessage(msg.role || 'user', msg.content, msg.timestamp);
@@ -1115,20 +1154,20 @@
         // 세션 이름 업데이트 (프론트엔드에서만 관리)
         function updateSessionName(sessionId, newName) {
             console.log(`🔄 세션 이름 업데이트 시작: ${sessionId} -> "${newName}"`);
-            
+
             const session = sessions.find(s => s.id === sessionId);
             if (session) {
                 const oldName = session.name;
                 session.name = newName;
-                
+
                 // localStorage에 세션 이름 저장
                 const sessionNames = JSON.parse(localStorage.getItem('sessionNames') || '{}');
                 sessionNames[sessionId] = newName;
                 localStorage.setItem('sessionNames', JSON.stringify(sessionNames));
-                
+
                 console.log(`✅ 세션 이름 업데이트 완료: "${oldName}" -> "${newName}"`);
                 console.log(`💾 localStorage 저장: ${sessionId} = "${newName}"`);
-                
+
                 updateSessionList();
             } else {
                 console.error(`❌ 세션을 찾을 수 없음: ${sessionId}`);
@@ -1149,17 +1188,17 @@
                 const headers = {
                     'Content-Type': 'application/json',
                 };
-                
+
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
-                
+
                 const response = await fetch('/api/sessions', {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify(session)
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     return data.session_id;
@@ -1180,24 +1219,24 @@
                 const headers = {
                     'Content-Type': 'application/json',
                 };
-                
+
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
-                
+
                 const messageData = {
                     session_id: sessionId,
                     role: sender,  // 백엔드에서는 'role'로 저장
                     content: content,
                     timestamp: new Date().toISOString()
                 };
-                
+
                 const response = await fetch('/api/messages', {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify(messageData)
                 });
-                
+
                 if (!response.ok) {
                     console.error('메시지 저장 실패:', response.status);
                 }
@@ -1212,21 +1251,21 @@
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const host = window.location.host;
             ws = new WebSocket(`${protocol}//${host}/ws/${clientId}`);
-            
-            ws.onopen = function() {
+
+            ws.onopen = function () {
                 console.log('WebSocket 연결됨');
                 reconnectAttempts = 0;
             };
-            
-            ws.onmessage = function(event) {
+
+            ws.onmessage = function (event) {
                 const data = JSON.parse(event.data);
                 if (data.type === 'response') {
                     addMessage('assistant', data.message);
                     hideTypingIndicator();
                 }
             };
-            
-            ws.onclose = function() {
+
+            ws.onclose = function () {
                 console.log('WebSocket 연결 끊어짐');
                 if (reconnectAttempts < maxReconnectAttempts) {
                     setTimeout(() => {
@@ -1235,8 +1274,8 @@
                     }, 1000 * reconnectAttempts);
                 }
             };
-            
-            ws.onerror = function(error) {
+
+            ws.onerror = function (error) {
                 console.error('WebSocket 오류:', error);
             };
         }
@@ -1245,16 +1284,16 @@
         async function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const message = messageInput.value.trim();
-            
+
             if (!message) return;
-            
+
             // undefined 세션 ID 완전 차단
             if (!currentSessionId || currentSessionId === 'undefined' || currentSessionId === 'null' || currentSessionId === '' || currentSessionId === undefined) {
                 console.error(`🚫 메시지 전송 차단: undefined 세션 ID "${currentSessionId}"`);
                 showMessage('유효하지 않은 세션입니다. 새 세션을 생성해주세요.', 'error');
                 return;
             }
-            
+
             // 세션 ID 유효성 검사
             if (!validateSessionIdForAPI(currentSessionId, '메시지 전송')) {
                 console.error(`🚫 메시지 전송 차단: 유효하지 않은 세션 ID "${currentSessionId}"`);
@@ -1277,7 +1316,7 @@
             console.log("👤 사용자 메시지 UI에 추가");
             addMessage('user', message);
             messageInput.value = '';
-            
+
             // 첫 번째 메시지인 경우 세션 이름을 메시지 내용으로 설정
             if (currentSessionId) {
                 const currentSession = sessions.find(s => s.id === currentSessionId);
@@ -1287,53 +1326,53 @@
                     updateSessionName(currentSessionId, sessionName);
                 }
             }
-            
+
             // 사용자 메시지를 몽고DB에 저장
             if (currentSessionId) {
                 await saveMessageToDatabase(currentSessionId, 'user', message);
             }
-            
+
             // AI 응답 요청
             console.log("🤖 AI 응답 요청 시작");
             showTypingIndicator();
-            
+
             try {
                 // 토큰 가져오기
                 const token = getCookie('access_token');
                 console.log("🔑 토큰 확인:", token ? "토큰 있음" : "토큰 없음");
-                
+
                 const headers = {
                     'Content-Type': 'application/json',
                 };
-                
+
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                     console.log("🔐 Authorization 헤더 추가됨");
                 }
-                
+
                 const requestBody = {
                     message: message,
                     session_id: currentSessionId || 'default'
                 };
-                
+
                 console.log("📤 API 요청 데이터:", requestBody);
                 console.log("📤 API 요청 헤더:", headers);
                 console.log("🌐 API 엔드포인트: /api/chat");
-                
+
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify(requestBody)
                 });
-                
+
                 console.log("📥 API 응답 상태:", response.status);
                 console.log("📥 API 응답 헤더:", Object.fromEntries(response.headers.entries()));
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     console.log("✅ API 응답 성공:", data);
                     addMessage('assistant', data.response);
-                    
+
                     // AI 응답을 몽고DB에 저장
                     if (currentSessionId) {
                         await saveMessageToDatabase(currentSessionId, 'assistant', data.response);
@@ -1350,7 +1389,7 @@
                 console.error("💥 오류 스택:", error.stack);
                 const errorMessage = '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.';
                 addMessage('assistant', errorMessage);
-                
+
                 // 오류 메시지도 몽고DB에 저장
                 if (currentSessionId) {
                     await saveMessageToDatabase(currentSessionId, 'assistant', errorMessage);
@@ -1360,7 +1399,7 @@
                 hideTypingIndicator();
             }
         }
-        
+
         // 쿠키 가져오기 함수
         function getCookie(name) {
             const value = `; ${document.cookie}`;
@@ -1374,24 +1413,24 @@
             const chatMessages = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}`;
-            
+
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
             avatar.textContent = sender === 'user' ? '👤' : '🤖';
-            
+
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
             // HTML을 원본 그대로 렌더링 (이스케이프하지 않음)
             messageContent.innerHTML = content;
-            
+
             const messageTime = document.createElement('div');
             messageTime.className = 'message-time';
             messageTime.textContent = new Date(timestamp).toLocaleTimeString();
-            
+
             messageContent.appendChild(messageTime);
             messageDiv.appendChild(avatar);
             messageDiv.appendChild(messageContent);
-            
+
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -1408,40 +1447,40 @@
         // 세션 관리
         async function createNewSession() {
             console.log('🆕 새 세션 생성 시작');
-            
+
             const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             const sessionName = '새 세션 ' + new Date().toLocaleDateString();
-            
+
             console.log(`🆕 생성된 세션 ID: ${sessionId}`);
-            
+
             const newSession = {
                 id: sessionId,
                 name: sessionName,
                 created_at: new Date().toISOString(),
                 messages: []
             };
-            
+
             // 몽고DB에 세션 저장
             const savedSessionId = await saveSessionToDatabase(newSession);
             if (savedSessionId) {
                 newSession.id = savedSessionId;
                 console.log(`💾 서버에서 반환된 세션 ID: ${savedSessionId}`);
             }
-            
+
             sessions.unshift(newSession);
             currentSessionId = newSession.id;
             currentSessionIdLocked = true; // 잠금 설정
             sessionInitialized = true;
-            
+
             // localStorage에 현재 세션 ID 저장
             localStorage.setItem('currentSessionId', newSession.id);
             console.log(`💾 localStorage에 새 세션 ID 저장: ${newSession.id}`);
             console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
             console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
-            
+
             updateSessionList();
             clearChatMessages();
-            
+
             showMessage('새 세션이 생성되었습니다.', 'success');
             console.log('✅ 새 세션 생성 완료');
         }
@@ -1449,34 +1488,34 @@
         function updateSessionList() {
             const sessionList = document.getElementById('sessionList');
             sessionList.innerHTML = '';
-            
+
             sessions.forEach(session => {
                 const sessionItem = document.createElement('div');
                 sessionItem.className = 'session-item';
                 sessionItem.dataset.sessionId = session.id;
-                
+
                 if (session.id === currentSessionId) {
                     sessionItem.classList.add('active');
                 }
-                
+
                 sessionItem.innerHTML = `
                     <input type="checkbox" class="session-checkbox" 
                            onchange="toggleSessionSelection('${session.id}', this.checked)">
                     <div class="session-name">${session.name || '새 세션'}</div>
                     <div class="session-time">${new Date(session.created_at).toLocaleDateString()}</div>
                 `;
-                
+
                 sessionItem.addEventListener('click', (e) => {
                     if (!e.target.classList.contains('session-checkbox')) {
                         loadSession(session.id);
                     }
                 });
-                
+
                 sessionItem.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     showContextMenu(e, session.id);
                 });
-                
+
                 sessionList.appendChild(sessionItem);
             });
         }
@@ -1488,21 +1527,13 @@
                 showMessage('유효하지 않은 세션입니다.', 'error');
                 return;
             }
-            
             console.log(`🔄 세션 로드 시작: ${sessionId}`);
-            
             currentSessionId = sessionId;
             currentSessionIdLocked = true; // 잠금 설정
             sessionInitialized = true;
-            
             // localStorage에 현재 세션 ID 저장
             localStorage.setItem('currentSessionId', sessionId);
-            console.log(`💾 localStorage에 세션 ID 저장: ${sessionId}`);
-            console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
-            console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
-            
             updateSessionList();
-            
             // 몽고DB에서 해당 세션의 메시지들을 로드
             await loadSessionMessages(sessionId);
         }
@@ -1529,7 +1560,7 @@
         }
 
         async function deleteSelectedSessions() {
-            const selectedSessions = sessions.filter(session => 
+            const selectedSessions = sessions.filter(session =>
                 session.selected && validateSessionIdForAPI(session.id, '세션 삭제')
             );
 
@@ -1545,7 +1576,7 @@
                     const response = await fetch(`/api/sessions/${session.id}`, {
                         method: 'DELETE'
                     });
-                    
+
                     if (response.ok) {
                         console.log(`✅ 세션 삭제 성공: ${session.id}`);
                     } else {
@@ -1563,7 +1594,7 @@
         }
 
         async function clearAllSessions() {
-            const validSessions = sessions.filter(session => 
+            const validSessions = sessions.filter(session =>
                 validateSessionIdForAPI(session.id, '전체 세션 삭제')
             );
 
@@ -1579,7 +1610,7 @@
                     const response = await fetch(`/api/sessions/${session.id}`, {
                         method: 'DELETE'
                     });
-                    
+
                     if (response.ok) {
                         console.log(`✅ 세션 삭제 성공: ${session.id}`);
                     } else {
@@ -1612,9 +1643,9 @@
 
         function renameSessionFromContext() {
             if (!contextMenuSessionId) return;
-            
+
             console.log(`🔄 우클릭 세션 이름 변경 시작: ${contextMenuSessionId}`);
-            
+
             const newName = prompt('새 세션 이름을 입력하세요:');
             if (newName) {
                 console.log(`📝 사용자 입력 이름: "${newName}"`);
@@ -1628,25 +1659,25 @@
 
         async function deleteSessionFromContext() {
             if (!contextMenuSessionId) return;
-            
+
             if (confirm('이 세션을 삭제하시겠습니까?')) {
                 // 몽고DB에서 세션 삭제
                 const token = getCookie('access_token');
                 const headers = {
                     'Content-Type': 'application/json',
                 };
-                
+
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
-                
+
                 try {
                     // 유효한 세션 ID인지 확인 - 완전 차단
                     const sessionId = contextMenuSessionId.toString().trim();
-                    
-                    if (!sessionId || 
-                        sessionId === 'undefined' || 
-                        sessionId === 'null' || 
+
+                    if (!sessionId ||
+                        sessionId === 'undefined' ||
+                        sessionId === 'null' ||
                         sessionId === '' ||
                         sessionId === 'undefined' ||
                         sessionId === 'null' ||
@@ -1657,7 +1688,7 @@
                         hideContextMenu();
                         return;
                     }
-                    
+
                     // session_ 접두사 또는 충분한 길이 확인
                     if (!sessionId.startsWith('session_') && sessionId.length < 10) {
                         console.error('🚫 잘못된 세션 ID 형식 차단:', sessionId);
@@ -1665,27 +1696,27 @@
                         hideContextMenu();
                         return;
                     }
-                    
+
                     console.log(`🗑️ 컨텍스트 메뉴에서 세션 삭제: ${sessionId}`);
                     const response = await fetch(`/api/sessions/${sessionId}`, {
                         method: 'DELETE',
                         headers: headers
                     });
-                    
+
                     const result = await response.json();
-                    
+
                     if (response.ok && result.deleted) {
                         console.log(`✅ 세션 삭제 성공: ${sessionId}`);
                         removeSessionName(sessionId); // localStorage에서 제거
-                        
+
                         sessions = sessions.filter(s => s.id !== sessionId);
-                        
+
                         if (currentSessionId === sessionId) {
                             currentSessionId = null;
                             localStorage.removeItem('currentSessionId');
                             clearChatMessages();
                         }
-                        
+
                         updateSessionList();
                         showMessage('세션이 삭제되었습니다.', 'success');
                     } else {
@@ -1702,7 +1733,7 @@
 
         function duplicateSessionFromContext() {
             if (!contextMenuSessionId) return;
-            
+
             const session = sessions.find(s => s.id === contextMenuSessionId);
             if (session) {
                 const newSessionId = 'session_' + Date.now();
@@ -1726,10 +1757,10 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type === 'error' ? 'error-message' : 'success-message'}`;
             messageDiv.textContent = message;
-            
+
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-            
+
             setTimeout(() => {
                 messageDiv.remove();
             }, 5000);
@@ -1737,8 +1768,8 @@
 
         // 이벤트 리스너
         document.addEventListener('click', hideContextMenu);
-        
-        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+
+        document.getElementById('messageInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
@@ -1746,7 +1777,7 @@
         });
 
         // 자동 높이 조정
-        document.getElementById('messageInput').addEventListener('input', function() {
+        document.getElementById('messageInput').addEventListener('input', function () {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 150) + 'px';
         });
@@ -1756,4 +1787,5 @@
         loadSessionsFromDatabase();
     </script>
 </body>
-</html> 
+
+</html>
