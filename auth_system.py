@@ -94,25 +94,23 @@ class AuthSystem:
             logger.error(f"사용자 등록 오류: {str(e)}")
             return {"success": False, "message": "사용자 등록 중 오류가 발생했습니다."}
     
-    async def login_user(self, username: str, password: str) -> Dict:
-        """사용자 로그인"""
+    async def login_user(self, username_or_email: str, password: str) -> Dict:
+        """사용자 로그인 (username 또는 email)"""
         try:
-            # 사용자 정보 조회
-            user = await db_manager.get_user_by_username(username)
+            # 사용자 정보 조회 (username 또는 email)
+            user = await db_manager.get_user_by_username(username_or_email)
             if not user:
-                return {"success": False, "message": "사용자명 또는 비밀번호가 잘못되었습니다."}
-            
+                user = await db_manager.get_user_by_email(username_or_email)
+            if not user:
+                return {"success": False, "message": "사용자명/이메일 또는 비밀번호가 잘못되었습니다."}
             # 비밀번호 검증
             hashed_password = self.hash_password(password)
             if user["password_hash"] != hashed_password:
-                return {"success": False, "message": "사용자명 또는 비밀번호가 잘못되었습니다."}
-            
+                return {"success": False, "message": "사용자명/이메일 또는 비밀번호가 잘못되었습니다."}
             # 세션 ID 생성
             session_id = self.generate_session_id()
-            
             # JWT 토큰 생성
             token = self.create_jwt_token(user["_id"], user.get("is_admin", False))
-            
             # 세션 정보 저장
             session_data = {
                 "user_id": user["_id"],
@@ -120,12 +118,10 @@ class AuthSystem:
                 "token": token,
                 "created_at": datetime.now(),
                 "last_activity": datetime.now(),
-                "ip_address": None,  # 실제 구현에서는 IP 주소 추가
-                "user_agent": None   # 실제 구현에서는 User-Agent 추가
+                "ip_address": None,
+                "user_agent": None
             }
-            
             await db_manager.create_session(session_data)
-            
             # 활성 세션에 추가
             self.active_sessions[session_id] = {
                 "user_id": user["_id"],
@@ -133,16 +129,13 @@ class AuthSystem:
                 "is_admin": user.get("is_admin", False),
                 "created_at": datetime.now()
             }
-            
             # 사용자별 세션 목록에 추가
             if user["_id"] not in self.user_sessions:
                 self.user_sessions[user["_id"]] = []
             self.user_sessions[user["_id"]].append(session_id)
-            
             # 마지막 로그인 시간 업데이트
             await db_manager.update_user_last_login(user["_id"])
-            
-            logger.info(f"사용자 로그인: {username}")
+            logger.info(f"사용자 로그인: {user['username']}")
             return {
                 "success": True,
                 "message": "로그인이 완료되었습니다.",
@@ -155,7 +148,6 @@ class AuthSystem:
                     "email": user.get("email")
                 }
             }
-            
         except Exception as e:
             logger.error(f"로그인 오류: {str(e)}")
             return {"success": False, "message": "로그인 중 오류가 발생했습니다."}

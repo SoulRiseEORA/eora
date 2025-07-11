@@ -315,6 +315,7 @@ if REDIS_AVAILABLE:
         redis_cache = None
 
 app = FastAPI(title="EORA AI System - Final", version="1.0.0")
+print("[진단] FastAPI 앱 생성 직후 라우트:", app.routes)
 
 # CORS 미들웨어 추가 - 모든 오리진 허용
 app.add_middleware(
@@ -931,8 +932,7 @@ async def test_gpt4o_connection():
     except Exception as e:
         return False, f"GPT-4o 연결 실패: {str(e)}"
 
-# 템플릿 설정 (정적 파일은 이미 위에서 마운트됨)
-templates = Jinja2Templates(directory="templates")
+# 템플릿 설정은 이미 위에서 정의되었습니다
 
 # 사용자 저장소 (MongoDB 연결 실패 시 메모리 사용)
 users_db = {}
@@ -2470,7 +2470,7 @@ async def check_redis_cache(cache_key: str) -> str:
     try:
         if redis_cache:
             # 빠른 캐시 확인
-            cached_response = redis_cache.get(cache_key)
+            cached_response = await redis_cache.get(cache_key)
             if cached_response:
                 # 바이트 디코딩 최적화
                 if isinstance(cached_response, bytes):
@@ -2545,7 +2545,7 @@ async def save_to_cache(cache_key: str, response_text: str):
         # Redis 캐시에 저장 (비동기)
         if redis_cache:
             try:
-                redis_cache.setex(cache_key, 3600, response_text)  # 1시간 TTL
+                await redis_cache.setex(cache_key, 3600, response_text)  # 1시간 TTL
             except Exception as e:
                 print(f"⚠️ Redis 캐시 저장 실패: {e}")
     except Exception as e:
@@ -2883,10 +2883,26 @@ async def api_status():
     """API 상태 확인"""
     gpt_connected, gpt_message = await test_gpt4o_connection()
     
+    # 관리자 계정 확인
+    admin_exists = False
+    if mongo_client is not None and users_collection is not None:
+        admin_user = users_collection.find_one({"email": "admin@eora.ai"})
+        admin_exists = admin_user is not None
+    else:
+        for user in users_db.values():
+            if user.get("email") == "admin@eora.ai":
+                admin_exists = True
+                break
+    
     return {
         "status": "running",
         "timestamp": datetime.now().isoformat(),
         "version": "1.0.0",
+        "admin_account": {
+            "exists": admin_exists,
+            "email": "admin@eora.ai",
+            "password": "admin1234"
+        },
         "openai": {
             "available": openai_available,
             "api_key_set": bool(openai_api_key and openai_api_key != "your-openai-api-key-here"),
@@ -2933,6 +2949,42 @@ async def get_language(request: Request):
         return {"language": language}
     except Exception as e:
         return {"language": "ko"}
+
+@app.get("/api/test/auth")
+async def test_auth():
+    """인증 시스템 테스트"""
+    try:
+        # 관리자 계정 확인
+        admin_exists = False
+        if mongo_client is not None and users_collection is not None:
+            admin_user = users_collection.find_one({"email": "admin@eora.ai"})
+            admin_exists = admin_user is not None
+        else:
+            for user in users_db.values():
+                if user.get("email") == "admin@eora.ai":
+                    admin_exists = True
+                    break
+        
+        return {
+            "success": True,
+            "admin_exists": admin_exists,
+            "admin_email": "admin@eora.ai",
+            "admin_password": "admin1234",
+            "users_count": len(users_db) if users_db else 0,
+            "mongo_connected": mongo_client is not None,
+            "message": "인증 시스템 테스트 완료"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "인증 시스템 테스트 실패"
+        }
+
+@app.get("/test")
+async def simple_test():
+    """간단한 테스트 엔드포인트"""
+    return {"message": "서버가 정상적으로 작동하고 있습니다!", "timestamp": datetime.now().isoformat()}
 
 # 관리자 API 엔드포인트들
 @app.get("/api/admin/users")
@@ -4313,9 +4365,11 @@ async def get_aura_memory_stats(user_id: str = None):
 
 # 1. 서버 시작 시 MongoDB 인덱스 자동 생성 (맨 위 app, db 초기화 직후에 추가)
 try:
-    if chat_logs_collection:
+    if chat_logs_collection is not None:
         chat_logs_collection.create_index([("session_id", 1), ("user_id", 1), ("timestamp", 1)])
         print("✅ chat_logs 인덱스 자동 생성 완료")
+    else:
+        print("⚠️ chat_logs_collection이 None입니다. 인덱스 생성 건너뜀")
 except Exception as e:
     print(f"⚠️ chat_logs 인덱스 생성 실패: {e}")
 
@@ -4324,16 +4378,17 @@ redis_cache = None
 
 async def init_redis():
     global redis_cache
-    redis_cache = await aioredis.create_redis_pool("redis://localhost")
+    redis_cache = await aioredis.from_url("redis://localhost")
 
-# FastAPI 앱 시작 시 Redis 초기화
-from fastapi import FastAPI
-app = FastAPI()
-
+# FastAPI 앱 시작 시 Redis 초기화 (이미 위에서 app이 정의되어 있음)
 @app.on_event("startup")
 async def on_startup():
     await init_redis()
     print("✅ aioredis 비동기 Redis 클라이언트 초기화 완료")
+    
+    # 관리자 계정 자동 생성
+    ensure_admin()
+    print("✅ 관리자 계정 확인/생성 완료")
 
 # check_redis_cache, save_to_cache 함수 비동기화
 async def check_redis_cache(cache_key: str) -> str:
@@ -4356,61 +4411,22 @@ async def save_to_cache(cache_key: str, response_text: str):
     except Exception as e:
         print(f"⚠️ Redis 캐시 저장 실패: {e}")
 
+# 모든 라우트 등록 후
+print("[진단] 라우트 등록 완료 후 app.routes:", app.routes)
+
 if __name__ == "__main__":
     import traceback
     import argparse
-    
-    # 명령행 인수 파싱
     parser = argparse.ArgumentParser(description='EORA AI Server')
     parser.add_argument('--port', type=int, default=8016, help='서버 포트 (기본값: 8016)')
     args = parser.parse_args()
-    
     try:
         ensure_admin()
-        # 명령행 인수 또는 환경변수에서 포트 가져오기
         port = args.port
         host = "0.0.0.0" if port == 8080 else "127.0.0.1"
+        print("[진단] 서버 시작 직전 app.routes:", app.routes)
         print("🚀 EORA AI 최종 서버를 시작합니다...")
         print(f"📍 주소: http://{host}:{port}")
-        print("📋 사용 가능한 페이지:")
-        print(f"   - 홈: http://{host}:{port}/")
-        print(f"   - 로그인: http://{host}:{port}/login")
-        print(f"   - 대시보드: http://{host}:{port}/dashboard")
-        print(f"   - 채팅: http://{host}:{port}/chat")
-        print(f"   - 심플 채팅: http://{host}:{port}/simple-chat")
-        print(f"   - 포인트: http://{host}:{port}/points")
-        print(f"   - 기억관리: http://{host}:{port}/memory")
-        print(f"   - 프롬프트: http://{host}:{port}/prompts")
-        print(f"   - 관리자: http://{host}:{port}/admin")
-        print(f"   - 상태 확인: http://{host}:{port}/health")
-        print(f"   - API 상태: http://{host}:{port}/api/status")
-        print("============================================================")
-        print("🔧 API 엔드포인트:")
-        print("   - 회원가입: POST /api/auth/register")
-        print("   - 로그인: POST /api/auth/login")
-        print("   - 구글 로그인: POST /api/auth/google")
-        print("   - 사용자 정보: GET /api/user/info")
-        print("   - 사용자 통계: GET /api/user/stats")
-        print("   - 사용자 활동: GET /api/user/activity")
-        print("   - 포인트 조회: GET /api/user/points")
-        print("   - 패키지 목록: GET /api/points/packages")
-        print("   - 포인트 구매: POST /api/points/purchase")
-        print("============================================================")
-        print("🔧 아우라 시스템 API 엔드포인트:")
-        print("   - 아우라 상태: GET /api/aura/status")
-        print("   - 아우라 저장: POST /api/aura/save")
-        print("   - 아우라 회상: GET /api/aura/recall")
-        print("   - 아우라 통계: GET /api/aura/memory/stats")
-        print("============================================================")
-        print("🔧 대화 불러오기 API 엔드포인트:")
-        print("   - 대화 목록 조회: GET /api/conversations")
-        print("   - 세션 메시지 조회: GET /api/conversations/{session_id}/messages")
-        print("   - 대화 내용 불러오기: GET /api/conversations/{session_id}/history")
-        print("   - 사용자 세션 목록: GET /api/user/{user_id}/sessions")
-        print("   - 대화 삭제: DELETE /api/conversations/{session_id}")
-        print("   - 대화 내보내기: GET /api/conversations/{session_id}/export")
-        print("   - 실시간 대화 불러오기: GET /api/conversations/{session_id}/realtime")
-        print("============================================================")
         uvicorn.run(app, host=host, port=port)
     except Exception as e:
         print("서버 실행 중 예외 발생:", e)

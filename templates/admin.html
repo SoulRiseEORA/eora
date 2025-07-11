@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EORA AI System - 관리자</title>
+    <title>EORA AI System - 관리자 대시보드</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
         * {
             margin: 0;
@@ -16,12 +17,12 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            color: #333;
         }
 
         .admin-container {
             max-width: 1400px;
-            margin: 0 auto;
+            margin: 20px auto;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
@@ -29,7 +30,7 @@
         }
 
         .admin-header {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 30px;
             text-align: center;
@@ -45,44 +46,50 @@
             opacity: 0.9;
         }
 
-        .admin-content {
-            padding: 30px;
-        }
-
         .admin-nav {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 1px solid #e9ecef;
             display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
+            gap: 15px;
             flex-wrap: wrap;
         }
 
         .nav-btn {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            padding: 12px 20px;
-            border-radius: 10px;
+            padding: 10px 20px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 14px;
-            font-weight: 500;
+            text-decoration: none;
+            color: #333;
         }
 
+        .nav-btn:hover,
         .nav-btn.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #667eea;
             color: white;
             border-color: #667eea;
         }
 
-        .nav-btn:hover {
-            transform: translateY(-2px);
+        .admin-content {
+            padding: 30px;
         }
 
-        .admin-section {
+        .section {
             display: none;
+            margin-bottom: 30px;
         }
 
-        .admin-section.active {
+        .section.active {
             display: block;
+        }
+
+        .section h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 24px;
         }
 
         .stats-grid {
@@ -122,7 +129,7 @@
             color: #666;
         }
 
-        .data-table {
+        .table-container {
             background: white;
             border-radius: 15px;
             padding: 25px;
@@ -130,115 +137,83 @@
             overflow-x: auto;
         }
 
-        .data-table h3 {
-            margin-bottom: 20px;
-            color: #333;
-            font-size: 20px;
-        }
-
-        table {
+        .admin-table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 20px;
         }
 
-        th,
-        td {
+        .admin-table th,
+        .admin-table td {
             padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #e9ecef;
         }
 
-        th {
+        .admin-table th {
             background: #f8f9fa;
             font-weight: 600;
             color: #333;
         }
 
-        tr:hover {
+        .admin-table tr:hover {
             background: #f8f9fa;
-        }
-
-        .user-info {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 10px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-        }
-
-        .back-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 15px;
-            cursor: pointer;
-            margin-left: 10px;
-            font-size: 12px;
-        }
-
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
         }
 
         .action-btn {
-            background: #667eea;
-            color: white;
-            border: none;
             padding: 6px 12px;
-            border-radius: 5px;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 12px;
             margin: 2px;
-        }
-
-        .action-btn:hover {
-            background: #5a6fd8;
-        }
-
-        .action-btn.danger {
-            background: #e74c3c;
-        }
-
-        .action-btn.danger:hover {
-            background: #c0392b;
-        }
-
-        /* 학습 관리 스타일 */
-        .learning-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .learning-tab-btn {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 14px;
-            font-weight: 500;
         }
 
-        .learning-tab-btn.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .btn-edit {
+            background: #28a745;
             color: white;
-            border-color: #667eea;
         }
 
-        .learning-tab-content {
-            display: none;
+        .btn-delete {
+            background: #dc3545;
+            color: white;
         }
 
-        .learning-tab-content.active {
-            display: block;
+        .btn-suspend {
+            background: #ffc107;
+            color: #333;
         }
 
-        .learning-panel {
+        .btn-activate {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .filter-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .server-status {
             background: white;
             border-radius: 15px;
             padding: 25px;
@@ -246,162 +221,284 @@
             margin-bottom: 20px;
         }
 
-        .learning-panel h3 {
-            margin-bottom: 20px;
-            color: #333;
-            font-size: 20px;
-        }
-
-        .file-upload-area {
-            margin-bottom: 20px;
-        }
-
-        .upload-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .upload-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .file-list {
-            margin-top: 15px;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e9ecef;
-            border-radius: 10px;
-            padding: 10px;
-            background: #f8f9fa;
-        }
-
-        .file-item {
+        .status-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 12px;
-            margin-bottom: 5px;
+            padding: 15px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .status-online {
+            background: #28a745;
+        }
+
+        .status-offline {
+            background: #dc3545;
+        }
+
+        .status-warning {
+            background: #ffc107;
+        }
+
+        .status-text {
+            font-weight: 600;
+        }
+
+        .status-online .status-text {
+            color: #28a745;
+        }
+
+        .status-offline .status-text {
+            color: #dc3545;
+        }
+
+        .status-warning .status-text {
+            color: #ffc107;
+        }
+
+        .chart-container {
             background: white;
-            border-radius: 5px;
-            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
 
-        .file-item:last-child {
-            margin-bottom: 0;
+        .chart-placeholder {
+            height: 300px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 18px;
         }
 
-        .file-name {
-            font-size: 14px;
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .quick-action-btn {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
             color: #333;
         }
 
-        .remove-file {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
         }
 
-        .learning-controls {
+        .quick-action-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .quick-action-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .quick-action-desc {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .modal-footer {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            justify-content: flex-end;
+            margin-top: 20px;
         }
 
-        .start-btn {
-            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .start-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
-        }
-
-        .stop-btn {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .stop-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
-        }
-
-        .stop-btn:disabled {
-            background: #95a5a6;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .learning-log,
-        .learning-memo {
-            margin-bottom: 20px;
-        }
-
-        .learning-log h4,
-        .learning-memo h4 {
-            margin-bottom: 10px;
-            color: #333;
-            font-size: 16px;
-        }
-
-        .log-content,
-        .memo-content {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 10px;
-            padding: 15px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.4;
-            white-space: pre-wrap;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #e9ecef;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transition: width 0.3s ease;
-        }
-
+        /* 반응형 디자인 */
         @media (max-width: 768px) {
+            .admin-container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .admin-header {
+                padding: 20px;
+            }
+
+            .admin-header h1 {
+                font-size: 24px;
+            }
+
+            .admin-nav {
+                padding: 15px;
+                flex-direction: column;
+            }
+
+            .nav-btn {
+                text-align: center;
+            }
+
             .admin-content {
                 padding: 20px;
             }
@@ -410,305 +507,105 @@
                 grid-template-columns: 1fr;
             }
 
-            .admin-nav {
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-container {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+                padding: 20px;
+            }
+
+            .modal-footer {
                 flex-direction: column;
             }
         }
 
-        /* 프롬프트 관리 스타일 */
-        .prompt-filters {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+        /* 애니메이션 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .prompt-filters select,
-        .prompt-filters input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
+        .section.active {
+            animation: fadeIn 0.3s ease-out;
         }
 
-        .prompt-categories {
-            margin-top: 20px;
+        /* 로딩 스피너 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
 
-        .category-tabs {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
-        .category-tab {
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            background: #f8f9fa;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 14px;
-        }
-
-        .category-tab.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-
-        .category-tab:hover {
-            background: #e9ecef;
-        }
-
-        .category-tab.active:hover {
-            background: #0056b3;
-        }
-
-        .prompt-content {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 20px;
-            min-height: 400px;
-        }
-
-        .prompt-item {
-            border: 1px solid #e9ecef;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 15px;
-            background: #f8f9fa;
-        }
-
-        .prompt-item h4 {
-            margin: 0 0 10px 0;
-            color: #333;
+        /* 네비게이션 아이콘 */
+        .nav-icon {
+            margin-right: 8px;
             font-size: 16px;
         }
 
-        .prompt-item p {
-            margin: 5px 0;
-            color: #666;
-            font-size: 14px;
+        /* 사용자 상태 표시 */
+        .user-status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
         }
 
-        .prompt-item strong {
-            color: #333;
+        .status-active {
+            background: #28a745;
         }
 
-        .prompt-item .action-btn {
-            margin-right: 5px;
-            margin-top: 10px;
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-
-        .action-btn.danger {
+        .status-inactive {
             background: #dc3545;
-            color: white;
         }
 
-        .action-btn.danger:hover {
-            background: #c82333;
+        .status-pending {
+            background: #ffc107;
         }
 
-        /* 모달 스타일 */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
+        /* 테이블 반응형 */
+        @media (max-width: 600px) {
+            .admin-table {
+                font-size: 12px;
+            }
 
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            width: 80%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
+            .admin-table th,
+            .admin-table td {
+                padding: 8px 4px;
+            }
 
-        .modal-content h3 {
-            margin-bottom: 20px;
-            color: #333;
-            text-align: center;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-size: 14px;
-        }
-
-        .form-group select,
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            box-sizing: border-box;
-            /* Include padding and border in element's total width and height */
-        }
-
-        .form-group textarea {
-            height: 100px;
-            /* Default height for textarea */
-            resize: vertical;
-            /* Allow vertical resizing */
-        }
-
-        .form-actions {
-            text-align: right;
-            margin-top: 20px;
-        }
-
-        .form-actions button {
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            margin-left: 10px;
-        }
-
-        .prompt-category-group h3 {
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-            color: #007bff;
-        }
-
-        .prompt-details {
-            margin-top: 15px;
-        }
-
-        .prompt-details p {
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .prompt-details strong {
-            color: #007bff;
-        }
-
-        /* 트리형 네비게이션 스타일 */
-        .prompt-tree-nav {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 20px 10px 20px 20px;
-        }
-
-        .ai-tree,
-        .category-tree {
-            list-style: none;
-            padding-left: 0;
-            margin: 0;
-        }
-
-        .ai-label {
-            font-weight: bold;
-            color: #007bff;
-            cursor: pointer;
-            display: block;
-            padding: 8px 0 8px 5px;
-            border-radius: 5px;
-            transition: background 0.2s;
-        }
-
-        .ai-label:hover,
-        .ai-label.selected {
-            background: #e3f0ff;
-        }
-
-        .category-tree {
-            margin-left: 15px;
-            margin-top: 5px;
-        }
-
-        .category-label {
-            color: #333;
-            cursor: pointer;
-            padding: 5px 0 5px 10px;
-            border-radius: 5px;
-            display: block;
-            font-size: 14px;
-        }
-
-        .category-label:hover,
-        .category-label.selected {
-            background: #e9ecef;
-            color: #007bff;
-        }
-
-        .prompt-list-panel {
-            background: #fff;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 25px 30px;
-            min-height: 500px;
-        }
-
-        .prompt-list-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        .prompt-list-table th,
-        .prompt-list-table td {
-            border: 1px solid #e9ecef;
-            padding: 10px;
-            text-align: left;
-            font-size: 14px;
-        }
-
-        .prompt-list-table th {
-            background: #f1f3f6;
-            color: #333;
-        }
-
-        .prompt-list-table td {
-            background: #fafbfc;
-        }
-
-        .prompt-list-table td .action-btn {
-            margin-right: 5px;
-        }
-
-        .prompt-list-table td .action-btn.danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .prompt-list-table td .action-btn.danger:hover {
-            background: #c82333;
-        }
-
-        .prompt-list-table td .action-btn {
-            font-size: 12px;
-            padding: 4px 10px;
-        }
-
-        .prompt-list-panel .action-btn {
-            margin-bottom: 10px;
+            .action-btn {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
         }
     </style>
 </head>
@@ -716,271 +613,239 @@
 <body>
     <div class="admin-container">
         <div class="admin-header">
-            <div class="user-info">
-                <span id="user-email">관리자</span>
-                <button class="back-btn" onclick="goBack()">뒤로가기</button>
-                <button class="back-btn" onclick="goHome()" style="background: rgba(255, 255, 255, 0.3);">🏠
-                    홈으로</button>
-            </div>
-            <h1>🔧 EORA AI 관리자</h1>
-            <p>시스템 관리 및 모니터링</p>
+            <h1>EORA AI 관리자 대시보드</h1>
+            <p>시스템 모니터링 및 관리</p>
+        </div>
+
+        <div class="admin-nav">
+            <button class="nav-btn active" onclick="showSection('overview')">
+                <span class="nav-icon">📊</span>개요
+            </button>
+            <button class="nav-btn" onclick="showSection('users')">
+                <span class="nav-icon">👥</span>사용자 관리
+            </button>
+            <button class="nav-btn" onclick="showSection('sessions')">
+                <span class="nav-icon">💬</span>세션 관리
+            </button>
+            <button class="nav-btn" onclick="showSection('system')">
+                <span class="nav-icon">⚙️</span>시스템 상태
+            </button>
+            <button class="nav-btn" onclick="showSection('logs')">
+                <span class="nav-icon">📝</span>로그
+            </button>
+            <a href="/point-management" class="nav-btn">
+                <span class="nav-icon">💰</span>포인트 관리
+            </a>
+            <a href="/storage-management" class="nav-btn">
+                <span class="nav-icon">💾</span>저장소 관리
+            </a>
+            <a href="/prompt-management" class="nav-btn">
+                <span class="nav-icon">🤖</span>프롬프트 관리
+            </a>
         </div>
 
         <div class="admin-content">
-            <div class="admin-nav">
-                <button class="nav-btn active" onclick="showSection('overview')">📊 개요</button>
-                <button class="nav-btn" onclick="showSection('users')">👥 사용자 관리</button>
-                <button class="nav-btn" onclick="showSection('points')">💰 포인트 관리</button>
-                <button class="nav-btn" onclick="showSection('storage')">💾 저장공간 관리</button>
-                <button class="nav-btn" onclick="showSection('learning')">🧠 학습 관리</button>
-                <button class="nav-btn" onclick="window.location.href='/prompt-management'">📝 프롬프트 관리</button>
-                <button class="nav-btn" onclick="showSection('system')">⚙️ 시스템</button>
-            </div>
-
             <!-- 개요 섹션 -->
-            <div id="overview-section" class="admin-section active">
+            <div id="overview" class="section active">
+                <h2>시스템 개요</h2>
+
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon">👥</div>
-                        <div class="stat-number" id="total-users">0</div>
+                        <div class="stat-number" id="totalUsers">0</div>
                         <div class="stat-label">총 사용자</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">💰</div>
-                        <div class="stat-number" id="total-points">0</div>
-                        <div class="stat-label">총 포인트</div>
-                    </div>
-                    <div class="stat-card">
                         <div class="stat-icon">💬</div>
-                        <div class="stat-number" id="total-conversations">0</div>
-                        <div class="stat-label">총 대화</div>
+                        <div class="stat-number" id="totalSessions">0</div>
+                        <div class="stat-label">총 세션</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">📈</div>
-                        <div class="stat-number" id="active-users">0</div>
+                        <div class="stat-icon">📝</div>
+                        <div class="stat-number" id="totalMessages">0</div>
+                        <div class="stat-label">총 메시지</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🚀</div>
+                        <div class="stat-number" id="activeUsers">0</div>
                         <div class="stat-label">활성 사용자</div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <div class="quick-action-btn" onclick="showSection('users')">
+                        <span class="quick-action-icon">👥</span>
+                        <div class="quick-action-title">사용자 관리</div>
+                        <div class="quick-action-desc">사용자 계정 및 권한 관리</div>
+                    </div>
+                    <div class="quick-action-btn" onclick="showSection('sessions')">
+                        <span class="quick-action-icon">💬</span>
+                        <div class="quick-action-title">세션 관리</div>
+                        <div class="quick-action-desc">채팅 세션 및 대화 기록 관리</div>
+                    </div>
+                    <div class="quick-action-btn" onclick="showSection('system')">
+                        <span class="quick-action-icon">⚙️</span>
+                        <div class="quick-action-title">시스템 상태</div>
+                        <div class="quick-action-desc">서버 및 데이터베이스 상태 확인</div>
+                    </div>
+                    <div class="quick-action-btn" onclick="showSection('logs')">
+                        <span class="quick-action-icon">📝</span>
+                        <div class="quick-action-title">시스템 로그</div>
+                        <div class="quick-action-desc">오류 및 활동 로그 확인</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>사용자 활동 통계</h3>
+                    <div class="chart-placeholder">
+                        차트가 여기에 표시됩니다
                     </div>
                 </div>
             </div>
 
             <!-- 사용자 관리 섹션 -->
-            <div id="users-section" class="admin-section">
-                <div class="data-table">
-                    <h3>👥 사용자 목록</h3>
-                    <table>
+            <div id="users" class="section">
+                <h2>사용자 관리</h2>
+
+                <div class="filter-container">
+                    <input type="text" class="search-box" placeholder="사용자 검색..." id="userSearch">
+                    <select class="filter-select" id="userStatusFilter">
+                        <option value="">모든 상태</option>
+                        <option value="active">활성</option>
+                        <option value="inactive">비활성</option>
+                        <option value="pending">대기</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="addUser()">새 사용자 추가</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="admin-table" id="usersTable">
                         <thead>
                             <tr>
+                                <th>ID</th>
                                 <th>이름</th>
                                 <th>이메일</th>
+                                <th>상태</th>
                                 <th>가입일</th>
                                 <th>마지막 로그인</th>
-                                <th>상태</th>
-                                <th>포인트</th>
                                 <th>작업</th>
                             </tr>
                         </thead>
-                        <tbody id="users-table-body">
-                            <tr>
-                                <td colspan="7" style="text-align: center;">로딩 중...</td>
-                            </tr>
+                        <tbody id="usersTableBody">
+                            <!-- 사용자 데이터가 여기에 동적으로 추가됩니다 -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 포인트 관리 섹션 -->
-            <div id="points-section" class="admin-section">
-                <div class="data-table">
-                    <h3>💰 포인트 현황</h3>
-                    <table>
+            <!-- 세션 관리 섹션 -->
+            <div id="sessions" class="section">
+                <h2>세션 관리</h2>
+
+                <div class="filter-container">
+                    <input type="text" class="search-box" placeholder="세션 검색..." id="sessionSearch">
+                    <select class="filter-select" id="sessionStatusFilter">
+                        <option value="">모든 상태</option>
+                        <option value="active">활성</option>
+                        <option value="inactive">비활성</option>
+                    </select>
+                    <button class="btn btn-danger" onclick="deleteSelectedSessions()">선택 삭제</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="admin-table" id="sessionsTable">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="selectAllSessions"></th>
+                                <th>세션 ID</th>
                                 <th>사용자</th>
-                                <th>현재 포인트</th>
-                                <th>총 획득</th>
-                                <th>총 사용</th>
-                                <th>마지막 업데이트</th>
-                                <th>작업</th>
-                            </tr>
-                        </thead>
-                        <tbody id="points-table-body">
-                            <tr>
-                                <td colspan="6" style="text-align: center;">로딩 중...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- 저장공간 관리 섹션 -->
-            <div id="storage-section" class="admin-section">
-                <!-- 저장공간 개요 -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">💾</div>
-                        <div class="stat-number" id="total-storage-users">0</div>
-                        <div class="stat-label">총 사용자</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-number" id="total-storage-quota">0</div>
-                        <div class="stat-label">총 할당량 (MB)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">💿</div>
-                        <div class="stat-number" id="total-storage-used">0</div>
-                        <div class="stat-label">총 사용량 (MB)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">⚠️</div>
-                        <div class="stat-number" id="critical-storage-users">0</div>
-                        <div class="stat-label">저장공간 부족</div>
-                    </div>
-                </div>
-
-                <!-- 저장공간 관리 도구 -->
-                <div class="data-table">
-                    <h3>🔧 저장공간 관리 도구</h3>
-                    <div style="margin-bottom: 20px;">
-                        <button class="action-btn" onclick="refreshStorageData()">🔄 새로고침</button>
-                        <button class="action-btn" onclick="exportStorageData()">📥 내보내기</button>
-                        <button class="action-btn" onclick="showStorageUpgradeModal()">⬆️ 일괄 업그레이드</button>
-                    </div>
-                </div>
-
-                <!-- 사용자별 저장공간 정보 -->
-                <div class="data-table">
-                    <h3>👥 사용자별 저장공간 정보</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>사용자 ID</th>
-                                <th>이메일</th>
-                                <th>총 할당량 (MB)</th>
-                                <th>사용량 (MB)</th>
-                                <th>사용률 (%)</th>
+                                <th>시작 시간</th>
+                                <th>마지막 활동</th>
+                                <th>메시지 수</th>
                                 <th>상태</th>
                                 <th>작업</th>
                             </tr>
                         </thead>
-                        <tbody id="storage-users-table-body">
-                            <tr>
-                                <td colspan="7" style="text-align: center;">로딩 중...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- 저장공간 부족 사용자 -->
-                <div class="data-table">
-                    <h3>⚠️ 저장공간 부족 사용자</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>사용자 ID</th>
-                                <th>이메일</th>
-                                <th>사용률 (%)</th>
-                                <th>부족량 (MB)</th>
-                                <th>권장 조치</th>
-                                <th>작업</th>
-                            </tr>
-                        </thead>
-                        <tbody id="critical-storage-table-body">
-                            <tr>
-                                <td colspan="6" style="text-align: center;">로딩 중...</td>
-                            </tr>
+                        <tbody id="sessionsTableBody">
+                            <!-- 세션 데이터가 여기에 동적으로 추가됩니다 -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 학습 관리 섹션 -->
-            <div id="learning-section" class="admin-section">
-                <div class="learning-tabs">
-                    <button class="learning-tab-btn active" onclick="showLearningTab('auto')">🤖 자동 학습</button>
-                    <button class="learning-tab-btn" onclick="showLearningTab('attach')">📎 첨부 학습</button>
-                </div>
+            <!-- 시스템 상태 섹션 -->
+            <div id="system" class="section">
+                <h2>시스템 상태</h2>
 
-                <!-- 자동 학습 탭 -->
-                <div id="auto-learning-tab" class="learning-tab-content active">
-                    <div class="learning-panel">
-                        <h3>🤖 자동 학습</h3>
-                        <div class="file-upload-area">
-                            <input type="file" id="auto-learning-files" multiple
-                                accept=".txt,.md,.docx,.py,.xlsx,.xls,.pdf" style="display: none;">
-                            <button class="upload-btn" onclick="document.getElementById('auto-learning-files').click()">
-                                📂 학습할 문서 등록
-                            </button>
-                            <div id="auto-file-list" class="file-list"></div>
+                <div class="server-status">
+                    <h3>서버 상태</h3>
+                    <div class="status-item">
+                        <div>
+                            <span class="status-indicator status-online"></span>
+                            <span class="status-text">웹 서버</span>
                         </div>
-                        <div class="learning-controls">
-                            <button class="start-btn" onclick="startAutoLearning()">🧠 자동 학습 시작</button>
-                            <button class="stop-btn" onclick="stopAutoLearning()" disabled>⏹️ 중지</button>
+                        <span>정상 작동</span>
+                    </div>
+                    <div class="status-item">
+                        <div>
+                            <span class="status-indicator status-online"></span>
+                            <span class="status-text">데이터베이스</span>
                         </div>
-                        <div class="learning-log">
-                            <h4>📋 학습 로그</h4>
-                            <div id="auto-learning-log" class="log-content"></div>
+                        <span>연결됨</span>
+                    </div>
+                    <div class="status-item">
+                        <div>
+                            <span class="status-indicator status-online"></span>
+                            <span class="status-text">AI 모델</span>
                         </div>
+                        <span>준비됨</span>
+                    </div>
+                    <div class="status-item">
+                        <div>
+                            <span class="status-indicator status-warning"></span>
+                            <span class="status-text">메모리 사용량</span>
+                        </div>
+                        <span>75%</span>
                     </div>
                 </div>
 
-                <!-- 첨부 학습 탭 -->
-                <div id="attach-learning-tab" class="learning-tab-content">
-                    <div class="learning-panel">
-                        <h3>📎 첨부 학습</h3>
-                        <div class="file-upload-area">
-                            <input type="file" id="attach-learning-files" multiple accept=".txt,.md,.docx"
-                                style="display: none;">
-                            <button class="upload-btn"
-                                onclick="document.getElementById('attach-learning-files').click()">
-                                📂 대화 문서 등록
-                            </button>
-                            <div id="attach-file-list" class="file-list"></div>
-                        </div>
-                        <div class="learning-controls">
-                            <button class="start-btn" onclick="startAttachLearning()">🚀 대화 학습 시작</button>
-                            <button class="stop-btn" onclick="stopAttachLearning()" disabled>⏹️ 중지</button>
-                        </div>
-                        <div class="learning-log">
-                            <h4>📋 학습 로그</h4>
-                            <div id="attach-learning-log" class="log-content"></div>
-                        </div>
-                        <div class="learning-memo">
-                            <h4>📝 메모</h4>
-                            <div id="attach-learning-memo" class="memo-content"></div>
-                        </div>
+                <div class="chart-container">
+                    <h3>시스템 리소스 사용량</h3>
+                    <div class="chart-placeholder">
+                        리소스 사용량 차트가 여기에 표시됩니다
                     </div>
                 </div>
             </div>
 
-            <!-- 시스템 섹션 -->
-            <div id="system-section" class="admin-section">
-                <div class="data-table">
-                    <h3>⚙️ 시스템 상태</h3>
-                    <table>
+            <!-- 로그 섹션 -->
+            <div id="logs" class="section">
+                <h2>시스템 로그</h2>
+
+                <div class="filter-container">
+                    <select class="filter-select" id="logLevelFilter">
+                        <option value="">모든 레벨</option>
+                        <option value="ERROR">오류</option>
+                        <option value="WARNING">경고</option>
+                        <option value="INFO">정보</option>
+                        <option value="DEBUG">디버그</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="refreshLogs()">새로고침</button>
+                    <button class="btn btn-secondary" onclick="exportLogs()">내보내기</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="admin-table" id="logsTable">
                         <thead>
                             <tr>
-                                <th>항목</th>
-                                <th>상태</th>
-                                <th>설명</th>
+                                <th>시간</th>
+                                <th>레벨</th>
+                                <th>모듈</th>
+                                <th>메시지</th>
+                                <th>사용자</th>
                             </tr>
                         </thead>
-                        <tbody id="system-table-body">
-                            <tr>
-                                <td>MongoDB 연결</td>
-                                <td id="mongodb-status">확인 중...</td>
-                                <td>데이터베이스 연결 상태</td>
-                            </tr>
-                            <tr>
-                                <td>GPT-4o API</td>
-                                <td id="gpt-status">확인 중...</td>
-                                <td>OpenAI API 연결 상태</td>
-                            </tr>
-                            <tr>
-                                <td>서버 상태</td>
-                                <td id="server-status">확인 중...</td>
-                                <td>웹 서버 상태</td>
-                            </tr>
+                        <tbody id="logsTableBody">
+                            <!-- 로그 데이터가 여기에 동적으로 추가됩니다 -->
                         </tbody>
                     </table>
                 </div>
@@ -988,48 +853,68 @@
         </div>
     </div>
 
+    <!-- 사용자 추가/편집 모달 -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="userModalTitle">사용자 추가</h3>
+                <span class="close" onclick="closeUserModal()">&times;</span>
+            </div>
+            <form id="userForm">
+                <div class="form-group">
+                    <label for="userName">이름</label>
+                    <input type="text" id="userName" required>
+                </div>
+                <div class="form-group">
+                    <label for="userEmail">이메일</label>
+                    <input type="email" id="userEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="userPassword">비밀번호</label>
+                    <input type="password" id="userPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="userRole">역할</label>
+                    <select id="userRole" required>
+                        <option value="user">사용자</option>
+                        <option value="admin">관리자</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="userStatus">상태</label>
+                    <select id="userStatus" required>
+                        <option value="active">활성</option>
+                        <option value="inactive">비활성</option>
+                        <option value="pending">대기</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeUserModal()">취소</button>
+                    <button type="submit" class="btn btn-primary">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // 권한 검증
-        async function checkAdminPermission() {
-            try {
-                const token = localStorage.getItem('access_token');
-                if (!token) {
-                    window.location.href = '/login';
-                    return false;
-                }
+        // 전역 변수
+        let currentSection = 'overview';
+        let users = [];
+        let sessions = [];
+        let logs = [];
 
-                const response = await fetch('/api/user/info', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function () {
+            loadOverviewData();
+            loadUsers();
+            loadSessions();
+            loadLogs();
+        });
 
-                if (response.ok) {
-                    const userData = await response.json();
-                    document.getElementById('user-email').textContent = userData.email;
-
-                    if (!userData.is_admin) {
-                        alert('관리자 권한이 필요합니다.');
-                        window.location.href = '/dashboard';
-                        return false;
-                    }
-                    return true;
-                } else {
-                    localStorage.removeItem('access_token');
-                    window.location.href = '/login';
-                    return false;
-                }
-            } catch (error) {
-                console.error('권한 검증 오류:', error);
-                window.location.href = '/login';
-                return false;
-            }
-        }
-
-        // 섹션 전환
+        // 섹션 표시
         function showSection(sectionName) {
             // 모든 섹션 숨기기
-            document.querySelectorAll('.admin-section').forEach(section => {
+            document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
             });
 
@@ -1038,954 +923,336 @@
                 btn.classList.remove('active');
             });
 
-            // 선택된 섹션과 버튼 활성화
-            document.getElementById(`${sectionName}-section`).classList.add('active');
-            event.target.classList.add('active');
+            // 선택된 섹션 표시
+            document.getElementById(sectionName).classList.add('active');
 
-            // 섹션별 데이터 로드
-            switch (sectionName) {
-                case 'overview':
-                    loadOverview();
-                    break;
-                case 'users':
-                    loadUsers();
-                    break;
-                case 'points':
-                    loadPoints();
-                    break;
-                case 'storage':
-                    loadStorageStatus();
-                    break;
-                case 'prompts':
-                    loadPrompts();
-                    break;
-                case 'system':
-                    loadSystemStatus();
-                    break;
-            }
+            // 선택된 네비게이션 버튼 활성화
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.textContent.includes(getSectionTitle(sectionName))) {
+                    btn.classList.add('active');
+                }
+            });
+
+            currentSection = sectionName;
+        }
+
+        // 섹션 제목 가져오기
+        function getSectionTitle(sectionName) {
+            const titles = {
+                'overview': '개요',
+                'users': '사용자 관리',
+                'sessions': '세션 관리',
+                'system': '시스템 상태',
+                'logs': '로그'
+            };
+            return titles[sectionName] || sectionName;
         }
 
         // 개요 데이터 로드
-        async function loadOverview() {
+        async function loadOverviewData() {
             try {
-                const token = localStorage.getItem('auth_token');
-                const response = await fetch('/api/admin/overview', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
+                const response = await fetch('/api/admin/stats');
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('total-users').textContent = data.total_users || 0;
-                    document.getElementById('total-points').textContent = data.total_points || 0;
-                    document.getElementById('total-conversations').textContent = data.total_conversations || 0;
-                    document.getElementById('active-users').textContent = data.active_users || 0;
+                    document.getElementById('totalUsers').textContent = data.totalUsers || 0;
+                    document.getElementById('totalSessions').textContent = data.totalSessions || 0;
+                    document.getElementById('totalMessages').textContent = data.totalMessages || 0;
+                    document.getElementById('activeUsers').textContent = data.activeUsers || 0;
                 }
             } catch (error) {
-                console.error('개요 로드 오류:', error);
+                console.error('개요 데이터 로드 오류:', error);
             }
         }
 
         // 사용자 목록 로드
         async function loadUsers() {
             try {
-                const token = localStorage.getItem('auth_token');
-                const response = await fetch('/api/admin/users', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
+                const response = await fetch('/api/admin/users');
                 if (response.ok) {
-                    const users = await response.json();
-                    const tbody = document.getElementById('users-table-body');
-
-                    if (users.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">사용자가 없습니다.</td></tr>';
-                    } else {
-                        tbody.innerHTML = users.map(user => `
-                            <tr>
-                                <td>${user.name}</td>
-                                <td>${user.email}</td>
-                                <td>${new Date(user.created_at).toLocaleDateString()}</td>
-                                <td>${user.last_login ? new Date(user.last_login).toLocaleDateString() : '없음'}</td>
-                                <td>${user.status}</td>
-                                <td>${user.points || 0}</td>
-                                <td>
-                                    <button class="action-btn" onclick="editUser('${user.user_id}')">수정</button>
-                                    <button class="action-btn danger" onclick="deleteUser('${user.user_id}')">삭제</button>
-                                </td>
-                            </tr>
-                        `).join('');
-                    }
+                    users = await response.json();
+                    displayUsers();
                 }
             } catch (error) {
-                console.error('사용자 목록 로드 오류:', error);
+                console.error('사용자 로드 오류:', error);
             }
         }
 
-        // 포인트 현황 로드
-        async function loadPoints() {
-            try {
-                const token = localStorage.getItem('auth_token');
-                const response = await fetch('/api/admin/points', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const points = await response.json();
-                    const tbody = document.getElementById('points-table-body');
-
-                    if (points.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">포인트 데이터가 없습니다.</td></tr>';
-                    } else {
-                        tbody.innerHTML = points.map(point => `
-                            <tr>
-                                <td>${point.user_name}</td>
-                                <td>${point.current_points}</td>
-                                <td>${point.total_earned}</td>
-                                <td>${point.total_spent}</td>
-                                <td>${new Date(point.last_updated).toLocaleDateString()}</td>
-                                <td>
-                                    <button class="action-btn" onclick="adjustPoints('${point.user_id}')">조정</button>
-                                </td>
-                            </tr>
-                        `).join('');
-                    }
-                }
-            } catch (error) {
-                console.error('포인트 현황 로드 오류:', error);
-            }
-        }
-
-        // 저장공간 상태 로드
-        async function loadStorageStatus() {
-            try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/admin/storage', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        // 개요 정보 업데이트
-                        document.getElementById('total-storage-users').textContent = data.overview.total_users || 0;
-                        document.getElementById('total-storage-quota').textContent = data.overview.total_quota_mb || 0;
-                        document.getElementById('total-storage-used').textContent = data.overview.total_used_mb || 0;
-                        document.getElementById('critical-storage-users').textContent = data.overview.critical_users_count || 0;
-
-                        // 사용자별 저장공간 정보 표시
-                        displayStorageUsers(data.users_storage || []);
-
-                        // 저장공간 부족 사용자 표시
-                        displayCriticalUsers(data.critical_users || []);
-                    }
-                }
-            } catch (error) {
-                console.error('저장공간 상태 로드 오류:', error);
-            }
-        }
-
-        // 사용자별 저장공간 정보 표시
-        function displayStorageUsers(users) {
-            const tbody = document.getElementById('storage-users-table-body');
+        // 사용자 목록 표시
+        function displayUsers() {
+            const tbody = document.getElementById('usersTableBody');
             tbody.innerHTML = '';
-
-            if (users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">사용자 데이터가 없습니다.</td></tr>';
-                return;
-            }
 
             users.forEach(user => {
                 const row = document.createElement('tr');
-                const usagePercentage = user.usage_percentage || 0;
-                const status = getStorageStatus(usagePercentage);
-
                 row.innerHTML = `
-                    <td>${user.user_id}</td>
-                    <td>${user.email || 'N/A'}</td>
-                    <td>${user.total_quota_mb || 500}</td>
-                    <td>${user.used_mb || 0}</td>
-                    <td>${usagePercentage.toFixed(1)}%</td>
-                    <td>${status}</td>
+                    <td>${user.id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
                     <td>
-                        <button class="action-btn" onclick="upgradeUserStorage('${user.user_id}')">⬆️ 업그레이드</button>
-                        <button class="action-btn" onclick="resetUserStorage('${user.user_id}')">🔄 초기화</button>
-                                </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        // 저장공간 부족 사용자 표시
-        function displayCriticalUsers(users) {
-            const tbody = document.getElementById('critical-storage-table-body');
-            tbody.innerHTML = '';
-
-            if (users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">저장공간 부족 사용자가 없습니다.</td></tr>';
-                return;
-            }
-
-            users.forEach(user => {
-                const row = document.createElement('tr');
-                const usagePercentage = user.usage_percentage || 0;
-                const shortage = Math.max(0, (user.used_mb || 0) - (user.total_quota_mb || 500));
-                const recommendation = getStorageRecommendation(usagePercentage);
-
-                row.innerHTML = `
-                    <td>${user.user_id}</td>
-                    <td>${user.email || 'N/A'}</td>
-                    <td>${usagePercentage.toFixed(1)}%</td>
-                    <td>${shortage.toFixed(1)} MB</td>
-                    <td>${recommendation}</td>
+                        <span class="user-status status-${user.status}"></span>
+                        ${user.status}
+                    </td>
+                    <td>${formatDate(user.created_at)}</td>
+                    <td>${formatDate(user.last_login)}</td>
                     <td>
-                        <button class="action-btn" onclick="upgradeUserStorage('${user.user_id}', ${shortage + 100})">⬆️ 긴급 업그레이드</button>
+                        <button class="action-btn btn-edit" onclick="editUser('${user.id}')">편집</button>
+                        <button class="action-btn btn-delete" onclick="deleteUser('${user.id}')">삭제</button>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
         }
 
-        // 저장공간 상태 반환
-        function getStorageStatus(usagePercentage) {
-            if (usagePercentage >= 95) return '<span style="color: red; font-weight: bold;">⚠️ 위험</span>';
-            if (usagePercentage >= 80) return '<span style="color: orange; font-weight: bold;">⚠️ 주의</span>';
-            if (usagePercentage >= 50) return '<span style="color: blue;">📊 보통</span>';
-            return '<span style="color: green;">✅ 정상</span>';
-        }
-
-        // 저장공간 권장사항 반환
-        function getStorageRecommendation(usagePercentage) {
-            if (usagePercentage >= 95) return '즉시 저장공간 확장 필요';
-            if (usagePercentage >= 80) return '저장공간 확장 권장';
-            if (usagePercentage >= 50) return '사용량 모니터링';
-            return '정상 범위';
-        }
-
-        // 사용자 저장공간 업그레이드
-        async function upgradeUserStorage(userId, amount = 100) {
-            const upgradeAmount = amount || prompt('추가할 저장공간을 MB 단위로 입력하세요 (기본: 100MB):', '100');
-            if (!upgradeAmount) return;
-
+        // 세션 목록 로드
+        async function loadSessions() {
             try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/admin/storage/manage', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        action: 'upgrade',
-                        user_id: userId,
-                        amount_mb: parseInt(upgradeAmount)
-                    })
-                });
-
+                const response = await fetch('/api/admin/sessions');
                 if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        alert(data.message);
-                        loadStorageStatus(); // 저장공간 정보 새로고침
-                    } else {
-                        alert(data.error || '업그레이드에 실패했습니다.');
-                    }
+                    sessions = await response.json();
+                    displaySessions();
                 }
             } catch (error) {
-                console.error('사용자 저장공간 업그레이드 실패:', error);
-                alert('업그레이드 중 오류가 발생했습니다.');
+                console.error('세션 로드 오류:', error);
             }
         }
 
-        // 사용자 저장공간 초기화
-        async function resetUserStorage(userId) {
-            if (!confirm(`사용자 ${userId}의 저장공간을 초기화하시겠습니까?`)) return;
+        // 세션 목록 표시
+        function displaySessions() {
+            const tbody = document.getElementById('sessionsTableBody');
+            tbody.innerHTML = '';
 
+            sessions.forEach(session => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="checkbox" value="${session.id}"></td>
+                    <td>${session.id}</td>
+                    <td>${session.user_id}</td>
+                    <td>${formatDate(session.created_at)}</td>
+                    <td>${formatDate(session.last_activity)}</td>
+                    <td>${session.message_count || 0}</td>
+                    <td>${session.status}</td>
+                    <td>
+                        <button class="action-btn btn-edit" onclick="viewSession('${session.id}')">보기</button>
+                        <button class="action-btn btn-delete" onclick="deleteSession('${session.id}')">삭제</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 로그 목록 로드
+        async function loadLogs() {
             try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/admin/storage/manage', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        action: 'reset',
-                        user_id: userId
-                    })
-                });
-
+                const response = await fetch('/api/admin/logs');
                 if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        alert(data.message);
-                        loadStorageStatus(); // 저장공간 정보 새로고침
-                    } else {
-                        alert(data.error || '초기화에 실패했습니다.');
-                    }
+                    logs = await response.json();
+                    displayLogs();
                 }
             } catch (error) {
-                console.error('사용자 저장공간 초기화 실패:', error);
-                alert('초기화 중 오류가 발생했습니다.');
+                console.error('로그 로드 오류:', error);
             }
         }
 
-        // 시스템 상태 로드
-        async function loadSystemStatus() {
-            try {
-                const token = localStorage.getItem('auth_token');
-                const response = await fetch('/api/admin/system', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+        // 로그 목록 표시
+        function displayLogs() {
+            const tbody = document.getElementById('logsTableBody');
+            tbody.innerHTML = '';
 
-                if (response.ok) {
-                    const system = await response.json();
-                    document.getElementById('mongodb-status').textContent = system.mongodb_status;
-                    document.getElementById('gpt-status').textContent = system.gpt_status;
-                    document.getElementById('server-status').textContent = system.server_status;
-                }
-            } catch (error) {
-                console.error('시스템 상태 로드 오류:', error);
-            }
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatDate(log.timestamp)}</td>
+                    <td>${log.level}</td>
+                    <td>${log.module}</td>
+                    <td>${log.message}</td>
+                    <td>${log.user_id || '-'}</td>
+                `;
+                tbody.appendChild(row);
+            });
         }
 
-        // 뒤로가기
-        function goBack() {
-            window.location.href = '/dashboard';
-        }
-
-        // 홈으로 가기
-        function goHome() {
-            window.location.href = '/';
+        // 사용자 추가
+        function addUser() {
+            document.getElementById('userModalTitle').textContent = '사용자 추가';
+            document.getElementById('userForm').reset();
+            document.getElementById('userModal').style.display = 'block';
         }
 
         // 사용자 편집
         function editUser(userId) {
-            alert(`사용자 ${userId} 편집 기능이 곧 추가됩니다!`);
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                document.getElementById('userModalTitle').textContent = '사용자 편집';
+                document.getElementById('userName').value = user.name;
+                document.getElementById('userEmail').value = user.email;
+                document.getElementById('userRole').value = user.role;
+                document.getElementById('userStatus').value = user.status;
+                document.getElementById('userModal').style.display = 'block';
+            }
         }
 
         // 사용자 삭제
-        function deleteUser(userId) {
+        async function deleteUser(userId) {
             if (confirm('정말로 이 사용자를 삭제하시겠습니까?')) {
-                alert(`사용자 ${userId} 삭제 기능이 곧 추가됩니다!`);
-            }
-        }
-
-        // 포인트 조정
-        function adjustPoints(userId) {
-            alert(`사용자 ${userId} 포인트 조정 기능이 곧 추가됩니다!`);
-        }
-
-        // 학습 탭 전환
-        function showLearningTab(tabName) {
-            // 모든 학습 탭 숨기기
-            document.querySelectorAll('.learning-tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-
-            // 모든 학습 탭 버튼 비활성화
-            document.querySelectorAll('.learning-tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            // 선택된 탭과 버튼 활성화
-            document.getElementById(`${tabName}-learning-tab`).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        // 파일 업로드 처리
-        let autoLearningFiles = [];
-        let attachLearningFiles = [];
-        let autoLearningRunning = false;
-        let attachLearningRunning = false;
-
-        // 자동 학습 파일 업로드
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('auto-learning-files').addEventListener('change', function (e) {
-                const files = Array.from(e.target.files);
-                autoLearningFiles = files;
-                updateFileList('auto-file-list', files);
-            });
-
-            // 첨부 학습 파일 업로드
-            document.getElementById('attach-learning-files').addEventListener('change', function (e) {
-                const files = Array.from(e.target.files);
-                attachLearningFiles = files;
-                updateFileList('attach-file-list', files);
-            });
-        });
-
-        // 파일 목록 업데이트
-        function updateFileList(containerId, files) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-
-            files.forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.innerHTML = `
-                    <span class="file-name">${file.name}</span>
-                    <button class="remove-file" onclick="removeFile('${containerId}', ${index})">❌</button>
-                `;
-                container.appendChild(fileItem);
-            });
-        }
-
-        // 파일 제거
-        function removeFile(containerId, index) {
-            if (containerId === 'auto-file-list') {
-                autoLearningFiles.splice(index, 1);
-                updateFileList(containerId, autoLearningFiles);
-            } else {
-                attachLearningFiles.splice(index, 1);
-                updateFileList(containerId, attachLearningFiles);
-            }
-        }
-
-        // 자동 학습 시작
-        async function startAutoLearning() {
-            if (autoLearningFiles.length === 0) {
-                alert('학습할 파일을 선택해주세요.');
-                return;
-            }
-
-            autoLearningRunning = true;
-            document.querySelector('#auto-learning-tab .start-btn').disabled = true;
-            document.querySelector('#auto-learning-tab .stop-btn').disabled = false;
-
-            const logContainer = document.getElementById('auto-learning-log');
-            logContainer.textContent = '🚀 자동 학습을 시작합니다...\n';
-
-            try {
-                const formData = new FormData();
-                autoLearningFiles.forEach(file => {
-                    formData.append('files', file);
-                });
-
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/admin/auto-learning', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    logContainer.textContent += result.message + '\n';
-                } else {
-                    const error = await response.json();
-                    logContainer.textContent += `❌ 오류: ${error.detail}\n`;
-                }
-            } catch (error) {
-                logContainer.textContent += `❌ 오류: ${error.message}\n`;
-            } finally {
-                autoLearningRunning = false;
-                document.querySelector('#auto-learning-tab .start-btn').disabled = false;
-                document.querySelector('#auto-learning-tab .stop-btn').disabled = true;
-            }
-        }
-
-        // 자동 학습 중지
-        function stopAutoLearning() {
-            autoLearningRunning = false;
-            document.querySelector('#auto-learning-tab .start-btn').disabled = false;
-            document.querySelector('#auto-learning-tab .stop-btn').disabled = true;
-            document.getElementById('auto-learning-log').textContent += '⏹️ 자동 학습이 중지되었습니다.\n';
-        }
-
-        // 첨부 학습 시작
-        async function startAttachLearning() {
-            if (attachLearningFiles.length === 0) {
-                alert('대화 문서를 선택해주세요.');
-                return;
-            }
-
-            attachLearningRunning = true;
-            document.querySelector('#attach-learning-tab .start-btn').disabled = true;
-            document.querySelector('#attach-learning-tab .stop-btn').disabled = false;
-
-            const logContainer = document.getElementById('attach-learning-log');
-            const memoContainer = document.getElementById('attach-learning-memo');
-            logContainer.textContent = '🚀 첨부 학습을 시작합니다...\n';
-            memoContainer.textContent = '';
-
-            try {
-                const formData = new FormData();
-                attachLearningFiles.forEach(file => {
-                    formData.append('files', file);
-                });
-
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/admin/attach-learning', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    logContainer.textContent += result.message + '\n';
-                    if (result.memo) {
-                        memoContainer.textContent += result.memo + '\n';
-                    }
-                } else {
-                    const error = await response.json();
-                    logContainer.textContent += `❌ 오류: ${error.detail}\n`;
-                }
-            } catch (error) {
-                logContainer.textContent += `❌ 오류: ${error.message}\n`;
-            } finally {
-                attachLearningRunning = false;
-                document.querySelector('#attach-learning-tab .start-btn').disabled = false;
-                document.querySelector('#attach-learning-tab .stop-btn').disabled = true;
-            }
-        }
-
-        // 첨부 학습 중지
-        function stopAttachLearning() {
-            attachLearningRunning = false;
-            document.querySelector('#attach-learning-tab .start-btn').disabled = false;
-            document.querySelector('#attach-learning-tab .stop-btn').disabled = true;
-            document.getElementById('attach-learning-log').textContent += '⏹️ 첨부 학습이 중지되었습니다.\n';
-        }
-
-        // 저장공간 데이터 새로고침
-        async function refreshStorageData() {
-            try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/admin/storage', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const storage = await response.json();
-                    document.getElementById('total-storage-users').textContent = storage.total_users || 0;
-                    document.getElementById('total-storage-quota').textContent = `${storage.total_quota_mb} MB`;
-                    document.getElementById('total-storage-used').textContent = `${storage.total_used_mb} MB`;
-                    document.getElementById('critical-storage-users').textContent = storage.critical_users || 0;
-                } else {
-                    alert('저장공간 데이터를 새로고침하는데 실패했습니다.');
-                }
-            } catch (error) {
-                console.error('저장공간 데이터 새로고침 오류:', error);
-            }
-        }
-
-        // 저장공간 데이터 내보내기
-        async function exportStorageData() {
-            try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/admin/storage/export', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'storage_usage.csv'; // 파일 이름 지정
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    alert('저장공간 사용량 데이터가 내보내졌습니다.');
-                } else {
-                    const error = await response.json();
-                    alert(`저장공간 데이터 내보내기 실패: ${error.detail}`);
-                }
-            } catch (error) {
-                console.error('저장공간 데이터 내보내기 오류:', error);
-            }
-        }
-
-        // 저장공간 업그레이드 모달 표시
-        function showStorageUpgradeModal() {
-            alert('저장공간 업그레이드 기능은 곧 추가됩니다!');
-        }
-
-        // 프롬프트 관리 함수들
-        let allPrompts = [];
-        let selectedAI = null;
-        let selectedCategory = null;
-
-        // 프롬프트 목록 로드
-        async function loadPrompts() {
-            try {
-                const response = await fetch('/api/prompts');
-                if (response.ok) {
-                    allPrompts = await response.json();
-                    renderTreeCategories();
-                } else {
-                    console.error('프롬프트 로드 실패:', response.status);
-                    document.getElementById('prompt-content').innerHTML =
-                        '<p style="text-align: center; color: #666;">프롬프트를 불러오는데 실패했습니다.</p>';
-                }
-            } catch (e) {
-                console.error('프롬프트 로드 오류:', e);
-                document.getElementById('prompt-content').innerHTML =
-                    '<p style="text-align: center; color: #666;">프롬프트를 불러오는데 실패했습니다.</p>';
-            }
-        }
-
-        // 트리 카테고리 동적 생성
-        function renderTreeCategories() {
-            const aiList = ['ai1', 'ai2', 'ai3', 'ai4', 'ai5', 'ai6'];
-            aiList.forEach(ai => {
-                const categories = Array.from(new Set(
-                    allPrompts.filter(p => p.ai_name === ai).map(p => p.category)
-                ));
-                const ul = document.getElementById(`${ai}-categories`);
-                ul.innerHTML = '';
-                categories.forEach(cat => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<span class="category-label" onclick="selectCategory('${ai}','${cat}')">${cat}</span>`;
-                    ul.appendChild(li);
-                });
-            });
-        }
-
-        // AI 선택 시 카테고리 트리 표시
-        function selectAI(ai) {
-            selectedAI = ai;
-            selectedCategory = null;
-            document.querySelectorAll('.ai-label').forEach(el => el.classList.remove('selected'));
-            document.querySelector(`.ai-label[onclick="selectAI('${ai}')"]`).classList.add('selected');
-            document.querySelectorAll('.category-tree').forEach(ul => ul.style.display = 'none');
-            document.getElementById(`${ai}-categories`).style.display = 'block';
-            document.getElementById('prompt-list-header').innerHTML = `<h3 style='color:#007bff;'>${ai.toUpperCase()} 카테고리를 선택하세요</h3>`;
-            document.getElementById('prompt-list-content').innerHTML = '';
-        }
-
-        // 카테고리 선택 시 프롬프트 리스트 표시
-        function selectCategory(ai, cat) {
-            selectedAI = ai;
-            selectedCategory = cat;
-            document.querySelectorAll('.category-label').forEach(el => el.classList.remove('selected'));
-            document.querySelector(`.category-label[onclick="selectCategory('${ai}','${cat}')"]`).classList.add('selected');
-            renderPromptList(ai, cat);
-        }
-
-        // 프롬프트 리스트 렌더링
-        function renderPromptList(ai, cat) {
-            const prompts = allPrompts.filter(p => p.ai_name === ai && p.category === cat);
-            let html = `<div style='margin-bottom:10px;'>
-                <button class='action-btn' onclick='showAddPromptModal()'>➕ 새 프롬프트 추가</button>
-                <button class='action-btn' onclick='loadPrompts()'>🔄 새로고침</button>
-                <button class='action-btn' onclick='exportPrompts()'>📥 내보내기</button>
-                <button class='action-btn' onclick='importPrompts()'>📤 가져오기</button>
-            </div>`;
-            if (prompts.length === 0) {
-                html += `<div style='color:#888;'>프롬프트가 없습니다.</div>`;
-            } else {
-                html += `<table class='prompt-list-table'><thead><tr><th>이름</th><th>내용</th><th>작업</th></tr></thead><tbody>`;
-                prompts.forEach(prompt => {
-                    html += `<tr>
-                        <td>${prompt.name}</td>
-                        <td style='max-width:350px;white-space:pre-line;'>${prompt.content.length > 100 ? prompt.content.substring(0, 100) + '...' : prompt.content}</td>
-                        <td>
-                            <button class='action-btn' onclick='editPrompt("${prompt.id}")'>✏️ 수정</button>
-                            <button class='action-btn' onclick='viewPrompt("${prompt.id}")'>👁️ 보기</button>
-                            <button class='action-btn danger' onclick='deletePrompt("${prompt.id}")'>🗑️ 삭제</button>
-                        </td>
-                    </tr>`;
-                });
-                html += `</tbody></table>`;
-            }
-            document.getElementById('prompt-list-header').innerHTML = `<h3 style='color:#007bff;'>${ai.toUpperCase()} - ${cat} 프롬프트</h3>`;
-            document.getElementById('prompt-list-content').innerHTML = html;
-        }
-
-        // 새 프롬프트 추가 모달 표시
-        function showAddPromptModal() {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>새 프롬프트 추가</h3>
-                    <form id="add-prompt-form">
-                        <div class="form-group">
-                            <label>AI 선택:</label>
-                            <select name="ai_name" required>
-                                <option value="ai1">AI1 (이오라)</option>
-                                <option value="ai2">AI2 (API 설계)</option>
-                                <option value="ai3">AI3 (코드 리팩토링)</option>
-                                <option value="ai4">AI4 (테스트/QA)</option>
-                                <option value="ai5">AI5 (보안)</option>
-                                <option value="ai6">AI6 (문서화)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>카테고리:</label>
-                            <select name="category" required>
-                                <option value="system">시스템</option>
-                                <option value="role">역할</option>
-                                <option value="guide">가이드</option>
-                                <option value="format">포맷</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>이름:</label>
-                            <input type="text" name="name" required>
-                        </div>
-                        <div class="form-group">
-                            <label>설명:</label>
-                            <textarea name="description" rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>내용:</label>
-                            <textarea name="content" rows="10" required style="font-family: monospace;"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>태그 (쉼표로 구분):</label>
-                            <input type="text" name="tags" placeholder="ai1, system, guide">
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="action-btn">추가</button>
-                            <button type="button" class="action-btn" onclick="closeModal()">취소</button>
-                        </div>
-                    </form>
-                </div>
-            `;
-            document.body.appendChild(modal);
-
-            // 폼 제출 이벤트
-            document.getElementById('add-prompt-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const promptData = {
-                    name: formData.get('name'),
-                    category: formData.get('category'),
-                    content: formData.get('content'),
-                    description: formData.get('description'),
-                    tags: formData.get('tags').split(',').map(tag => tag.trim()).filter(tag => tag),
-                    ai_name: formData.get('ai_name')
-                };
-
                 try {
-                    const response = await fetch('/api/prompts', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(promptData)
+                    const response = await fetch(`/api/admin/users/${userId}`, {
+                        method: 'DELETE'
                     });
-
                     if (response.ok) {
-                        alert('프롬프트가 추가되었습니다.');
-                        closeModal();
-                        loadPrompts();
-                    } else {
-                        alert('프롬프트 추가에 실패했습니다.');
+                        loadUsers();
+                        showAlert('사용자가 삭제되었습니다.', 'success');
                     }
                 } catch (error) {
-                    console.error('프롬프트 추가 오류:', error);
-                    alert('프롬프트 추가 중 오류가 발생했습니다.');
+                    console.error('사용자 삭제 오류:', error);
+                    showAlert('사용자 삭제에 실패했습니다.', 'error');
                 }
-            });
+            }
         }
 
-        // 프롬프트 수정
-        async function editPrompt(promptId) {
-            const prompt = allPrompts.find(p => p.id === promptId);
-            if (!prompt) {
-                alert('프롬프트를 찾을 수 없습니다.');
-                return;
-            }
-
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>프롬프트 수정</h3>
-                    <form id="edit-prompt-form">
-                        <div class="form-group">
-                            <label>AI:</label>
-                            <input type="text" name="ai_name" value="${prompt.ai_name}" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>카테고리:</label>
-                            <input type="text" name="category" value="${prompt.category}" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>이름:</label>
-                            <input type="text" name="name" value="${prompt.name}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>설명:</label>
-                            <textarea name="description" rows="3">${prompt.description || ''}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>내용:</label>
-                            <textarea name="content" rows="15" required style="font-family: monospace;">${prompt.content}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>태그:</label>
-                            <input type="text" name="tags" value="${prompt.tags ? prompt.tags.join(', ') : ''}">
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="action-btn">수정</button>
-                            <button type="button" class="action-btn" onclick="closeModal()">취소</button>
-                        </div>
-                    </form>
-                </div>
-            `;
-            document.body.appendChild(modal);
-
-            // 폼 제출 이벤트
-            document.getElementById('edit-prompt-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const promptData = {
-                    name: formData.get('name'),
-                    category: formData.get('category'),
-                    content: formData.get('content'),
-                    description: formData.get('description'),
-                    tags: formData.get('tags').split(',').map(tag => tag.trim()).filter(tag => tag),
-                    ai_name: formData.get('ai_name')
-                };
-
+        // 세션 삭제
+        async function deleteSession(sessionId) {
+            if (confirm('정말로 이 세션을 삭제하시겠습니까?')) {
                 try {
-                    const response = await fetch(`/api/prompts/${promptId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(promptData)
+                    const response = await fetch(`/api/admin/sessions/${sessionId}`, {
+                        method: 'DELETE'
                     });
-
                     if (response.ok) {
-                        alert('프롬프트가 수정되었습니다.');
-                        closeModal();
-                        loadPrompts();
-                    } else {
-                        alert('프롬프트 수정에 실패했습니다.');
+                        loadSessions();
+                        showAlert('세션이 삭제되었습니다.', 'success');
                     }
                 } catch (error) {
-                    console.error('프롬프트 수정 오류:', error);
-                    alert('프롬프트 수정 중 오류가 발생했습니다.');
+                    console.error('세션 삭제 오류:', error);
+                    showAlert('세션 삭제에 실패했습니다.', 'error');
                 }
-            });
+            }
         }
 
-        // 프롬프트 상세보기
-        function viewPrompt(promptId) {
-            const prompt = allPrompts.find(p => p.id === promptId);
-            if (!prompt) {
-                alert('프롬프트를 찾을 수 없습니다.');
+        // 선택된 세션 삭제
+        async function deleteSelectedSessions() {
+            const checkboxes = document.querySelectorAll('#sessionsTableBody input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                showAlert('삭제할 세션을 선택해주세요.', 'warning');
                 return;
             }
 
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h3>프롬프트 상세보기</h3>
-                    <div class="prompt-details">
-                        <p><strong>AI:</strong> ${prompt.ai_name.toUpperCase()}</p>
-                        <p><strong>카테고리:</strong> ${prompt.category}</p>
-                        <p><strong>이름:</strong> ${prompt.name}</p>
-                        <p><strong>설명:</strong> ${prompt.description || '설명 없음'}</p>
-                        <p><strong>태그:</strong> ${prompt.tags ? prompt.tags.join(', ') : '없음'}</p>
-                        <div style="margin: 15px 0;">
-                            <strong>내용:</strong>
-                            <div style="background: #f8f9fa; border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin-top: 5px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px; white-space: pre-wrap; line-height: 1.4;">
-                                ${prompt.content}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button class="action-btn" onclick="editPrompt('${prompt.id}')">✏️ 수정</button>
-                        <button class="action-btn" onclick="closeModal()">닫기</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-
-        // 프롬프트 삭제
-        async function deletePrompt(promptId) {
-            if (!confirm('정말로 이 프롬프트를 삭제하시겠습니까?')) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/prompts/${promptId}`, {
-                    method: 'DELETE'
-                });
-
-                if (response.ok) {
-                    alert('프롬프트가 삭제되었습니다.');
-                    loadPrompts();
-                } else {
-                    alert('프롬프트 삭제에 실패했습니다.');
+            if (confirm(`${checkboxes.length}개의 세션을 삭제하시겠습니까?`)) {
+                for (const checkbox of checkboxes) {
+                    await deleteSession(checkbox.value);
                 }
-            } catch (error) {
-                console.error('프롬프트 삭제 오류:', error);
-                alert('프롬프트 삭제 중 오류가 발생했습니다.');
             }
         }
 
-        // 모달 닫기
-        function closeModal() {
-            const modal = document.querySelector('.modal');
-            if (modal) {
-                modal.remove();
-            }
+        // 로그 새로고침
+        function refreshLogs() {
+            loadLogs();
         }
 
-        // 프롬프트 내보내기
-        function exportPrompts() {
-            const dataStr = JSON.stringify(allPrompts, null, 2);
+        // 로그 내보내기
+        function exportLogs() {
+            const dataStr = JSON.stringify(logs, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'prompts_export.json';
+            link.download = `eora_logs_${new Date().toISOString().split('T')[0]}.json`;
             link.click();
             URL.revokeObjectURL(url);
         }
 
-        // 프롬프트 가져오기
-        function importPrompts() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    try {
-                        const text = await file.text();
-                        const prompts = JSON.parse(text);
-                        // 여기서 가져온 프롬프트를 처리하는 로직을 추가할 수 있습니다
-                        alert(`${prompts.length}개의 프롬프트를 가져왔습니다.`);
-                    } catch (error) {
-                        alert('파일을 읽는 중 오류가 발생했습니다.');
-                    }
-                }
-            };
-            input.click();
+        // 사용자 모달 닫기
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
         }
 
-        // 페이지 로드 시 초기화
-        document.addEventListener('DOMContentLoaded', async () => {
-            const hasPermission = await checkAdminPermission();
-            if (hasPermission) {
-                loadOverview();
+        // 사용자 폼 제출
+        document.getElementById('userForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('userName').value,
+                email: document.getElementById('userEmail').value,
+                password: document.getElementById('userPassword').value,
+                role: document.getElementById('userRole').value,
+                status: document.getElementById('userStatus').value
+            };
+
+            try {
+                const response = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    closeUserModal();
+                    loadUsers();
+                    showAlert('사용자가 저장되었습니다.', 'success');
+                } else {
+                    showAlert('사용자 저장에 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                console.error('사용자 저장 오류:', error);
+                showAlert('사용자 저장 중 오류가 발생했습니다.', 'error');
+            }
+        });
+
+        // 알림 표시
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+
+            const adminContent = document.querySelector('.admin-content');
+            adminContent.insertBefore(alertDiv, adminContent.firstChild);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('ko-KR');
+        }
+
+        // 검색 기능
+        document.getElementById('userSearch').addEventListener('input', function (e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTableBody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('sessionSearch').addEventListener('input', function (e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#sessionsTableBody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        // 전체 선택 체크박스
+        document.getElementById('selectAllSessions').addEventListener('change', function (e) {
+            const checkboxes = document.querySelectorAll('#sessionsTableBody input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
+        });
+
+        // 모달 외부 클릭 시 닫기
+        window.addEventListener('click', function (e) {
+            const modal = document.getElementById('userModal');
+            if (e.target === modal) {
+                closeUserModal();
             }
         });
     </script>
