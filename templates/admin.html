@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -65,7 +66,8 @@
             color: #333;
         }
 
-        .nav-btn:hover, .nav-btn.active {
+        .nav-btn:hover,
+        .nav-btn.active {
             background: #667eea;
             color: white;
             border-color: #667eea;
@@ -250,93 +252,81 @@
             background: #ffc107;
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 30px;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .close {
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            color: #aaa;
-        }
-
-        .close:hover {
-            color: #333;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
+        .status-text {
             font-weight: 600;
         }
 
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
+        .status-online .status-text {
+            color: #28a745;
         }
 
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
+        .status-offline .status-text {
+            color: #dc3545;
         }
 
-        .form-actions {
+        .status-warning .status-text {
+            color: #ffc107;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .chart-placeholder {
+            height: 300px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
             display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 18px;
         }
 
-        .btn-primary {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
         }
 
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+        .quick-action-btn {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
             cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .quick-action-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .quick-action-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .quick-action-desc {
+            font-size: 14px;
+            color: #666;
         }
 
         .alert {
@@ -357,451 +347,505 @@
             border: 1px solid #f5c6cb;
         }
 
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* 반응형 디자인 */
         @media (max-width: 768px) {
             .admin-container {
                 margin: 10px;
+                border-radius: 15px;
             }
-            
+
+            .admin-header {
+                padding: 20px;
+            }
+
+            .admin-header h1 {
+                font-size: 24px;
+            }
+
+            .admin-nav {
+                padding: 15px;
+                flex-direction: column;
+            }
+
+            .nav-btn {
+                text-align: center;
+            }
+
             .admin-content {
                 padding: 20px;
             }
-            
+
             .stats-grid {
                 grid-template-columns: 1fr;
             }
-            
-            .admin-nav {
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-container {
                 flex-direction: column;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+                padding: 20px;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+            }
+        }
+
+        /* 애니메이션 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section.active {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* 로딩 스피너 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 네비게이션 아이콘 */
+        .nav-icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        /* 사용자 상태 표시 */
+        .user-status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active {
+            background: #28a745;
+        }
+
+        .status-inactive {
+            background: #dc3545;
+        }
+
+        .status-pending {
+            background: #ffc107;
+        }
+
+        /* 테이블 반응형 */
+        @media (max-width: 600px) {
+            .admin-table {
+                font-size: 12px;
+            }
+
+            .admin-table th,
+            .admin-table td {
+                padding: 8px 4px;
+            }
+
+            .action-btn {
+                padding: 4px 8px;
+                font-size: 10px;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="admin-container">
         <div class="admin-header">
-            <h1>⚙️ EORA 관리자 대시보드</h1>
-            <p>시스템 관리 및 모니터링</p>
+            <h1>EORA AI 관리자 대시보드</h1>
+            <p>시스템 모니터링 및 관리</p>
         </div>
 
         <div class="admin-nav">
-            <button class="nav-btn active" onclick="showSection('overview')">📊 개요</button>
-            <button class="nav-btn" onclick="showSection('users')">👥 회원관리</button>
-            <button class="nav-btn" onclick="showSection('points')">💰 포인트관리</button>
-            <button class="nav-btn" onclick="showSection('repository')">📚 저장소관리</button>
-            <button class="nav-btn" onclick="showSection('auto-learning')">🤖 자동학습</button>
-            <button class="nav-btn" onclick="showSection('attachment-learning')">📎 첨부학습</button>
-            <button class="nav-btn" onclick="showSection('system')">🔧 시스템상태</button>
-            <button class="nav-btn" onclick="showSection('logs')">📝 로그</button>
-            <a href="/" class="nav-btn">🏠 홈</a>
-            <button class="nav-btn" onclick="logout()">🚪 로그아웃</button>
+            <button class="nav-btn active" onclick="showSection('overview')">
+                <span class="nav-icon">📊</span>개요
+            </button>
+            <button class="nav-btn" onclick="showSection('users')">
+                <span class="nav-icon">👥</span>사용자 관리
+            </button>
+            <button class="nav-btn" onclick="showSection('sessions')">
+                <span class="nav-icon">💬</span>세션 관리
+            </button>
+            <button class="nav-btn" onclick="showSection('system')">
+                <span class="nav-icon">⚙️</span>시스템 상태
+            </button>
+            <button class="nav-btn" onclick="showSection('logs')">
+                <span class="nav-icon">📝</span>로그
+            </button>
+            <a href="/point-management" class="nav-btn">
+                <span class="nav-icon">💰</span>포인트 관리
+            </a>
+            <a href="/storage-management" class="nav-btn">
+                <span class="nav-icon">💾</span>저장소 관리
+            </a>
+            <a href="/prompt-management" class="nav-btn">
+                <span class="nav-icon">🤖</span>프롬프트 관리
+            </a>
         </div>
 
         <div class="admin-content">
             <!-- 개요 섹션 -->
             <div id="overview" class="section active">
-                <h2>📊 시스템 개요</h2>
+                <h2>시스템 개요</h2>
+
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon">👥</div>
-                        <div class="stat-number" id="total-users">0</div>
+                        <div class="stat-number" id="totalUsers">0</div>
                         <div class="stat-label">총 사용자</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">💬</div>
-                        <div class="stat-number" id="total-conversations">0</div>
-                        <div class="stat-label">총 대화</div>
+                        <div class="stat-number" id="totalSessions">0</div>
+                        <div class="stat-label">총 세션</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">💰</div>
-                        <div class="stat-number" id="total-points">0</div>
-                        <div class="stat-label">총 포인트</div>
+                        <div class="stat-icon">📝</div>
+                        <div class="stat-number" id="totalMessages">0</div>
+                        <div class="stat-label">총 메시지</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">🔄</div>
-                        <div class="stat-number" id="active-sessions">0</div>
-                        <div class="stat-label">활성 세션</div>
+                        <div class="stat-icon">🚀</div>
+                        <div class="stat-number" id="activeUsers">0</div>
+                        <div class="stat-label">활성 사용자</div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <div class="quick-action-btn" onclick="showSection('users')">
+                        <span class="quick-action-icon">👥</span>
+                        <div class="quick-action-title">사용자 관리</div>
+                        <div class="quick-action-desc">사용자 계정 및 권한 관리</div>
+                    </div>
+                    <div class="quick-action-btn" onclick="showSection('sessions')">
+                        <span class="quick-action-icon">💬</span>
+                        <div class="quick-action-title">세션 관리</div>
+                        <div class="quick-action-desc">채팅 세션 및 대화 기록 관리</div>
+                    </div>
+                    <div class="quick-action-btn" onclick="showSection('system')">
+                        <span class="quick-action-icon">⚙️</span>
+                        <div class="quick-action-title">시스템 상태</div>
+                        <div class="quick-action-desc">서버 및 데이터베이스 상태 확인</div>
+                    </div>
+                    <div class="quick-action-btn" onclick="showSection('logs')">
+                        <span class="quick-action-icon">📝</span>
+                        <div class="quick-action-title">시스템 로그</div>
+                        <div class="quick-action-desc">오류 및 활동 로그 확인</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>사용자 활동 통계</h3>
+                    <div class="chart-placeholder">
+                        차트가 여기에 표시됩니다
                     </div>
                 </div>
             </div>
 
-            <!-- 회원관리 섹션 -->
+            <!-- 사용자 관리 섹션 -->
             <div id="users" class="section">
-                <h2>👥 회원관리</h2>
+                <h2>사용자 관리</h2>
+
                 <div class="filter-container">
-                    <input type="text" class="search-box" id="user-search" placeholder="이메일 또는 이름으로 검색...">
-                    <select class="filter-select" id="user-role-filter">
-                        <option value="">모든 역할</option>
-                        <option value="user">일반 사용자</option>
-                        <option value="admin">관리자</option>
-                    </select>
-                    <select class="filter-select" id="user-status-filter">
+                    <input type="text" class="search-box" placeholder="사용자 검색..." id="userSearch">
+                    <select class="filter-select" id="userStatusFilter">
                         <option value="">모든 상태</option>
                         <option value="active">활성</option>
-                        <option value="suspended">정지</option>
+                        <option value="inactive">비활성</option>
+                        <option value="pending">대기</option>
                     </select>
+                    <button class="btn btn-primary" onclick="addUser()">새 사용자 추가</button>
                 </div>
+
                 <div class="table-container">
-                    <table class="admin-table" id="users-table">
+                    <table class="admin-table" id="usersTable">
                         <thead>
                             <tr>
-                                <th>이메일</th>
+                                <th>ID</th>
                                 <th>이름</th>
-                                <th>역할</th>
+                                <th>이메일</th>
                                 <th>상태</th>
-                                <th>포인트</th>
                                 <th>가입일</th>
                                 <th>마지막 로그인</th>
                                 <th>작업</th>
                             </tr>
                         </thead>
-                        <tbody id="users-tbody">
-                            <!-- 사용자 데이터가 여기에 로드됩니다 -->
+                        <tbody id="usersTableBody">
+                            <!-- 사용자 데이터가 여기에 동적으로 추가됩니다 -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 포인트관리 섹션 -->
-            <div id="points" class="section">
-                <h2>💰 포인트관리</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">💳</div>
-                        <div class="stat-number" id="total-points-issued">0</div>
-                        <div class="stat-label">발급된 포인트</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">💸</div>
-                        <div class="stat-number" id="total-points-used">0</div>
-                        <div class="stat-label">사용된 포인트</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">📈</div>
-                        <div class="stat-number" id="avg-points-per-user">0</div>
-                        <div class="stat-label">사용자당 평균</div>
-                    </div>
+            <!-- 세션 관리 섹션 -->
+            <div id="sessions" class="section">
+                <h2>세션 관리</h2>
+
+                <div class="filter-container">
+                    <input type="text" class="search-box" placeholder="세션 검색..." id="sessionSearch">
+                    <select class="filter-select" id="sessionStatusFilter">
+                        <option value="">모든 상태</option>
+                        <option value="active">활성</option>
+                        <option value="inactive">비활성</option>
+                    </select>
+                    <button class="btn btn-danger" onclick="deleteSelectedSessions()">선택 삭제</button>
                 </div>
+
                 <div class="table-container">
-                    <h3>포인트 거래 내역</h3>
-                    <table class="admin-table" id="points-table">
+                    <table class="admin-table" id="sessionsTable">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="selectAllSessions"></th>
+                                <th>세션 ID</th>
                                 <th>사용자</th>
-                                <th>유형</th>
-                                <th>포인트</th>
-                                <th>설명</th>
-                                <th>날짜</th>
-                            </tr>
-                        </thead>
-                        <tbody id="points-tbody">
-                            <!-- 포인트 거래 데이터가 여기에 로드됩니다 -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- 저장소관리 섹션 -->
-            <div id="repository" class="section">
-                <h2>📚 저장소관리</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">📁</div>
-                        <div class="stat-number" id="total-documents">0</div>
-                        <div class="stat-label">총 문서</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-number" id="total-knowledge">0</div>
-                        <div class="stat-label">총 지식</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🔄</div>
-                        <div class="stat-number" id="sync-status">0</div>
-                        <div class="stat-label">동기화 상태</div>
-                    </div>
-                </div>
-                <div class="table-container">
-                    <h3>문서 저장소</h3>
-                    <div class="filter-container">
-                        <input type="text" class="search-box" id="doc-search" placeholder="문서명으로 검색...">
-                        <select class="filter-select" id="doc-type-filter">
-                            <option value="">모든 유형</option>
-                            <option value="pdf">PDF</option>
-                            <option value="txt">텍스트</option>
-                            <option value="doc">문서</option>
-                        </select>
-                        <button class="btn-primary" onclick="uploadDocument()">📤 문서 업로드</button>
-                    </div>
-                    <table class="admin-table" id="documents-table">
-                        <thead>
-                            <tr>
-                                <th>문서명</th>
-                                <th>유형</th>
-                                <th>크기</th>
-                                <th>업로드일</th>
+                                <th>시작 시간</th>
+                                <th>마지막 활동</th>
+                                <th>메시지 수</th>
                                 <th>상태</th>
                                 <th>작업</th>
                             </tr>
                         </thead>
-                        <tbody id="documents-tbody">
-                            <!-- 문서 데이터가 여기에 로드됩니다 -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="table-container">
-                    <h3>지식베이스</h3>
-                    <div class="filter-container">
-                        <input type="text" class="search-box" id="kb-search" placeholder="지식명으로 검색...">
-                        <select class="filter-select" id="kb-category-filter">
-                            <option value="">모든 카테고리</option>
-                            <option value="general">일반</option>
-                            <option value="technical">기술</option>
-                            <option value="business">비즈니스</option>
-                        </select>
-                        <button class="btn-primary" onclick="addKnowledge()">➕ 지식 추가</button>
-                    </div>
-                    <table class="admin-table" id="knowledge-table">
-                        <thead>
-                            <tr>
-                                <th>지식명</th>
-                                <th>카테고리</th>
-                                <th>내용 길이</th>
-                                <th>생성일</th>
-                                <th>사용횟수</th>
-                                <th>작업</th>
-                            </tr>
-                        </thead>
-                        <tbody id="knowledge-tbody">
-                            <!-- 지식 데이터가 여기에 로드됩니다 -->
+                        <tbody id="sessionsTableBody">
+                            <!-- 세션 데이터가 여기에 동적으로 추가됩니다 -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 자동학습 섹션 -->
-            <div id="auto-learning" class="section">
-                <h2>🤖 자동학습</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">🎯</div>
-                        <div class="stat-number" id="learning-accuracy">0%</div>
-                        <div class="stat-label">학습 정확도</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">📈</div>
-                        <div class="stat-number" id="learning-progress">0%</div>
-                        <div class="stat-label">학습 진행률</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">⏱️</div>
-                        <div class="stat-number" id="last-learning">-</div>
-                        <div class="stat-label">마지막 학습</div>
-                    </div>
-                </div>
-                <div class="table-container">
-                    <h3>학습 설정</h3>
-                    <div class="form-group">
-                        <label for="learning-interval">학습 주기 (시간)</label>
-                        <input type="number" id="learning-interval" value="24" min="1" max="168">
-                    </div>
-                    <div class="form-group">
-                        <label for="learning-threshold">학습 임계값</label>
-                        <input type="number" id="learning-threshold" value="100" min="10" max="1000">
-                    </div>
-                    <div class="form-group">
-                        <label for="learning-enabled">자동학습 활성화</label>
-                        <select id="learning-enabled">
-                            <option value="true">활성화</option>
-                            <option value="false">비활성화</option>
-                        </select>
-                    </div>
-                    <button class="btn-primary" onclick="saveLearningSettings()">💾 설정 저장</button>
-                    <button class="btn-secondary" onclick="startManualLearning()">🚀 수동 학습 시작</button>
-                </div>
-                <div class="table-container">
-                    <h3>학습 로그</h3>
-                    <table class="admin-table" id="learning-logs-table">
-                        <thead>
-                            <tr>
-                                <th>시간</th>
-                                <th>학습 유형</th>
-                                <th>처리된 데이터</th>
-                                <th>정확도</th>
-                                <th>상태</th>
-                            </tr>
-                        </thead>
-                        <tbody id="learning-logs-tbody">
-                            <!-- 학습 로그가 여기에 로드됩니다 -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- 첨부학습 섹션 -->
-            <div id="attachment-learning" class="section">
-                <h2>📎 첨부학습</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">📎</div>
-                        <div class="stat-number" id="total-attachments">0</div>
-                        <div class="stat-label">총 첨부파일</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">📚</div>
-                        <div class="stat-number" id="processed-attachments">0</div>
-                        <div class="stat-label">처리된 파일</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">✅</div>
-                        <div class="stat-number" id="success-rate">0%</div>
-                        <div class="stat-label">성공률</div>
-                    </div>
-                </div>
-                <div class="table-container">
-                    <h3>첨부파일 업로드</h3>
-                    <div class="form-group">
-                        <label for="attachment-file">파일 선택</label>
-                        <input type="file" id="attachment-file" accept=".pdf,.txt,.doc,.docx,.csv,.xlsx">
-                    </div>
-                    <div class="form-group">
-                        <label for="attachment-category">카테고리</label>
-                        <select id="attachment-category">
-                            <option value="general">일반</option>
-                            <option value="technical">기술</option>
-                            <option value="business">비즈니스</option>
-                            <option value="education">교육</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="attachment-description">설명</label>
-                        <textarea id="attachment-description" rows="3" placeholder="파일에 대한 설명을 입력하세요..."></textarea>
-                    </div>
-                    <button class="btn-primary" onclick="uploadAttachment()">📤 업로드 및 학습</button>
-                </div>
-                <div class="table-container">
-                    <h3>첨부파일 목록</h3>
-                    <div class="filter-container">
-                        <input type="text" class="search-box" id="attachment-search" placeholder="파일명으로 검색...">
-                        <select class="filter-select" id="attachment-status-filter">
-                            <option value="">모든 상태</option>
-                            <option value="processing">처리 중</option>
-                            <option value="completed">완료</option>
-                            <option value="failed">실패</option>
-                        </select>
-                    </div>
-                    <table class="admin-table" id="attachments-table">
-                        <thead>
-                            <tr>
-                                <th>파일명</th>
-                                <th>카테고리</th>
-                                <th>크기</th>
-                                <th>업로드일</th>
-                                <th>상태</th>
-                                <th>처리시간</th>
-                                <th>작업</th>
-                            </tr>
-                        </thead>
-                        <tbody id="attachments-tbody">
-                            <!-- 첨부파일 데이터가 여기에 로드됩니다 -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- 시스템상태 섹션 -->
+            <!-- 시스템 상태 섹션 -->
             <div id="system" class="section">
-                <h2>🔧 시스템상태</h2>
+                <h2>시스템 상태</h2>
+
                 <div class="server-status">
                     <h3>서버 상태</h3>
                     <div class="status-item">
                         <div>
                             <span class="status-indicator status-online"></span>
-                            <strong>웹 서버</strong>
+                            <span class="status-text">웹 서버</span>
                         </div>
-                        <div>정상 운영 중</div>
+                        <span>정상 작동</span>
                     </div>
                     <div class="status-item">
                         <div>
                             <span class="status-indicator status-online"></span>
-                            <strong>MongoDB</strong>
+                            <span class="status-text">데이터베이스</span>
                         </div>
-                        <div id="mongodb-status">연결 확인 중...</div>
+                        <span>연결됨</span>
+                    </div>
+                    <div class="status-item">
+                        <div>
+                            <span class="status-indicator status-online"></span>
+                            <span class="status-text">AI 모델</span>
+                        </div>
+                        <span>준비됨</span>
                     </div>
                     <div class="status-item">
                         <div>
                             <span class="status-indicator status-warning"></span>
-                            <strong>Redis</strong>
+                            <span class="status-text">메모리 사용량</span>
                         </div>
-                        <div id="redis-status">확인 중...</div>
-                    </div>
-                    <div class="status-item">
-                        <div>
-                            <span class="status-indicator status-online"></span>
-                            <strong>OpenAI API</strong>
-                        </div>
-                        <div id="openai-status">확인 중...</div>
+                        <span>75%</span>
                     </div>
                 </div>
-                <div class="table-container">
-                    <h3>시스템 리소스</h3>
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>항목</th>
-                                <th>현재값</th>
-                                <th>상태</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>CPU 사용률</td>
-                                <td id="cpu-usage">확인 중...</td>
-                                <td id="cpu-status">-</td>
-                            </tr>
-                            <tr>
-                                <td>메모리 사용률</td>
-                                <td id="memory-usage">확인 중...</td>
-                                <td id="memory-status">-</td>
-                            </tr>
-                            <tr>
-                                <td>디스크 사용률</td>
-                                <td id="disk-usage">확인 중...</td>
-                                <td id="disk-status">-</td>
-                            </tr>
-                            <tr>
-                                <td>네트워크 연결</td>
-                                <td id="network-status">확인 중...</td>
-                                <td id="network-indicator">-</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <div class="chart-container">
+                    <h3>시스템 리소스 사용량</h3>
+                    <div class="chart-placeholder">
+                        리소스 사용량 차트가 여기에 표시됩니다
+                    </div>
                 </div>
             </div>
 
             <!-- 로그 섹션 -->
             <div id="logs" class="section">
-                <h2>📝 시스템 로그</h2>
+                <h2>시스템 로그</h2>
+
                 <div class="filter-container">
-                    <select class="filter-select" id="log-level-filter">
+                    <select class="filter-select" id="logLevelFilter">
                         <option value="">모든 레벨</option>
-                        <option value="INFO">정보</option>
-                        <option value="WARNING">경고</option>
                         <option value="ERROR">오류</option>
+                        <option value="WARNING">경고</option>
+                        <option value="INFO">정보</option>
+                        <option value="DEBUG">디버그</option>
                     </select>
-                    <input type="date" class="filter-select" id="log-date-filter">
+                    <button class="btn btn-primary" onclick="refreshLogs()">새로고침</button>
+                    <button class="btn btn-secondary" onclick="exportLogs()">내보내기</button>
                 </div>
+
                 <div class="table-container">
-                    <table class="admin-table" id="logs-table">
+                    <table class="admin-table" id="logsTable">
                         <thead>
                             <tr>
                                 <th>시간</th>
                                 <th>레벨</th>
+                                <th>모듈</th>
                                 <th>메시지</th>
                                 <th>사용자</th>
                             </tr>
                         </thead>
-                        <tbody id="logs-tbody">
-                            <!-- 로그 데이터가 여기에 로드됩니다 -->
+                        <tbody id="logsTableBody">
+                            <!-- 로그 데이터가 여기에 동적으로 추가됩니다 -->
                         </tbody>
                     </table>
                 </div>
@@ -809,541 +853,409 @@
         </div>
     </div>
 
-    <!-- 사용자 편집 모달 -->
-    <div id="user-modal" class="modal">
+    <!-- 사용자 추가/편집 모달 -->
+    <div id="userModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>사용자 정보 편집</h3>
-                <span class="close" onclick="closeModal('user-modal')">&times;</span>
+                <h3 class="modal-title" id="userModalTitle">사용자 추가</h3>
+                <span class="close" onclick="closeUserModal()">&times;</span>
             </div>
-            <form id="user-edit-form">
+            <form id="userForm">
                 <div class="form-group">
-                    <label for="edit-email">이메일</label>
-                    <input type="email" id="edit-email" readonly>
+                    <label for="userName">이름</label>
+                    <input type="text" id="userName" required>
                 </div>
                 <div class="form-group">
-                    <label for="edit-username">이름</label>
-                    <input type="text" id="edit-username">
+                    <label for="userEmail">이메일</label>
+                    <input type="email" id="userEmail" required>
                 </div>
                 <div class="form-group">
-                    <label for="edit-role">역할</label>
-                    <select id="edit-role">
-                        <option value="user">일반 사용자</option>
+                    <label for="userPassword">비밀번호</label>
+                    <input type="password" id="userPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="userRole">역할</label>
+                    <select id="userRole" required>
+                        <option value="user">사용자</option>
                         <option value="admin">관리자</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="edit-status">상태</label>
-                    <select id="edit-status">
+                    <label for="userStatus">상태</label>
+                    <select id="userStatus" required>
                         <option value="active">활성</option>
-                        <option value="suspended">정지</option>
+                        <option value="inactive">비활성</option>
+                        <option value="pending">대기</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="edit-points">포인트</label>
-                    <input type="number" id="edit-points" min="0">
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary" onclick="closeModal('user-modal')">취소</button>
-                    <button type="submit" class="btn-primary">저장</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeUserModal()">취소</button>
+                    <button type="submit" class="btn btn-primary">저장</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // 페이지 로드 시 실행
-        document.addEventListener('DOMContentLoaded', function() {
-            checkAdminAuth();
+        // 전역 변수
+        let currentSection = 'overview';
+        let users = [];
+        let sessions = [];
+        let logs = [];
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function () {
             loadOverviewData();
-            loadSystemStatus();
+            loadUsers();
+            loadSessions();
+            loadLogs();
         });
 
-        // 관리자 권한 확인
-        function checkAdminAuth() {
-            const userEmail = localStorage.getItem('user_email');
-            if (!userEmail || userEmail !== 'admin@eora.com') {
-                alert('관리자 권한이 필요합니다.');
-                window.location.href = '/';
-                return;
-            }
-        }
-
-        // 섹션 전환
-        function showSection(sectionId) {
+        // 섹션 표시
+        function showSection(sectionName) {
             // 모든 섹션 숨기기
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
             });
-            
+
             // 모든 네비게이션 버튼 비활성화
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            
-            // 선택된 섹션과 버튼 활성화
-            document.getElementById(sectionId).classList.add('active');
-            event.target.classList.add('active');
-            
-            // 섹션별 데이터 로드
-            switch(sectionId) {
-                case 'overview':
-                    loadOverviewData();
-                    break;
-                case 'users':
-                    loadUsersData();
-                    break;
-                case 'points':
-                    loadPointsData();
-                    break;
-                case 'repository':
-                    loadRepositoryData();
-                    break;
-                case 'auto-learning':
-                    loadAutoLearningData();
-                    break;
-                case 'attachment-learning':
-                    loadAttachmentLearningData();
-                    break;
-                case 'system':
-                    loadSystemStatus();
-                    break;
-                case 'logs':
-                    loadLogsData();
-                    break;
-            }
+
+            // 선택된 섹션 표시
+            document.getElementById(sectionName).classList.add('active');
+
+            // 선택된 네비게이션 버튼 활성화
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.textContent.includes(getSectionTitle(sectionName))) {
+                    btn.classList.add('active');
+                }
+            });
+
+            currentSection = sectionName;
+        }
+
+        // 섹션 제목 가져오기
+        function getSectionTitle(sectionName) {
+            const titles = {
+                'overview': '개요',
+                'users': '사용자 관리',
+                'sessions': '세션 관리',
+                'system': '시스템 상태',
+                'logs': '로그'
+            };
+            return titles[sectionName] || sectionName;
         }
 
         // 개요 데이터 로드
         async function loadOverviewData() {
             try {
-                const response = await fetch('/api/admin/overview');
-                const data = await response.json();
-                
-                document.getElementById('total-users').textContent = data.total_users || 0;
-                document.getElementById('total-conversations').textContent = data.total_conversations || 0;
-                document.getElementById('total-points').textContent = data.total_points || 0;
-                document.getElementById('active-sessions').textContent = data.active_sessions || 0;
+                const response = await fetch('/api/admin/stats');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('totalUsers').textContent = data.totalUsers || 0;
+                    document.getElementById('totalSessions').textContent = data.totalSessions || 0;
+                    document.getElementById('totalMessages').textContent = data.totalMessages || 0;
+                    document.getElementById('activeUsers').textContent = data.activeUsers || 0;
+                }
             } catch (error) {
-                console.error('개요 데이터 로드 실패:', error);
+                console.error('개요 데이터 로드 오류:', error);
             }
         }
 
-        // 사용자 데이터 로드
-        async function loadUsersData() {
+        // 사용자 목록 로드
+        async function loadUsers() {
             try {
                 const response = await fetch('/api/admin/users');
-                const data = await response.json();
-                
-                const tbody = document.getElementById('users-tbody');
-                tbody.innerHTML = '';
-                
-                data.users.forEach(user => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${user.email}</td>
-                        <td>${user.username || '-'}</td>
-                        <td>${user.role || 'user'}</td>
-                        <td>${user.is_active ? '활성' : '정지'}</td>
-                        <td>${user.points || 0}</td>
-                        <td>${new Date(user.created_at).toLocaleDateString()}</td>
-                        <td>${user.last_login ? new Date(user.last_login).toLocaleString() : '-'}</td>
-                        <td>
-                            <button class="action-btn btn-edit" onclick="editUser('${user._id}')">편집</button>
-                            <button class="action-btn ${user.is_active ? 'btn-suspend' : 'btn-activate'}" 
-                                    onclick="toggleUserStatus('${user._id}', ${user.is_active})">
-                                ${user.is_active ? '정지' : '활성화'}
-                            </button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
+                if (response.ok) {
+                    users = await response.json();
+                    displayUsers();
+                }
             } catch (error) {
-                console.error('사용자 데이터 로드 실패:', error);
+                console.error('사용자 로드 오류:', error);
             }
         }
 
-        // 포인트 데이터 로드
-        async function loadPointsData() {
+        // 사용자 목록 표시
+        function displayUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>
+                        <span class="user-status status-${user.status}"></span>
+                        ${user.status}
+                    </td>
+                    <td>${formatDate(user.created_at)}</td>
+                    <td>${formatDate(user.last_login)}</td>
+                    <td>
+                        <button class="action-btn btn-edit" onclick="editUser('${user.id}')">편집</button>
+                        <button class="action-btn btn-delete" onclick="deleteUser('${user.id}')">삭제</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 세션 목록 로드
+        async function loadSessions() {
             try {
-                const response = await fetch('/api/admin/points');
-                const data = await response.json();
-                
-                document.getElementById('total-points-issued').textContent = data.total_issued || 0;
-                document.getElementById('total-points-used').textContent = data.total_used || 0;
-                document.getElementById('avg-points-per-user').textContent = data.avg_per_user || 0;
-                
-                const tbody = document.getElementById('points-tbody');
-                tbody.innerHTML = '';
-                
-                data.transactions.forEach(transaction => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${transaction.user_email}</td>
-                        <td>${transaction.type}</td>
-                        <td>${transaction.points}</td>
-                        <td>${transaction.description}</td>
-                        <td>${new Date(transaction.timestamp).toLocaleString()}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
+                const response = await fetch('/api/admin/sessions');
+                if (response.ok) {
+                    sessions = await response.json();
+                    displaySessions();
+                }
             } catch (error) {
-                console.error('포인트 데이터 로드 실패:', error);
+                console.error('세션 로드 오류:', error);
             }
         }
 
-        // 시스템 상태 로드
-        async function loadSystemStatus() {
-            try {
-                const response = await fetch('/api/admin/system-status');
-                const data = await response.json();
-                
-                document.getElementById('mongodb-status').textContent = data.mongodb ? '연결됨' : '연결 실패';
-                document.getElementById('redis-status').textContent = data.redis ? '연결됨' : '연결 실패';
-                document.getElementById('openai-status').textContent = data.openai ? '정상' : '오류';
-                
-                document.getElementById('cpu-usage').textContent = data.cpu_usage || 'N/A';
-                document.getElementById('memory-usage').textContent = data.memory_usage || 'N/A';
-                document.getElementById('disk-usage').textContent = data.disk_usage || 'N/A';
-                document.getElementById('network-status').textContent = data.network_status || 'N/A';
-            } catch (error) {
-                console.error('시스템 상태 로드 실패:', error);
-            }
+        // 세션 목록 표시
+        function displaySessions() {
+            const tbody = document.getElementById('sessionsTableBody');
+            tbody.innerHTML = '';
+
+            sessions.forEach(session => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="checkbox" value="${session.id}"></td>
+                    <td>${session.id}</td>
+                    <td>${session.user_id}</td>
+                    <td>${formatDate(session.created_at)}</td>
+                    <td>${formatDate(session.last_activity)}</td>
+                    <td>${session.message_count || 0}</td>
+                    <td>${session.status}</td>
+                    <td>
+                        <button class="action-btn btn-edit" onclick="viewSession('${session.id}')">보기</button>
+                        <button class="action-btn btn-delete" onclick="deleteSession('${session.id}')">삭제</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
         }
 
-        // 저장소 데이터 로드
-        async function loadRepositoryData() {
-            try {
-                const response = await fetch('/api/admin/repository');
-                const data = await response.json();
-                
-                document.getElementById('total-documents').textContent = data.total_documents || 0;
-                document.getElementById('total-knowledge').textContent = data.total_knowledge || 0;
-                document.getElementById('sync-status').textContent = data.sync_status || '동기화됨';
-                
-                // 문서 목록 로드
-                const docTbody = document.getElementById('documents-tbody');
-                docTbody.innerHTML = '';
-                
-                data.documents.forEach(doc => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${doc.name}</td>
-                        <td>${doc.type}</td>
-                        <td>${formatFileSize(doc.size)}</td>
-                        <td>${new Date(doc.upload_date).toLocaleDateString()}</td>
-                        <td>${doc.status}</td>
-                        <td>
-                            <button class="action-btn btn-edit" onclick="editDocument('${doc._id}')">편집</button>
-                            <button class="action-btn btn-delete" onclick="deleteDocument('${doc._id}')">삭제</button>
-                        </td>
-                    `;
-                    docTbody.appendChild(row);
-                });
-                
-                // 지식베이스 목록 로드
-                const kbTbody = document.getElementById('knowledge-tbody');
-                kbTbody.innerHTML = '';
-                
-                data.knowledge.forEach(kb => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${kb.name}</td>
-                        <td>${kb.category}</td>
-                        <td>${kb.content_length}자</td>
-                        <td>${new Date(kb.created_date).toLocaleDateString()}</td>
-                        <td>${kb.usage_count}</td>
-                        <td>
-                            <button class="action-btn btn-edit" onclick="editKnowledge('${kb._id}')">편집</button>
-                            <button class="action-btn btn-delete" onclick="deleteKnowledge('${kb._id}')">삭제</button>
-                        </td>
-                    `;
-                    kbTbody.appendChild(row);
-                });
-            } catch (error) {
-                console.error('저장소 데이터 로드 실패:', error);
-            }
-        }
-
-        // 자동학습 데이터 로드
-        async function loadAutoLearningData() {
-            try {
-                const response = await fetch('/api/admin/auto-learning');
-                const data = await response.json();
-                
-                document.getElementById('learning-accuracy').textContent = data.accuracy + '%';
-                document.getElementById('learning-progress').textContent = data.progress + '%';
-                document.getElementById('last-learning').textContent = data.last_learning || '-';
-                
-                // 학습 로그 로드
-                const tbody = document.getElementById('learning-logs-tbody');
-                tbody.innerHTML = '';
-                
-                data.learning_logs.forEach(log => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${new Date(log.timestamp).toLocaleString()}</td>
-                        <td>${log.type}</td>
-                        <td>${log.processed_data}</td>
-                        <td>${log.accuracy}%</td>
-                        <td>${log.status}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (error) {
-                console.error('자동학습 데이터 로드 실패:', error);
-            }
-        }
-
-        // 첨부학습 데이터 로드
-        async function loadAttachmentLearningData() {
-            try {
-                const response = await fetch('/api/admin/attachment-learning');
-                const data = await response.json();
-                
-                document.getElementById('total-attachments').textContent = data.total_attachments || 0;
-                document.getElementById('processed-attachments').textContent = data.processed_attachments || 0;
-                document.getElementById('success-rate').textContent = data.success_rate + '%';
-                
-                // 첨부파일 목록 로드
-                const tbody = document.getElementById('attachments-tbody');
-                tbody.innerHTML = '';
-                
-                data.attachments.forEach(attachment => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${attachment.filename}</td>
-                        <td>${attachment.category}</td>
-                        <td>${formatFileSize(attachment.size)}</td>
-                        <td>${new Date(attachment.upload_date).toLocaleDateString()}</td>
-                        <td>${attachment.status}</td>
-                        <td>${attachment.processing_time || '-'}</td>
-                        <td>
-                            <button class="action-btn btn-edit" onclick="viewAttachment('${attachment._id}')">보기</button>
-                            <button class="action-btn btn-delete" onclick="deleteAttachment('${attachment._id}')">삭제</button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (error) {
-                console.error('첨부학습 데이터 로드 실패:', error);
-            }
-        }
-
-        // 로그 데이터 로드
-        async function loadLogsData() {
+        // 로그 목록 로드
+        async function loadLogs() {
             try {
                 const response = await fetch('/api/admin/logs');
-                const data = await response.json();
-                
-                const tbody = document.getElementById('logs-tbody');
-                tbody.innerHTML = '';
-                
-                data.logs.forEach(log => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${new Date(log.timestamp).toLocaleString()}</td>
-                        <td>${log.level}</td>
-                        <td>${log.message}</td>
-                        <td>${log.user_email || '-'}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
+                if (response.ok) {
+                    logs = await response.json();
+                    displayLogs();
+                }
             } catch (error) {
-                console.error('로그 데이터 로드 실패:', error);
+                console.error('로그 로드 오류:', error);
             }
+        }
+
+        // 로그 목록 표시
+        function displayLogs() {
+            const tbody = document.getElementById('logsTableBody');
+            tbody.innerHTML = '';
+
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatDate(log.timestamp)}</td>
+                    <td>${log.level}</td>
+                    <td>${log.module}</td>
+                    <td>${log.message}</td>
+                    <td>${log.user_id || '-'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 사용자 추가
+        function addUser() {
+            document.getElementById('userModalTitle').textContent = '사용자 추가';
+            document.getElementById('userForm').reset();
+            document.getElementById('userModal').style.display = 'block';
         }
 
         // 사용자 편집
         function editUser(userId) {
-            // 사용자 정보를 모달에 로드
-            // 실제 구현에서는 사용자 정보를 가져와서 모달에 채움
-            document.getElementById('user-modal').style.display = 'block';
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                document.getElementById('userModalTitle').textContent = '사용자 편집';
+                document.getElementById('userName').value = user.name;
+                document.getElementById('userEmail').value = user.email;
+                document.getElementById('userRole').value = user.role;
+                document.getElementById('userStatus').value = user.status;
+                document.getElementById('userModal').style.display = 'block';
+            }
         }
 
-        // 사용자 상태 토글
-        async function toggleUserStatus(userId, currentStatus) {
-            try {
-                const response = await fetch(`/api/admin/users/${userId}/toggle-status`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ is_active: !currentStatus })
-                });
-                
-                if (response.ok) {
-                    loadUsersData(); // 사용자 목록 새로고침
-                } else {
-                    alert('사용자 상태 변경 실패');
+        // 사용자 삭제
+        async function deleteUser(userId) {
+            if (confirm('정말로 이 사용자를 삭제하시겠습니까?')) {
+                try {
+                    const response = await fetch(`/api/admin/users/${userId}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        loadUsers();
+                        showAlert('사용자가 삭제되었습니다.', 'success');
+                    }
+                } catch (error) {
+                    console.error('사용자 삭제 오류:', error);
+                    showAlert('사용자 삭제에 실패했습니다.', 'error');
                 }
-            } catch (error) {
-                console.error('사용자 상태 변경 실패:', error);
-                alert('사용자 상태 변경 중 오류가 발생했습니다.');
             }
         }
 
-        // 모달 닫기
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // 로그아웃
-        function logout() {
-            if (confirm('정말로 로그아웃하시겠습니까?')) {
-                localStorage.removeItem('user_email');
-                localStorage.removeItem('user_name');
-                window.location.href = '/';
+        // 세션 삭제
+        async function deleteSession(sessionId) {
+            if (confirm('정말로 이 세션을 삭제하시겠습니까?')) {
+                try {
+                    const response = await fetch(`/api/admin/sessions/${sessionId}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        loadSessions();
+                        showAlert('세션이 삭제되었습니다.', 'success');
+                    }
+                } catch (error) {
+                    console.error('세션 삭제 오류:', error);
+                    showAlert('세션 삭제에 실패했습니다.', 'error');
+                }
             }
         }
 
-        // 유틸리티 함수들
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        // 저장소 관련 함수들
-        function uploadDocument() {
-            alert('문서 업로드 기능이 구현될 예정입니다.');
-        }
-
-        function editDocument(docId) {
-            alert('문서 편집 기능이 구현될 예정입니다.');
-        }
-
-        function deleteDocument(docId) {
-            if (confirm('정말로 이 문서를 삭제하시겠습니까?')) {
-                // 삭제 로직 구현
-                alert('문서가 삭제되었습니다.');
-                loadRepositoryData();
-            }
-        }
-
-        function addKnowledge() {
-            alert('지식 추가 기능이 구현될 예정입니다.');
-        }
-
-        function editKnowledge(kbId) {
-            alert('지식 편집 기능이 구현될 예정입니다.');
-        }
-
-        function deleteKnowledge(kbId) {
-            if (confirm('정말로 이 지식을 삭제하시겠습니까?')) {
-                // 삭제 로직 구현
-                alert('지식이 삭제되었습니다.');
-                loadRepositoryData();
-            }
-        }
-
-        // 자동학습 관련 함수들
-        function saveLearningSettings() {
-            const interval = document.getElementById('learning-interval').value;
-            const threshold = document.getElementById('learning-threshold').value;
-            const enabled = document.getElementById('learning-enabled').value;
-            
-            // 설정 저장 로직 구현
-            alert('학습 설정이 저장되었습니다.');
-        }
-
-        function startManualLearning() {
-            if (confirm('수동 학습을 시작하시겠습니까?')) {
-                // 수동 학습 시작 로직 구현
-                alert('수동 학습이 시작되었습니다.');
-            }
-        }
-
-        // 첨부학습 관련 함수들
-        function uploadAttachment() {
-            const fileInput = document.getElementById('attachment-file');
-            const category = document.getElementById('attachment-category').value;
-            const description = document.getElementById('attachment-description').value;
-            
-            if (!fileInput.files[0]) {
-                alert('파일을 선택해주세요.');
+        // 선택된 세션 삭제
+        async function deleteSelectedSessions() {
+            const checkboxes = document.querySelectorAll('#sessionsTableBody input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                showAlert('삭제할 세션을 선택해주세요.', 'warning');
                 return;
             }
-            
-            // 파일 업로드 로직 구현
-            alert('첨부파일이 업로드되고 학습이 시작되었습니다.');
-            loadAttachmentLearningData();
-        }
 
-        function viewAttachment(attachmentId) {
-            alert('첨부파일 보기 기능이 구현될 예정입니다.');
-        }
-
-        function deleteAttachment(attachmentId) {
-            if (confirm('정말로 이 첨부파일을 삭제하시겠습니까?')) {
-                // 삭제 로직 구현
-                alert('첨부파일이 삭제되었습니다.');
-                loadAttachmentLearningData();
+            if (confirm(`${checkboxes.length}개의 세션을 삭제하시겠습니까?`)) {
+                for (const checkbox of checkboxes) {
+                    await deleteSession(checkbox.value);
+                }
             }
         }
 
-        // 검색 기능들
-        document.getElementById('user-search').addEventListener('input', function() {
-            // 사용자 검색 구현
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#users-tbody tr');
-            
-            rows.forEach(row => {
-                const email = row.cells[0].textContent.toLowerCase();
-                const name = row.cells[1].textContent.toLowerCase();
-                
-                if (email.includes(searchTerm) || name.includes(searchTerm)) {
-                    row.style.display = '';
+        // 로그 새로고침
+        function refreshLogs() {
+            loadLogs();
+        }
+
+        // 로그 내보내기
+        function exportLogs() {
+            const dataStr = JSON.stringify(logs, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `eora_logs_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 사용자 모달 닫기
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+
+        // 사용자 폼 제출
+        document.getElementById('userForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('userName').value,
+                email: document.getElementById('userEmail').value,
+                password: document.getElementById('userPassword').value,
+                role: document.getElementById('userRole').value,
+                status: document.getElementById('userStatus').value
+            };
+
+            try {
+                const response = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    closeUserModal();
+                    loadUsers();
+                    showAlert('사용자가 저장되었습니다.', 'success');
                 } else {
-                    row.style.display = 'none';
+                    showAlert('사용자 저장에 실패했습니다.', 'error');
                 }
+            } catch (error) {
+                console.error('사용자 저장 오류:', error);
+                showAlert('사용자 저장 중 오류가 발생했습니다.', 'error');
+            }
+        });
+
+        // 알림 표시
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+
+            const adminContent = document.querySelector('.admin-content');
+            adminContent.insertBefore(alertDiv, adminContent.firstChild);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('ko-KR');
+        }
+
+        // 검색 기능
+        document.getElementById('userSearch').addEventListener('input', function (e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTableBody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
             });
         });
 
-        document.getElementById('doc-search').addEventListener('input', function() {
-            // 문서 검색 구현
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#documents-tbody tr');
-            
+        document.getElementById('sessionSearch').addEventListener('input', function (e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#sessionsTableBody tr');
+
             rows.forEach(row => {
-                const name = row.cells[0].textContent.toLowerCase();
-                if (name.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
             });
         });
 
-        document.getElementById('kb-search').addEventListener('input', function() {
-            // 지식베이스 검색 구현
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#knowledge-tbody tr');
-            
-            rows.forEach(row => {
-                const name = row.cells[0].textContent.toLowerCase();
-                if (name.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+        // 전체 선택 체크박스
+        document.getElementById('selectAllSessions').addEventListener('change', function (e) {
+            const checkboxes = document.querySelectorAll('#sessionsTableBody input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = e.target.checked;
             });
         });
 
-        document.getElementById('attachment-search').addEventListener('input', function() {
-            // 첨부파일 검색 구현
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#attachments-tbody tr');
-            
-            rows.forEach(row => {
-                const filename = row.cells[0].textContent.toLowerCase();
-                if (filename.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+        // 모달 외부 클릭 시 닫기
+        window.addEventListener('click', function (e) {
+            const modal = document.getElementById('userModal');
+            if (e.target === modal) {
+                closeUserModal();
+            }
         });
     </script>
 </body>
-</html> 
+
+</html>

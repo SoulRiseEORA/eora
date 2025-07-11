@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,13 +18,16 @@
             }, 'google_translate_element');
         }
     </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;400&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <script type="text/javascript"
+        src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;400&family=Noto+Sans+KR:wght@400;700&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --main-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --glass-bg: rgba(255,255,255,0.15);
-            --glass-border: rgba(255,255,255,0.2);
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.2);
             --accent: #00d4aa;
             --accent2: #00b894;
             --accent3: #00a085;
@@ -34,16 +38,17 @@
             --mint-medium: #00d4aa;
             --mint-dark: #00b894;
         }
-        
+
         * {
             box-sizing: border-box;
         }
-        
-        html, body {
+
+        html,
+        body {
             height: 100%;
             scroll-behavior: smooth;
         }
-        
+
         body {
             min-height: 100vh;
             background: var(--main-bg);
@@ -53,13 +58,13 @@
             padding: 0;
             overflow-x: hidden;
         }
-        
+
         .main-container {
             width: 100%;
             min-height: 100vh;
             position: relative;
         }
-        
+
         /* 헤더 */
         .header {
             position: fixed;
@@ -67,12 +72,12 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            background: rgba(255,255,255,0.95);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255,255,255,0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             padding: 15px 0;
         }
-        
+
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
@@ -81,14 +86,14 @@
             align-items: center;
             padding: 0 20px;
         }
-        
+
         .logo {
             display: flex;
             align-items: center;
             gap: 12px;
             text-decoration: none;
         }
-        
+
         .logo-svg {
             width: 40px;
             height: 40px;
@@ -97,28 +102,28 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,212,170,0.3);
+            box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
         }
-        
+
         .logo-svg svg {
             width: 35px;
             height: 35px;
             display: block;
         }
-        
+
         .logo-text {
             font-size: 1.5em;
             font-weight: 700;
             color: var(--text-main);
             letter-spacing: 0.02em;
         }
-        
+
         .translate-container {
             display: flex;
             align-items: center;
             gap: 15px;
         }
-        
+
         .header-chat-btn {
             background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
             color: var(--white);
@@ -132,26 +137,26 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 4px 12px rgba(0,212,170,0.25);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.25);
             letter-spacing: 0.02em;
         }
-        
+
         .header-chat-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,212,170,0.35);
+            box-shadow: 0 6px 20px rgba(0, 212, 170, 0.35);
         }
-        
+
         .header-chat-btn:active {
             transform: translateY(0);
         }
-        
+
         .header-chat-btn span {
             font-size: 1.1em;
         }
-        
+
         .language-selector {
-            background: rgba(255,255,255,0.12);
-            border: 1.5px solid rgba(255,255,255,0.25);
+            background: rgba(255, 255, 255, 0.12);
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
             border-radius: 20px;
             padding: 10px 16px;
             font-size: 0.85em;
@@ -165,23 +170,23 @@
             font-weight: 500;
             letter-spacing: 0.02em;
         }
-        
+
         .language-selector:hover {
-            background: rgba(255,255,255,0.2);
-            border-color: rgba(255,255,255,0.4);
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
-        
+
         .language-selector:active {
             transform: translateY(0);
         }
-        
+
         .language-icon {
             font-size: 1.1em;
-            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
         }
-        
+
         .language-selector select {
             background: transparent;
             border: none;
@@ -194,17 +199,17 @@
             border-radius: 6px;
             transition: all 0.2s ease;
         }
-        
+
         .language-selector select:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
         }
-        
+
         .language-selector select option {
             background: var(--text-main);
             color: var(--white);
             padding: 8px;
         }
-        
+
         /* 메인 섹션 */
         .hero-section {
             padding: 120px 20px 80px;
@@ -212,16 +217,16 @@
             margin: 0 auto;
             text-align: center;
         }
-        
+
         .hero-title {
             font-size: 3.5em;
             font-weight: 700;
             color: var(--white);
             margin-bottom: 20px;
             line-height: 1.2;
-            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
-        
+
         .hero-subtitle {
             font-size: 1.4em;
             color: var(--white);
@@ -232,7 +237,7 @@
             margin-left: auto;
             margin-right: auto;
         }
-        
+
         .cta-buttons {
             display: flex;
             gap: 20px;
@@ -240,7 +245,7 @@
             margin-bottom: 60px;
             flex-wrap: wrap;
         }
-        
+
         .cta-btn {
             padding: 16px 32px;
             border-radius: 50px;
@@ -254,42 +259,42 @@
             cursor: pointer;
             border: none;
         }
-        
+
         .cta-primary {
             background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
             color: var(--white);
-            box-shadow: 0 8px 25px rgba(0,212,170,0.4);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.4);
         }
-        
+
         .cta-primary:hover {
             transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(0,212,170,0.5);
+            box-shadow: 0 12px 35px rgba(0, 212, 170, 0.5);
         }
-        
+
         .cta-secondary {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             color: var(--white);
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             backdrop-filter: blur(10px);
         }
-        
+
         .cta-secondary:hover {
-            background: rgba(255,255,255,0.3);
+            background: rgba(255, 255, 255, 0.3);
             transform: translateY(-3px);
         }
-        
+
         /* 로그인 섹션 */
         .login-section {
-            background: rgba(255,255,255,0.95);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border-radius: 30px;
             padding: 40px;
             max-width: 400px;
             margin: 0 auto 60px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .login-title {
             font-size: 1.8em;
             font-weight: 700;
@@ -297,25 +302,25 @@
             margin-bottom: 25px;
             text-align: center;
         }
-        
+
         .login-form {
             display: flex;
             flex-direction: column;
             gap: 20px;
         }
-        
+
         .form-group {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
-        
+
         .form-group label {
             font-size: 0.95em;
             color: var(--text-sub);
             font-weight: 500;
         }
-        
+
         .form-group input {
             padding: 12px 16px;
             border-radius: 12px;
@@ -324,13 +329,13 @@
             background: var(--white);
             transition: all 0.3s ease;
         }
-        
+
         .form-group input:focus {
             border-color: var(--accent);
             outline: none;
-            box-shadow: 0 0 0 3px rgba(0,212,170,0.1);
+            box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.1);
         }
-        
+
         .login-btn {
             background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
             color: var(--white);
@@ -341,14 +346,14 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,212,170,0.3);
+            box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
         }
-        
+
         .login-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,212,170,0.4);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.4);
         }
-        
+
         .guest-btn {
             background: transparent;
             color: var(--accent);
@@ -361,34 +366,34 @@
             transition: all 0.3s ease;
             margin-top: 10px;
         }
-        
+
         .guest-btn:hover {
             background: var(--accent);
             color: var(--white);
             transform: translateY(-2px);
         }
-        
+
         .register-link {
             text-align: center;
             margin-top: 15px;
             font-size: 0.9em;
             color: var(--text-sub);
         }
-        
+
         .register-link a {
             color: var(--accent);
             text-decoration: none;
             font-weight: 600;
         }
-        
+
         .register-link a:hover {
             text-decoration: underline;
         }
-        
+
         .checkbox-group {
             margin-top: 5px;
         }
-        
+
         .checkbox-label {
             display: flex;
             align-items: center;
@@ -397,19 +402,19 @@
             font-size: 0.9em;
             color: var(--text-sub);
         }
-        
+
         .checkbox-label input[type="checkbox"] {
             width: 18px;
             height: 18px;
             accent-color: var(--accent);
             cursor: pointer;
         }
-        
+
         .logout-section {
             margin-top: 20px;
             text-align: center;
         }
-        
+
         .logout-btn {
             background: #e74c3c;
             color: var(--white);
@@ -420,25 +425,25 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(231,76,60,0.3);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
         }
-        
+
         .logout-btn:hover {
             background: #c0392b;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(231,76,60,0.4);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
         }
-        
+
         .social-login {
             margin-top: 20px;
         }
-        
+
         .divider {
             text-align: center;
             margin: 20px 0;
             position: relative;
         }
-        
+
         .divider::before {
             content: '';
             position: absolute;
@@ -446,9 +451,9 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: rgba(0,0,0,0.1);
+            background: rgba(0, 0, 0, 0.1);
         }
-        
+
         .divider span {
             background: var(--white);
             padding: 0 15px;
@@ -456,7 +461,7 @@
             font-size: 0.9em;
             position: relative;
         }
-        
+
         .google-login-btn {
             width: 100%;
             background: #fff;
@@ -472,26 +477,26 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        
+
         .google-login-btn:hover {
             border-color: #4285f4;
-            box-shadow: 0 4px 12px rgba(66,133,244,0.2);
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
             transform: translateY(-1px);
         }
-        
+
         .google-login-btn span {
             font-size: 1.2em;
         }
-        
+
         /* 기능 소개 섹션 */
         .features-section {
             padding: 80px 20px;
             max-width: 1200px;
             margin: 0 auto;
         }
-        
+
         .section-title {
             font-size: 2.5em;
             font-weight: 700;
@@ -499,29 +504,29 @@
             text-align: center;
             margin-bottom: 60px;
         }
-        
+
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 30px;
             margin-bottom: 60px;
         }
-        
+
         .feature-card {
-            background: rgba(255,255,255,0.95);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             transition: all 0.3s ease;
         }
-        
+
         .feature-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
         }
-        
+
         .feature-icon {
             width: 60px;
             height: 60px;
@@ -532,56 +537,56 @@
             justify-content: center;
             font-size: 1.8em;
             margin-bottom: 20px;
-            box-shadow: 0 8px 20px rgba(0,212,170,0.3);
+            box-shadow: 0 8px 20px rgba(0, 212, 170, 0.3);
         }
-        
+
         .feature-title {
             font-size: 1.3em;
             font-weight: 700;
             color: var(--text-main);
             margin-bottom: 15px;
         }
-        
+
         .feature-desc {
             color: var(--text-sub);
             line-height: 1.6;
         }
-        
+
         /* 사용법 가이드 섹션 */
         .guide-section {
             padding: 80px 20px;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
         }
-        
+
         .guide-container {
             max-width: 1200px;
             margin: 0 auto;
         }
-        
+
         .guide-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 40px;
             margin-top: 60px;
         }
-        
+
         .guide-card {
-            background: rgba(255,255,255,0.95);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .guide-step {
             display: flex;
             align-items: center;
             gap: 15px;
             margin-bottom: 20px;
         }
-        
+
         .step-number {
             width: 40px;
             height: 40px;
@@ -594,19 +599,19 @@
             font-weight: 700;
             font-size: 1.2em;
         }
-        
+
         .step-title {
             font-size: 1.2em;
             font-weight: 700;
             color: var(--text-main);
         }
-        
+
         .step-desc {
             color: var(--text-sub);
             line-height: 1.6;
             margin-left: 55px;
         }
-        
+
         .mockup-image {
             width: 100%;
             height: 200px;
@@ -619,9 +624,9 @@
             font-size: 1.1em;
             font-weight: 600;
             margin-top: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
-        
+
         /* 대시보드 미리보기 */
         .dashboard-preview {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -630,154 +635,155 @@
             margin-top: 30px;
             color: var(--white);
         }
-        
+
         .dashboard-title {
             font-size: 1.5em;
             font-weight: 700;
             margin-bottom: 20px;
             text-align: center;
         }
-        
+
         .dashboard-features {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
         }
-        
+
         .dashboard-feature {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
             padding: 20px;
             text-align: center;
             backdrop-filter: blur(10px);
         }
-        
+
         .dashboard-feature h4 {
             margin-bottom: 10px;
             font-size: 1.1em;
         }
-        
+
         .dashboard-feature p {
             font-size: 0.9em;
             opacity: 0.9;
         }
-        
+
         /* 푸터 */
         .footer {
-            background: rgba(0,0,0,0.1);
+            background: rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(20px);
             padding: 40px 20px;
             text-align: center;
             color: var(--white);
         }
-        
+
         .footer-content {
             max-width: 1200px;
             margin: 0 auto;
         }
-        
+
         .footer-text {
             opacity: 0.8;
             line-height: 1.6;
         }
-        
+
         /* 반응형 디자인 */
         @media (max-width: 768px) {
             .hero-title {
                 font-size: 2.5em;
             }
-            
+
             .hero-subtitle {
                 font-size: 1.2em;
             }
-            
+
             .cta-buttons {
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .cta-btn {
                 width: 100%;
                 max-width: 300px;
                 justify-content: center;
             }
-            
+
             .login-section {
                 margin: 0 20px 40px;
                 padding: 30px 25px;
             }
-            
+
             .features-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .guide-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .header-content {
                 padding: 0 15px;
             }
-            
+
             .logo-text {
                 font-size: 1.3em;
             }
-            
+
             .translate-container {
                 gap: 10px;
             }
-            
+
             .language-selector {
                 padding: 6px 12px;
                 font-size: 0.8em;
             }
         }
-        
+
         @media (max-width: 480px) {
             .hero-title {
                 font-size: 2em;
             }
-            
+
             .section-title {
                 font-size: 2em;
             }
-            
+
             .login-section {
                 padding: 25px 20px;
             }
-            
+
             .feature-card {
                 padding: 25px 20px;
             }
-            
+
             .guide-card {
                 padding: 25px 20px;
             }
         }
-        
+
         /* 애니메이션 */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        
+
         .fade-in-up {
             animation: fadeInUp 0.6s ease-out;
         }
-        
+
         /* 스크롤 효과 */
         .scroll-reveal {
             opacity: 0;
             transform: translateY(30px);
             transition: all 0.6s ease-out;
         }
-        
+
         .scroll-reveal.revealed {
             opacity: 1;
             transform: translateY(0);
@@ -851,8 +857,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .loading-spinner p {
@@ -921,7 +932,7 @@
             background: #c0392b;
             transform: translateY(-2px);
         }
-        
+
         .admin-btn {
             background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
             color: white;
@@ -932,15 +943,16 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255,107,107,0.3);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
         }
-        
+
         .admin-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255,107,107,0.4);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
         }
     </style>
 </head>
+
 <body>
     <!-- 헤더 -->
     <header class="header">
@@ -951,21 +963,23 @@
                     <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <defs>
                             <linearGradient id="eora_grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#00d4aa"/>
-                                <stop offset="1" stop-color="#00b894"/>
+                                <stop stop-color="#00d4aa" />
+                                <stop offset="1" stop-color="#00b894" />
                             </linearGradient>
                             <filter id="shadow" x="0" y="0" width="40" height="40">
-                                <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#00d4aa" flood-opacity="0.18"/>
+                                <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#00d4aa"
+                                    flood-opacity="0.18" />
                             </filter>
                         </defs>
-                        
+
                         <!-- 민트색 원 배경 -->
-                        <circle cx="20" cy="20" r="20" fill="url(#eora_grad)"/>
-                        
+                        <circle cx="20" cy="20" r="20" fill="url(#eora_grad)" />
+
                         <!-- 핑크 하트 -->
                         <g filter="url(#shadow)">
-                            <path d="M 24.85 12.5 C 22.92 12.5 21.15 13.4 20 14.76 C 18.88 13.4 17.08 12.5 15.19 12.5 C 11.87 12.5 9.17 15.21 9.17 18.54 C 9.17 23.99 16.43 30.83 20 30.83 C 23.57 30.83 30.83 23.99 30.83 18.54 C 30.83 15.21 28.13 12.5 24.85 12.5 Z" 
-                                  fill="#FF0000"/>
+                            <path
+                                d="M 24.85 12.5 C 22.92 12.5 21.15 13.4 20 14.76 C 18.88 13.4 17.08 12.5 15.19 12.5 C 11.87 12.5 9.17 15.21 9.17 18.54 C 9.17 23.99 16.43 30.83 20 30.83 C 23.57 30.83 30.83 23.99 30.83 18.54 C 30.83 15.21 28.13 12.5 24.85 12.5 Z"
+                                fill="#FF0000" />
                         </g>
                     </svg>
                 </div>
@@ -1007,7 +1021,7 @@
                 혼자일 때도, 누군가에게 말하기 어려울 때도<br>
                 EORA는 언제나 당신의 감정을 기다리고 있습니다.
             </p>
-            
+
             <div class="cta-buttons fade-in-up">
                 <button class="cta-btn cta-primary" onclick="startGuestChat()">
                     <span>🚀</span>
@@ -1018,7 +1032,7 @@
                     기능 알아보기
                 </a>
             </div>
-            
+
             <!-- 로그인 섹션 -->
             <div class="login-section fade-in-up">
                 <h2 class="login-title">로그인</h2>
@@ -1056,36 +1070,37 @@
                 </div>
             </div>
 
-        <!-- 로그인된 사용자 정보 섹션 -->
-        <div class="user-info-section" id="userInfoSection" style="display: none;">
-            <div class="user-welcome">
-                <div class="user-avatar-large">👤</div>
-                <h2>환영합니다, <span id="userDisplayName">사용자</span>님!</h2>
-                <p class="user-email-display" id="userDisplayEmail">user@example.com</p>
-                <div class="welcome-message">
-                    <p>🎉 로그인이 완료되었습니다!</p>
-                    <p>잠시 후 채팅 페이지로 이동합니다...</p>
-                </div>
-                <div class="loading-spinner">
-                    <div class="spinner"></div>
-                    <p>채팅 페이지로 이동 중...</p>
-                </div>
-                <div class="manual-actions">
-                    <button class="chat-btn-primary" onclick="window.location.href='/chat'">
-                        💬 지금 바로 채팅 시작하기
-                    </button>
-                    <button class="profile-btn" onclick="window.location.href='/profile'">
-                        👤 프로필 보기
-                    </button>
-                    <button class="admin-btn" id="adminBtn" onclick="window.location.href='/admin'" style="display:none;">
-                        ⚙️ 관리자 대시보드
-                    </button>
-                    <button class="logout-btn-home" onclick="logoutFromHome()">
-                        🚪 로그아웃
-                    </button>
+            <!-- 로그인된 사용자 정보 섹션 -->
+            <div class="user-info-section" id="userInfoSection" style="display: none;">
+                <div class="user-welcome">
+                    <div class="user-avatar-large">👤</div>
+                    <h2>환영합니다, <span id="userDisplayName">사용자</span>님!</h2>
+                    <p class="user-email-display" id="userDisplayEmail">user@example.com</p>
+                    <div class="welcome-message">
+                        <p>🎉 로그인이 완료되었습니다!</p>
+                        <p>잠시 후 채팅 페이지로 이동합니다...</p>
+                    </div>
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>채팅 페이지로 이동 중...</p>
+                    </div>
+                    <div class="manual-actions">
+                        <button class="chat-btn-primary" onclick="window.location.href='/chat'">
+                            💬 지금 바로 채팅 시작하기
+                        </button>
+                        <button class="profile-btn" onclick="window.location.href='/profile'">
+                            👤 프로필 보기
+                        </button>
+                        <button class="admin-btn" id="adminBtn" onclick="window.location.href='/admin'"
+                            style="display:none;">
+                            ⚙️ 관리자 대시보드
+                        </button>
+                        <button class="logout-btn-home" onclick="logoutFromHome()">
+                            🚪 로그아웃
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
         </section>
 
         <!-- 기능 소개 섹션 -->
@@ -1137,33 +1152,37 @@
                             <div class="step-title">계정 생성 또는 게스트 로그인</div>
                         </div>
                         <p class="step-desc">회원가입을 통해 개인화된 서비스를 이용하거나, 게스트로 바로 시작할 수 있습니다.</p>
-                        
+
                         <div class="guide-step">
                             <div class="step-number">2</div>
                             <div class="step-title">채팅방 입장</div>
                         </div>
                         <p class="step-desc">"채팅 시작하기" 버튼을 클릭하여 AI 상담사와의 대화를 시작합니다.</p>
-                        
+
                         <div class="guide-step">
                             <div class="step-number">3</div>
                             <div class="step-title">자연스럽게 대화하기</div>
                         </div>
                         <p class="step-desc">일상적인 대화처럼 편안하게 이야기하세요. AI가 감정을 분석하고 적절한 응답을 제공합니다.</p>
-                        
+
                         <div class="mockup-image">
-                            <img src="/static/chat_mockup.png" alt="채팅 인터페이스 미리보기" style="width:100%;height:100%;object-fit:contain;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.10);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div class="mockup-placeholder" style="display:none; flex-direction:column; align-items:center; justify-content:center; color:#888; font-size:0.95em;">
+                            <img src="/static/chat_mockup.png" alt="채팅 인터페이스 미리보기"
+                                style="width:100%;height:100%;object-fit:contain;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.10);"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="mockup-placeholder"
+                                style="display:none; flex-direction:column; align-items:center; justify-content:center; color:#888; font-size:0.95em;">
                                 <div style="font-size:2em; margin-bottom:10px;">💬</div>
                                 <div style="text-align:center; line-height:1.4;">
                                     <strong>채팅 인터페이스 미리보기</strong><br>
                                     실제 채팅 화면을 확인하려면<br>
-                                    <code style="background:#f0f0f0; padding:2px 6px; border-radius:4px; font-size:0.9em;">/static/chat_mockup.png</code><br>
+                                    <code
+                                        style="background:#f0f0f0; padding:2px 6px; border-radius:4px; font-size:0.9em;">/static/chat_mockup.png</code><br>
                                     파일을 static 폴더에 추가해주세요.
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="guide-card scroll-reveal">
                         <h3 style="color: var(--text-main); margin-bottom: 20px; font-size: 1.3em;">대시보드 활용법</h3>
                         <div class="guide-step">
@@ -1171,19 +1190,19 @@
                             <div class="step-title">상담 기록 확인</div>
                         </div>
                         <p class="step-desc">이전 대화 내용을 언제든지 확인하고 회고할 수 있습니다.</p>
-                        
+
                         <div class="guide-step">
                             <div class="step-number">2</div>
                             <div class="step-title">감정 변화 추이</div>
                         </div>
                         <p class="step-desc">시간에 따른 감정 상태 변화를 그래프로 확인하여 자신의 심리 상태를 파악하세요.</p>
-                        
+
                         <div class="guide-step">
                             <div class="step-number">3</div>
                             <div class="step-title">개인화된 통계</div>
                         </div>
                         <p class="step-desc">상담 빈도, 선호하는 주제, 감정 패턴 등을 분석한 개인별 통계를 제공합니다.</p>
-                        
+
                         <div class="dashboard-preview">
                             <h4 class="dashboard-title">대시보드 주요 기능</h4>
                             <div class="dashboard-features">
@@ -1249,15 +1268,15 @@
 
     <script>
         // 로그인 폼 이벤트 리스너
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             checkLoginStatus();
             const loginForm = document.getElementById('loginForm');
             if (loginForm) {
                 loginForm.addEventListener('submit', handleLogin);
             }
-            
+
             // 동적으로 생성된 회원가입 폼을 위한 이벤트 위임
-            document.addEventListener('submit', function(e) {
+            document.addEventListener('submit', function (e) {
                 if (e.target.id === 'registerForm') {
                     e.preventDefault();
                     handleRegister();
@@ -1270,7 +1289,7 @@
             const userEmail = localStorage.getItem('user_email');
             const userSection = document.querySelector('.login-section');
             const userInfoSection = document.getElementById('userInfoSection');
-            
+
             if (userEmail) {
                 // 로그인된 경우
                 if (userSection) {
@@ -1281,7 +1300,7 @@
                     const userName = localStorage.getItem('user_name') || userEmail.split('@')[0];
                     document.getElementById('userDisplayName').textContent = userName;
                     document.getElementById('userDisplayEmail').textContent = userEmail;
-                    
+
                     // 관리자 계정인 경우 관리자 버튼 표시
                     if (userEmail === 'admin@eora.com') {
                         const adminBtn = document.getElementById('adminBtn');
@@ -1290,17 +1309,7 @@
                         }
                     }
                 }
-                
-                // URL 파라미터를 확인하여 홈 버튼을 클릭해서 온 경우가 아닌지 확인
-                const urlParams = new URLSearchParams(window.location.search);
-                const fromHome = urlParams.get('from');
-                
-                // 홈 버튼을 클릭해서 온 경우가 아니면 자동으로 채팅 페이지로 이동
-                if (!fromHome) {
-                    setTimeout(() => {
-                        window.location.href = '/chat';
-                    }, 1000);
-                }
+                // 자동 채팅 이동 로직 제거 (홈에 머무름)
             } else {
                 // 로그인되지 않은 경우
                 if (userSection) {
@@ -1318,7 +1327,7 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const autoLogin = document.getElementById('autoLogin').checked;
-            
+
             fetch('/api/login', {
                 method: 'POST',
                 headers: {
@@ -1329,33 +1338,32 @@
                     password: password
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 로그인 성공 시 사용자 정보 저장
-                    localStorage.setItem('user_email', email);
-                    if (data.user && data.user.username) {
-                        localStorage.setItem('user_name', data.user.username);
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 로그인 성공 시 사용자 정보 저장
+                        localStorage.setItem('user_email', email);
+                        if (data.user && data.user.username) {
+                            localStorage.setItem('user_name', data.user.username);
+                        } else {
+                            localStorage.setItem('user_name', email.split('@')[0]); // 이메일에서 이름 추출
+                        }
+
+                        if (autoLogin) {
+                            localStorage.setItem('auto_login', 'true');
+                        }
+
+                        alert('로그인 성공!');
+                        // 로그인 성공 시에만 채팅 페이지로 이동
+                        window.location.href = '/chat';
                     } else {
-                        localStorage.setItem('user_name', email.split('@')[0]); // 이메일에서 이름 추출
+                        alert('로그인 실패: ' + data.message);
                     }
-                    
-                    if (autoLogin) {
-                        localStorage.setItem('auto_login', 'true');
-                    }
-                    
-                    alert('로그인 성공!');
-                    // 새 창에서 채팅창 열기
-                    window.open('/chat', '_blank');
-                    window.location.href = '/'; // 홈페이지로 리다이렉트하여 로그인 상태 표시
-                } else {
-                    alert('로그인 실패: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('로그인 오류:', error);
-                alert('로그인 중 오류가 발생했습니다.');
-            });
+                })
+                .catch(error => {
+                    console.error('로그인 오류:', error);
+                    alert('로그인 중 오류가 발생했습니다.');
+                });
         }
 
         // 회원가입 처리 함수
@@ -1363,7 +1371,7 @@
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
             const autoLogin = document.getElementById('registerAutoLogin').checked;
-            
+
             fetch('/api/register', {
                 method: 'POST',
                 headers: {
@@ -1375,24 +1383,24 @@
                     password: password
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('회원가입 성공!');
-                    if (autoLogin) {
-                        localStorage.setItem('user_email', email);
-                        localStorage.setItem('user_name', data.user.name);
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('회원가입 성공!');
+                        if (autoLogin) {
+                            localStorage.setItem('user_email', email);
+                            localStorage.setItem('user_name', data.user.name);
+                        }
+                        // 회원가입 성공 후 로그인 폼으로 전환
+                        showLoginForm();
+                    } else {
+                        alert('회원가입 실패: ' + data.message);
                     }
-                    // 회원가입 성공 후 로그인 폼으로 전환
-                    showLoginForm();
-                } else {
-                    alert('회원가입 실패: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('회원가입 오류:', error);
-                alert('회원가입 중 오류가 발생했습니다.');
-            });
+                })
+                .catch(error => {
+                    console.error('회원가입 오류:', error);
+                    alert('회원가입 중 오류가 발생했습니다.');
+                });
         }
 
         // 게스트 채팅 시작
@@ -1402,38 +1410,92 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: '게스트 세션', user_id: 'guest' })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.session_id) {
-                    const currentLang = document.documentElement.lang || 'ko';
-                    window.location.href = `/chat?lang=${currentLang}&session_id=${data.session_id}`;
-                } else {
+                .then(response => response.json())
+                .then(data => {
+                    if (data.session_id) {
+                        const currentLang = document.documentElement.lang || 'ko';
+                        window.location.href = `/chat?lang=${currentLang}&session_id=${data.session_id}`;
+                    } else {
+                        window.location.href = '/chat';
+                    }
+                })
+                .catch(error => {
+                    console.error('게스트 세션 생성 오류:', error);
                     window.location.href = '/chat';
-                }
-            })
-            .catch(error => {
-                console.error('게스트 세션 생성 오류:', error);
-                window.location.href = '/chat';
-            });
+                });
         }
 
         // 로그아웃
-        function logout() {
+        async function logout() {
             if (confirm('정말로 로그아웃하시겠습니까?')) {
-                localStorage.removeItem('user_email');
-                localStorage.removeItem('user_name');
-                localStorage.removeItem('auto_login');
-                window.location.href = '/';
+                try {
+                    // 서버에 로그아웃 요청
+                    const response = await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        // 로컬 스토리지 정리
+                        localStorage.removeItem('user_email');
+                        localStorage.removeItem('user_name');
+                        localStorage.removeItem('auto_login');
+                        localStorage.removeItem('session_id');
+
+                        // 홈페이지로 이동 (로그아웃 파라미터 추가)
+                        window.location.href = '/?logout=true';
+                    } else {
+                        console.error('로그아웃 실패:', response.status);
+                        // 로컬 정리 후 홈페이지로 이동
+                        localStorage.removeItem('user_email');
+                        localStorage.removeItem('user_name');
+                        localStorage.removeItem('auto_login');
+                        localStorage.removeItem('session_id');
+                        window.location.href = '/';
+                    }
+                } catch (error) {
+                    console.error('로그아웃 오류:', error);
+                    // 오류 발생 시에도 로컬 정리 후 홈페이지로 이동
+                    localStorage.removeItem('user_email');
+                    localStorage.removeItem('user_name');
+                    localStorage.removeItem('auto_login');
+                    localStorage.removeItem('session_id');
+                    window.location.href = '/';
+                }
             }
         }
 
         // 홈페이지에서 로그아웃
-        function logoutFromHome() {
+        async function logoutFromHome() {
             if (confirm('정말로 로그아웃하시겠습니까?')) {
-                localStorage.removeItem('user_email');
-                localStorage.removeItem('user_name');
-                localStorage.removeItem('auto_login');
-                window.location.reload(); // 페이지 새로고침하여 로그인 창 표시
+                try {
+                    // 서버에 로그아웃 요청
+                    const response = await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    // 로컬 스토리지 정리
+                    localStorage.removeItem('user_email');
+                    localStorage.removeItem('user_name');
+                    localStorage.removeItem('auto_login');
+                    localStorage.removeItem('session_id');
+
+                    // 페이지 새로고침하여 로그인 창 표시
+                    window.location.reload();
+                } catch (error) {
+                    console.error('로그아웃 오류:', error);
+                    // 오류 발생 시에도 로컬 정리 후 새로고침
+                    localStorage.removeItem('user_email');
+                    localStorage.removeItem('user_name');
+                    localStorage.removeItem('auto_login');
+                    localStorage.removeItem('session_id');
+                    window.location.reload();
+                }
             }
         }
 
@@ -1441,7 +1503,7 @@
         function googleLogin() {
             // 구글 OAuth 연동 가이드 안내
             alert('구글 로그인 연동 방법:\n\n1. Google Cloud Console에서 OAuth 2.0 클라이언트 ID 생성\n2. 승인된 리디렉션 URI에 http://localhost:8001/auth/google/callback 추가\n3. 백엔드에 Google OAuth 라우트 구현 필요\n\n현재는 데모 버전입니다.');
-            
+
             // 실제 구현 시 아래 코드 사용:
             // window.location.href = '/auth/google';
         }
@@ -1542,7 +1604,7 @@
             elements.forEach(element => {
                 const elementTop = element.getBoundingClientRect().top;
                 const elementVisible = 150;
-                
+
                 if (elementTop < window.innerHeight - elementVisible) {
                     element.classList.add('revealed');
                 }
@@ -1564,7 +1626,7 @@
         });
 
         // 언어 선택기 클릭 이벤트
-        document.querySelector('.language-selector').addEventListener('click', function() {
+        document.querySelector('.language-selector').addEventListener('click', function () {
             const translateElement = document.querySelector('#google_translate_element');
             if (translateElement) {
                 const select = translateElement.querySelector('select');
@@ -1579,8 +1641,8 @@
             const iframe = document.querySelector('.goog-te-banner-frame');
             if (iframe) {
                 const currentLang = document.documentElement.lang;
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
+                const observer = new MutationObserver(function (mutations) {
+                    mutations.forEach(function (mutation) {
                         if (mutation.type === 'attributes' && mutation.attributeName === 'lang') {
                             const newLang = document.documentElement.lang;
                             const chatLinks = document.querySelectorAll('a[href="/chat"]');
@@ -1598,7 +1660,7 @@
         }
 
         // 이벤트 리스너
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             setTimeout(checkTranslationComplete, 2000);
             handleScrollAnimation();
         });
@@ -1607,11 +1669,11 @@
 
         // 언어 선택 드롭다운 연동
         const langSelect = document.getElementById('langSelect');
-        if(langSelect){
-            langSelect.addEventListener('change', function(){
+        if (langSelect) {
+            langSelect.addEventListener('change', function () {
                 const val = langSelect.value;
                 const select = document.querySelector('#google_translate_element select');
-                if(select){
+                if (select) {
                     select.value = val;
                     select.dispatchEvent(new Event('change'));
                 }
@@ -1619,4 +1681,5 @@
         }
     </script>
 </body>
-</html> 
+
+</html>

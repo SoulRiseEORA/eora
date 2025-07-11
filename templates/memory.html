@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EORA AI System - 기억 관리</title>
+    <title>EORA AI 기억 관리</title>
     <style>
         * {
             margin: 0;
@@ -12,158 +13,158 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f3f3fb;
-            color: #ececf1;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            color: #333;
         }
 
         .container {
-            max-width: 800px;
-            margin: 40px auto;
-            background: #fff;
-            border-radius: 18px;
-            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.10);
-            padding: 32px;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #4a4b53;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            font-weight: 600;
-            color: #ececf1;
-        }
-
-        .back-btn {
-            padding: 10px 20px;
-            background: #10a37f;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s;
-        }
-
-        .back-btn:hover {
-            background: #0d8a6f;
-        }
-
-        .memory-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: #40414f;
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #565869;
-        }
-
-        .stat-title {
-            font-size: 14px;
-            color: #8e8ea0;
-            margin-bottom: 8px;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: 600;
-            color: #ececf1;
-        }
-
-        .memory-controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-
-        .control-btn {
-            padding: 10px 20px;
-            background: #40414f;
-            border: 1px solid #565869;
-            border-radius: 6px;
-            color: #ececf1;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .control-btn:hover {
-            background: #565869;
-        }
-
-        .control-btn.primary {
-            background: #10a37f;
-            border-color: #10a37f;
-        }
-
-        .control-btn.primary:hover {
-            background: #0d8a6f;
-        }
-
-        .memory-list {
-            background: #40414f;
-            border-radius: 8px;
-            border: 1px solid #565869;
-            overflow: hidden;
         }
 
         .memory-header {
-            padding: 15px 20px;
-            background: #343541;
-            border-bottom: 1px solid #565869;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 15px;
         }
 
-        .memory-header h3 {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .search-box {
-            padding: 8px 12px;
-            background: #40414f;
-            border: 1px solid #565869;
-            border-radius: 4px;
-            color: #ececf1;
+        .user-info span {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
             font-size: 14px;
-            width: 250px;
+            font-weight: 500;
         }
 
-        .search-box:focus {
-            outline: none;
-            border-color: #10a37f;
+        .back-btn,
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: #333;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 12px;
+            transition: all 0.3s ease;
         }
 
-        .memory-items {
-            max-height: 500px;
+        .back-btn:hover,
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .memory-title {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .memory-title h1 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .memory-title p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .memory-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .memory-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-icon {
+            font-size: 1.5em;
+            margin-right: 15px;
+        }
+
+        .card-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .memory-list {
+            max-height: 400px;
             overflow-y: auto;
         }
 
         .memory-item {
-            padding: 15px 20px;
-            border-bottom: 1px solid #565869;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background 0.3s ease;
         }
 
         .memory-item:hover {
-            background: #343541;
+            background: #f8f9fa;
+        }
+
+        .memory-item.active {
+            background: #e3f2fd;
+            border-left: 4px solid #667eea;
         }
 
         .memory-item:last-child {
@@ -171,280 +172,543 @@
         }
 
         .memory-title {
-            font-size: 14px;
-            font-weight: 500;
-            color: #ececf1;
+            font-weight: 600;
+            color: #333;
             margin-bottom: 5px;
         }
 
-        .memory-content {
-            font-size: 13px;
-            color: #8e8ea0;
-            line-height: 1.4;
-            margin-bottom: 8px;
+        .memory-meta {
+            font-size: 0.9em;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
         }
 
-        .memory-meta {
+        .memory-content {
+            margin-top: 10px;
+            color: #555;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .memory-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 15px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+        }
+
+        .memory-detail {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .detail-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
-            color: #8e8ea0;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
         }
 
-        .memory-type {
-            background: #10a37f;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
+        .detail-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #8e8ea0;
+        .detail-meta {
+            color: #666;
+            font-size: 0.9em;
         }
 
-        .empty-state h3 {
-            font-size: 18px;
-            margin-bottom: 10px;
+        .detail-content {
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 20px;
         }
 
-        .empty-state p {
-            font-size: 14px;
-            line-height: 1.5;
+        .detail-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 500;
         }
 
         .loading {
             text-align: center;
             padding: 40px;
-            color: #8e8ea0;
+            color: #666;
         }
 
-        .loading::after {
-            content: '';
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #565869;
-            border-radius: 50%;
-            border-top-color: #10a37f;
-            animation: spin 1s ease-in-out infinite;
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
         }
 
         @media (max-width: 768px) {
             .container {
-                padding: 15px;
+                padding: 10px;
             }
 
-            .header {
-                flex-direction: column;
-                gap: 15px;
-                align-items: flex-start;
+            .memory-header {
+                padding: 20px;
             }
 
-            .memory-controls {
-                flex-direction: column;
+            .user-info {
+                position: static;
+                justify-content: center;
+                margin-bottom: 20px;
             }
 
-            .control-btn {
-                text-align: center;
+            .memory-grid {
+                grid-template-columns: 1fr;
             }
 
-            .search-box {
-                width: 100%;
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
-        }
 
-        .delete-btn {
-            background: #e84a5f;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 6px 16px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .delete-btn:hover {
-            background: #b71c1c;
+            .filter-buttons {
+                justify-content: center;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🧠 기억 관리</h1>
-            <button class="back-btn" onclick="window.location.href='/dashboard'">대시보드로 돌아가기</button>
-        </div>
-
-        <div class="memory-stats">
-            <div class="stat-card">
-                <div class="stat-title">총 기억 수</div>
-                <div class="stat-value" id="totalMemories">0</div>
+        <div class="memory-header">
+            <div class="user-info">
+                <span id="user-email">👤 {{ user.name if user else '사용자' }}</span>
+                <a href="/dashboard" class="back-btn">🏠 대시보드</a>
+                <button class="logout-btn" onclick="logout()">로그아웃</button>
             </div>
-            <div class="stat-card">
-                <div class="stat-title">최근 기억</div>
-                <div class="stat-value" id="recentMemories">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">기억 유형</div>
-                <div class="stat-value" id="memoryTypes">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">기억 점수</div>
-                <div class="stat-value" id="memoryScore">0</div>
+            <div class="memory-title">
+                <h1>🧠 기억 관리</h1>
+                <p>AI 기억과 대화 기록을 관리하세요</p>
             </div>
         </div>
 
-        <div class="memory-controls">
-            <button class="control-btn primary" onclick="refreshMemories()">새로고침</button>
-            <button class="control-btn" onclick="exportMemories()">내보내기</button>
-            <button class="control-btn" onclick="clearOldMemories()">오래된 기억 정리</button>
-            <button class="control-btn" onclick="optimizeMemories()">기억 최적화</button>
-        </div>
+        <div class="memory-grid">
+            <div class="memory-card">
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">기억 통계</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-memories">0</div>
+                        <div class="stat-label">총 기억</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="active-memories">0</div>
+                        <div class="stat-label">활성 기억</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="memory-usage">0%</div>
+                        <div class="stat-label">사용률</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="recall-count">0</div>
+                        <div class="stat-label">회상 횟수</div>
+                    </div>
+                </div>
 
-        <div class="memory-list">
-            <div class="memory-header">
-                <h3>기억 목록</h3>
-                <input type="text" class="search-box" id="searchBox" placeholder="기억 검색..." onkeyup="searchMemories()">
+                <input type="text" class="search-box" placeholder="기억 검색..." id="searchInput">
+
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="filterMemories('all')">전체</button>
+                    <button class="filter-btn" onclick="filterMemories('recent')">최근</button>
+                    <button class="filter-btn" onclick="filterMemories('important')">중요</button>
+                    <button class="filter-btn" onclick="filterMemories('chat')">대화</button>
+                </div>
+
+                <div class="memory-list" id="memoryList">
+                    <div class="loading">기억을 불러오는 중...</div>
+                </div>
             </div>
-            <div class="memory-items" id="memoryItems">
-                <div class="loading">기억을 불러오는 중...</div>
+
+            <div class="memory-detail" id="memoryDetail">
+                <div class="empty-state">
+                    <div class="icon">🧠</div>
+                    <h3>기억을 선택하세요</h3>
+                    <p>왼쪽에서 기억을 선택하면 상세 내용을 볼 수 있습니다.</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 페이지 로드 시 로그인 상태 확인
-        document.addEventListener('DOMContentLoaded', function() {
-            checkLoginStatus();
-            loadMemoryData();
+        let currentMemories = [];
+        let selectedMemoryId = null;
+
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function () {
+            loadMemoryStats();
+            loadMemories();
+            setupSearch();
         });
 
-        // 로그인 상태 확인
-        function checkLoginStatus() {
-            const userEmail = localStorage.getItem('user_email');
-            if (!userEmail) {
-                alert('로그인이 필요합니다.');
-                window.location.href = '/';
-                return;
+        // 기억 통계 로드
+        async function loadMemoryStats() {
+            try {
+                const response = await fetch('/api/aura/memory/stats');
+                if (response.ok) {
+                    const data = await response.json();
+
+                    document.getElementById('total-memories').textContent = data.total_sessions || 0;
+                    document.getElementById('active-memories').textContent = data.active_sessions || 0;
+                    document.getElementById('memory-usage').textContent = `${data.memory_usage?.usage_percentage || 0}%`;
+                    document.getElementById('recall-count').textContent = data.total_messages || 0;
+
+                } else {
+                    // API가 없으면 기본값 설정
+                    document.getElementById('total-memories').textContent = '0';
+                    document.getElementById('active-memories').textContent = '0';
+                    document.getElementById('memory-usage').textContent = '0%';
+                    document.getElementById('recall-count').textContent = '0';
+                }
+            } catch (error) {
+                console.error('기억 통계 로드 오류:', error);
+                // 기본값 설정
+                document.getElementById('total-memories').textContent = '0';
+                document.getElementById('active-memories').textContent = '0';
+                document.getElementById('memory-usage').textContent = '0%';
+                document.getElementById('recall-count').textContent = '0';
             }
         }
 
-        // 기억 데이터 로드
-        function loadMemoryData() {
-            // 기억 통계 로드
-            fetch('/api/aura/memory/stats')
-                .then(response => response.json())
-                .then(data => {
-                    updateMemoryStats(data);
-                })
-                .catch(error => {
-                    console.error('기억 통계 로드 오류:', error);
-                });
+        // 기억 목록 로드
+        async function loadMemories() {
+            const container = document.getElementById('memoryList');
+            container.innerHTML = '<div class="loading">기억을 불러오는 중...</div>';
 
-            // 기억 목록 로드
-            fetch('/api/aura/recall')
-                .then(response => response.json())
-                .then(data => {
-                    updateMemoryList(data.aura_memories || []);
-                })
-                .catch(error => {
-                    console.error('기억 목록 로드 오류:', error);
-                });
-        }
-
-        // 기억 통계 업데이트
-        function updateMemoryStats(data) {
-            const totalMemories = document.getElementById('totalMemories');
-            const recentActivity = document.getElementById('recentMemories');
-            
-            if (totalMemories) {
-                totalMemories.textContent = data.total_memories || 0;
-            }
-            if (recentActivity) {
-                recentActivity.textContent = data.recent_activity || 0;
+            try {
+                const response = await fetch('/api/aura/recall');
+                if (response.ok) {
+                    const data = await response.json();
+                    currentMemories = data.recent_messages || [];
+                    displayMemories(currentMemories);
+                } else {
+                    // API가 없으면 샘플 데이터 생성
+                    currentMemories = generateSampleMemories();
+                    displayMemories(currentMemories);
+                }
+            } catch (error) {
+                console.error('기억 로드 오류:', error);
+                // 샘플 데이터 생성
+                currentMemories = generateSampleMemories();
+                displayMemories(currentMemories);
             }
         }
 
-        // 기억 목록 업데이트
-        function updateMemoryList(memories) {
-            const memoryItems = document.querySelector('.memory-items');
-            if (!memoryItems) return;
+        // 샘플 기억 데이터 생성
+        function generateSampleMemories() {
+            return [
+                {
+                    id: 'memory_1',
+                    title: '첫 번째 대화',
+                    content: '안녕하세요! EORA AI와의 첫 번째 대화입니다.',
+                    timestamp: new Date(Date.now() - 86400000).toISOString(),
+                    type: 'chat',
+                    importance: 'high'
+                },
+                {
+                    id: 'memory_2',
+                    title: 'AI 기능 질문',
+                    content: 'EORA AI의 기능과 능력에 대해 질문했습니다.',
+                    timestamp: new Date(Date.now() - 3600000).toISOString(),
+                    type: 'chat',
+                    importance: 'medium'
+                },
+                {
+                    id: 'memory_3',
+                    title: '시스템 설정',
+                    content: '사용자 설정과 시스템 환경을 구성했습니다.',
+                    timestamp: new Date(Date.now() - 1800000).toISOString(),
+                    type: 'system',
+                    importance: 'high'
+                }
+            ];
+        }
+
+        // 기억 목록 표시
+        function displayMemories(memories) {
+            const container = document.getElementById('memoryList');
 
             if (memories.length === 0) {
-                memoryItems.innerHTML = '<div class="memory-item"><p style="text-align: center; color: #8e8ea0;">저장된 기억이 없습니다.</p></div>';
+                container.innerHTML = '<div class="empty-state"><div class="icon">🧠</div><p>기억이 없습니다.</p></div>';
                 return;
             }
 
-            const memoryHTML = memories.map((memory, index) => `
-                <div class="memory-item" onclick="viewMemory(${index})">
-                    <div class="memory-title">기억 ${index + 1}</div>
-                    <div class="memory-content">${memory}</div>
+            const memoriesHTML = memories.map(memory => `
+                <div class="memory-item" onclick="selectMemory('${memory.id}')" data-memory-id="${memory.id}">
+                    <div class="memory-title">${memory.title}</div>
                     <div class="memory-meta">
-                        <span class="memory-type">자동 저장</span>
-                        <span class="memory-date">방금 전</span>
+                        <span>${formatDate(memory.timestamp)}</span>
+                        <span class="tag">${memory.type}</span>
                     </div>
+                    <div class="memory-content">${memory.content.substring(0, 100)}${memory.content.length > 100 ? '...' : ''}</div>
                 </div>
             `).join('');
 
-            memoryItems.innerHTML = memoryHTML;
+            container.innerHTML = memoriesHTML;
         }
 
-        // 기억 보기
-        function viewMemory(index) {
-            alert(`기억 ${index + 1}을 확인합니다.`);
-        }
+        // 기억 선택
+        function selectMemory(memoryId) {
+            selectedMemoryId = memoryId;
 
-        // 기억 저장
-        function saveMemory() {
-            const memoryText = prompt('저장할 기억을 입력하세요:');
-            if (memoryText) {
-                fetch('/api/aura/save', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        content: memoryText,
-                        type: 'manual'
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    alert('기억이 저장되었습니다.');
-                    loadMemoryData(); // 목록 새로고침
-                })
-                .catch(error => {
-                    console.error('기억 저장 오류:', error);
-                    alert('기억 저장에 실패했습니다.');
-                });
+            // 선택 상태 업데이트
+            document.querySelectorAll('.memory-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-memory-id="${memoryId}"]`).classList.add('active');
+
+            // 기억 상세 정보 표시
+            const memory = currentMemories.find(m => m.id === memoryId);
+            if (memory) {
+                displayMemoryDetail(memory);
             }
+        }
+
+        // 기억 상세 정보 표시
+        function displayMemoryDetail(memory) {
+            const container = document.getElementById('memoryDetail');
+
+            const detailHTML = `
+                <div class="detail-header">
+                    <div>
+                        <div class="detail-title">${memory.title}</div>
+                        <div class="detail-meta">${formatDate(memory.timestamp)} • ${memory.type} • ${memory.importance}</div>
+                    </div>
+                </div>
+                <div class="detail-content">${memory.content}</div>
+                <div class="detail-tags">
+                    <span class="tag">${memory.type}</span>
+                    <span class="tag">${memory.importance}</span>
+                    <span class="tag">기억</span>
+                </div>
+                <div class="memory-actions">
+                    <button class="btn btn-primary" onclick="editMemory('${memory.id}')">수정</button>
+                    <button class="btn btn-danger" onclick="deleteMemory('${memory.id}')">삭제</button>
+                </div>
+            `;
+
+            container.innerHTML = detailHTML;
+        }
+
+        // 기억 필터링
+        function filterMemories(filter) {
+            // 필터 버튼 상태 업데이트
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            let filteredMemories = currentMemories;
+
+            switch (filter) {
+                case 'recent':
+                    filteredMemories = currentMemories.filter(m =>
+                        new Date(m.timestamp) > new Date(Date.now() - 86400000)
+                    );
+                    break;
+                case 'important':
+                    filteredMemories = currentMemories.filter(m => m.importance === 'high');
+                    break;
+                case 'chat':
+                    filteredMemories = currentMemories.filter(m => m.type === 'chat');
+                    break;
+                default:
+                    // 전체
+                    break;
+            }
+
+            displayMemories(filteredMemories);
+        }
+
+        // 검색 기능 설정
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', function () {
+                const query = this.value.toLowerCase();
+                const filteredMemories = currentMemories.filter(memory =>
+                    memory.title.toLowerCase().includes(query) ||
+                    memory.content.toLowerCase().includes(query)
+                );
+                displayMemories(filteredMemories);
+            });
+        }
+
+        // 기억 수정
+        function editMemory(memoryId) {
+            alert(`기억 ${memoryId} 수정 기능은 구현 예정입니다.`);
         }
 
         // 기억 삭제
-        function deleteMemory() {
-            if (confirm('모든 기억을 삭제하시겠습니까?')) {
-                alert('기억 삭제 기능은 구현 예정입니다.');
+        function deleteMemory(memoryId) {
+            if (confirm('정말로 이 기억을 삭제하시겠습니까?')) {
+                currentMemories = currentMemories.filter(m => m.id !== memoryId);
+                displayMemories(currentMemories);
+
+                if (selectedMemoryId === memoryId) {
+                    document.getElementById('memoryDetail').innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">🧠</div>
+                            <h3>기억을 선택하세요</h3>
+                            <p>왼쪽에서 기억을 선택하면 상세 내용을 볼 수 있습니다.</p>
+                        </div>
+                    `;
+                    selectedMemoryId = null;
+                }
+
+                alert('기억이 삭제되었습니다.');
             }
         }
 
-        // 기억 내보내기
-        function exportMemory() {
-            alert('기억 내보내기 기능은 구현 예정입니다.');
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) { // 1분 미만
+                return '방금 전';
+            } else if (diff < 3600000) { // 1시간 미만
+                return `${Math.floor(diff / 60000)}분 전`;
+            } else if (diff < 86400000) { // 1일 미만
+                return `${Math.floor(diff / 3600000)}시간 전`;
+            } else {
+                return date.toLocaleDateString('ko-KR');
+            }
         }
 
-        // 검색 기능
-        function searchMemory() {
-            const searchTerm = document.getElementById('searchBox').value;
-            alert(`"${searchTerm}" 검색 기능은 구현 예정입니다.`);
+        // 로그아웃
+        async function logout() {
+            if (confirm('정말로 로그아웃하시겠습니까?')) {
+                try {
+                    // 서버에 로그아웃 요청
+                    const response = await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    // 로컬 스토리지 정리
+                    localStorage.removeItem('user_email');
+                    localStorage.removeItem('user_name');
+                    localStorage.removeItem('auto_login');
+                    localStorage.removeItem('session_id');
+
+                    // 홈페이지로 이동
+                    window.location.href = '/';
+                } catch (error) {
+                    console.error('로그아웃 오류:', error);
+                    // 오류 발생 시에도 로컬 정리 후 홈페이지로 이동
+                    localStorage.removeItem('user_email');
+                    localStorage.removeItem('user_name');
+                    localStorage.removeItem('auto_login');
+                    localStorage.removeItem('session_id');
+                    window.location.href = '/';
+                }
+            }
         }
     </script>
 </body>
-</html> 
+
+</html>

@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EORA AI - 프로필</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>EORA AI 프로필</title>
     <style>
         * {
             margin: 0;
@@ -15,7 +13,7 @@
         }
 
         body {
-            font-family: 'Montserrat', 'Noto Sans KR', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: #333;
@@ -27,380 +25,545 @@
             padding: 20px;
         }
 
-        .header {
+        .profile-header {
             background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
             border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 15px;
         }
 
-        .header h1 {
-            color: #667eea;
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .nav-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .nav-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .user-info span {
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            cursor: pointer;
+            padding: 8px 15px;
+            border-radius: 20px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
+        }
+
+        .back-btn,
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: #333;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
             text-decoration: none;
+            font-size: 12px;
             transition: all 0.3s ease;
         }
 
-        .nav-btn:hover {
+        .back-btn:hover,
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .profile-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .profile-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .profile-avatar {
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 40px;
-            color: white;
-            margin: 0 auto 20px;
         }
 
         .profile-title {
-            font-size: 28px;
-            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-title h1 {
+            font-size: 2.5em;
             color: #333;
             margin-bottom: 10px;
         }
 
-        .profile-subtitle {
+        .profile-title p {
             color: #666;
-            font-size: 16px;
+            font-size: 1.1em;
         }
 
-        .profile-form {
-            max-width: 500px;
-            margin: 0 auto;
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: white;
+            margin: 0 auto 20px;
         }
 
-        .form-group {
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .profile-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
             margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
+        .card-icon {
+            font-size: 1.5em;
+            margin-right: 15px;
+        }
+
+        .card-title {
+            font-size: 1.2em;
             font-weight: 600;
             color: #333;
         }
 
-        .form-group input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
         }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
+        .info-item:last-child {
+            border-bottom: none;
         }
 
-        .form-group input:disabled {
-            background: #f8f9fa;
+        .info-label {
+            font-weight: 500;
             color: #666;
         }
 
-        .btn-group {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
+        .info-value {
+            color: #333;
+            font-weight: 500;
         }
 
-        .btn {
-            flex: 1;
-            padding: 12px 24px;
+        .edit-btn {
+            background: #667eea;
+            color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 8px 15px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 0.9em;
             transition: all 0.3s ease;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .stats-section {
-            margin-top: 30px;
-            padding-top: 30px;
-            border-top: 1px solid #e9ecef;
+        .edit-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
-        .stat-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 15px;
+        .stat-item {
             text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
         }
 
         .stat-number {
-            font-size: 32px;
-            font-weight: 700;
+            font-size: 1.5em;
+            font-weight: bold;
             color: #667eea;
             margin-bottom: 5px;
         }
 
         .stat-label {
+            font-size: 0.9em;
             color: #666;
-            font-size: 14px;
         }
 
-        .alert {
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+
+        .settings-section {
+            margin-top: 20px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(26px);
+        }
+
+        .danger-zone {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .danger-zone h3 {
+            color: #c53030;
+            margin-bottom: 15px;
+        }
+
+        .danger-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .danger-btn:hover {
+            background: #c53030;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
             padding: 15px;
             border-radius: 10px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            margin: 20px 0;
         }
 
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
             }
-            
-            .header {
-                flex-direction: column;
-                gap: 15px;
+
+            .profile-header {
+                padding: 20px;
             }
-            
-            .nav-buttons {
-                flex-wrap: wrap;
+
+            .user-info {
+                position: static;
                 justify-content: center;
+                margin-bottom: 20px;
             }
-            
-            .btn-group {
-                flex-direction: column;
+
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <div class="header">
-            <h1>👤 사용자 프로필</h1>
-            <div class="nav-buttons">
-                <a href="/?from=profile" class="nav-btn">🏠 홈</a>
-                <a href="/chat" class="nav-btn">💬 채팅</a>
-                <a href="/dashboard" class="nav-btn">📊 대시보드</a>
-                <a href="/memory" class="nav-btn">🧠 기억관리</a>
+        <div class="profile-header">
+            <div class="user-info">
+                <span id="user-email">👤 {{ user.name if user else '사용자' }}</span>
+                <a href="/dashboard" class="back-btn">🏠 대시보드</a>
+                <button class="logout-btn" onclick="logout()">로그아웃</button>
+            </div>
+            <div class="profile-title">
+                <div class="profile-avatar">👤</div>
+                <h1>프로필</h1>
+                <p>계정 정보 및 설정 관리</p>
+            </div>
+        </div>
+
+        <div class="profile-grid">
+            <div class="profile-card">
+                <div class="card-header">
+                    <div class="card-icon">👤</div>
+                    <div class="card-title">계정 정보</div>
+                </div>
+                <div id="account-info">
+                    <div class="loading">계정 정보를 불러오는 중...</div>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">사용 통계</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-sessions">0</div>
+                        <div class="stat-label">총 세션</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-messages">0</div>
+                        <div class="stat-label">총 메시지</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="current-points">0</div>
+                        <div class="stat-label">포인트</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="storage-used">0 MB</div>
+                        <div class="stat-label">저장공간</div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="storage-progress" style="width: 0%"></div>
+                </div>
+                <div style="text-align: center; margin-top: 10px; color: #666; font-size: 0.9em;">
+                    저장공간 사용률: <span id="storage-percentage">0%</span>
+                </div>
             </div>
         </div>
 
         <div class="profile-card">
-            <div class="profile-header">
-                <div class="profile-avatar">👤</div>
-                <h2 class="profile-title">사용자 정보</h2>
-                <p class="profile-subtitle">프로필 정보를 확인하고 수정하세요</p>
+            <div class="card-header">
+                <div class="card-icon">⚙️</div>
+                <div class="card-title">설정</div>
             </div>
+            <div class="settings-section">
+                <div class="setting-item">
+                    <div class="setting-label">이메일 알림</div>
+                    <div class="toggle-switch" onclick="toggleSetting('email_notifications')"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">푸시 알림</div>
+                    <div class="toggle-switch active" onclick="toggleSetting('push_notifications')"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">자동 저장</div>
+                    <div class="toggle-switch active" onclick="toggleSetting('auto_save')"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">다크 모드</div>
+                    <div class="toggle-switch" onclick="toggleSetting('dark_mode')"></div>
+                </div>
+            </div>
+        </div>
 
-            <div id="alertMessage" class="alert"></div>
-
-            <form class="profile-form" id="profileForm">
-                <div class="form-group">
-                    <label for="email">이메일</label>
-                    <input type="email" id="email" name="email" readonly>
-                </div>
-                
-                <div class="form-group">
-                    <label for="name">이름</label>
-                    <input type="text" id="name" name="name" placeholder="이름을 입력하세요">
-                </div>
-                
-                <div class="form-group">
-                    <label for="newPassword">새 비밀번호</label>
-                    <input type="password" id="newPassword" name="newPassword" placeholder="새 비밀번호를 입력하세요 (선택사항)">
-                </div>
-                
-                <div class="form-group">
-                    <label for="confirmPassword">비밀번호 확인</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="새 비밀번호를 다시 입력하세요">
-                </div>
-
-                <div class="btn-group">
-                    <button type="submit" class="btn btn-primary">💾 정보 저장</button>
-                    <button type="button" class="btn btn-secondary" onclick="logout()">🚪 로그아웃</button>
-                </div>
-            </form>
-
-            <div class="stats-section">
-                <h3>📊 사용 통계</h3>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalMessages">0</div>
-                        <div class="stat-label">총 메시지</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalSessions">0</div>
-                        <div class="stat-label">총 세션</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="userPoints">1000</div>
-                        <div class="stat-label">포인트</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="auraLevel">5</div>
-                        <div class="stat-label">아우라 레벨</div>
-                    </div>
-                </div>
+        <div class="profile-card">
+            <div class="danger-zone">
+                <h3>⚠️ 위험 구역</h3>
+                <p style="color: #666; margin-bottom: 15px;">이 작업들은 되돌릴 수 없습니다.</p>
+                <button class="danger-btn" onclick="deleteAccount()">계정 삭제</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 페이지 로드 시 사용자 정보 로드
-        document.addEventListener('DOMContentLoaded', function() {
-            loadUserProfile();
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function () {
+            loadProfileData();
             loadUserStats();
         });
 
-        // 사용자 프로필 로드
-        function loadUserProfile() {
-            const userEmail = localStorage.getItem('user_email');
-            const userName = localStorage.getItem('user_name');
-            
-            if (userEmail) {
-                document.getElementById('email').value = userEmail;
-                document.getElementById('name').value = userName || '';
-            } else {
-                // 로그인되지 않은 경우 홈으로 리다이렉트
-                window.location.href = '/';
+        // 프로필 데이터 로드
+        async function loadProfileData() {
+            try {
+                const response = await fetch('/api/user/stats');
+                if (response.ok) {
+                    const data = await response.json();
+                    displayAccountInfo(data);
+                } else {
+                    document.getElementById('account-info').innerHTML = '<div class="error">계정 정보를 불러올 수 없습니다.</div>';
+                }
+            } catch (error) {
+                console.error('프로필 데이터 로드 오류:', error);
+                document.getElementById('account-info').innerHTML = '<div class="error">계정 정보를 불러올 수 없습니다.</div>';
             }
+        }
+
+        // 계정 정보 표시
+        function displayAccountInfo(data) {
+            const container = document.getElementById('account-info');
+
+            const infoHTML = `
+                <div class="info-item">
+                    <div class="info-label">이름</div>
+                    <div class="info-value">${data.name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">이메일</div>
+                    <div class="info-value">${data.email}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">권한</div>
+                    <div class="info-value">${data.role === 'admin' ? '관리자' : '사용자'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">가입일</div>
+                    <div class="info-value">${formatDate(data.created_at)}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">마지막 로그인</div>
+                    <div class="info-value">${data.last_login ? formatDate(data.last_login) : '없음'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">사용자 ID</div>
+                    <div class="info-value">${data.user_id}</div>
+                </div>
+            `;
+
+            container.innerHTML = infoHTML;
         }
 
         // 사용자 통계 로드
-        function loadUserStats() {
-            // 실제로는 API에서 데이터를 가져와야 함
-            fetch('/api/user/stats')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('totalMessages').textContent = data.total_messages || 0;
-                    document.getElementById('totalSessions').textContent = data.total_sessions || 0;
-                    document.getElementById('userPoints').textContent = data.points || 1000;
-                    document.getElementById('auraLevel').textContent = data.aura_level || 5;
-                })
-                .catch(error => {
-                    console.error('통계 로드 오류:', error);
-                });
+        async function loadUserStats() {
+            try {
+                const response = await fetch('/api/user/stats');
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // 통계 업데이트
+                    document.getElementById('total-sessions').textContent = data.sessions_count;
+                    document.getElementById('current-points').textContent = data.points.current_points;
+                    document.getElementById('storage-used').textContent = `${data.storage.used_mb} MB`;
+                    document.getElementById('storage-percentage').textContent = `${data.storage.usage_percentage}%`;
+
+                    // 저장공간 진행률 업데이트
+                    const progressBar = document.getElementById('storage-progress');
+                    progressBar.style.width = `${data.storage.usage_percentage}%`;
+
+                    // 총 메시지 수는 세션 수의 2배로 임시 계산
+                    document.getElementById('total-messages').textContent = data.sessions_count * 2;
+
+                } else {
+                    console.error('통계 로드 실패:', response.status);
+                }
+            } catch (error) {
+                console.error('통계 로드 오류:', error);
+            }
         }
 
-        // 프로필 폼 제출 처리
-        document.getElementById('profileForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const name = document.getElementById('name').value;
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            
-            // 비밀번호 확인
-            if (newPassword && newPassword !== confirmPassword) {
-                showAlert('새 비밀번호가 일치하지 않습니다.', 'error');
-                return;
-            }
-            
-            // 프로필 업데이트 API 호출 (실제 구현 필요)
-            showAlert('프로필이 성공적으로 업데이트되었습니다.', 'success');
-            
-            // 로컬 스토리지 업데이트
-            if (name) {
-                localStorage.setItem('user_name', name);
-            }
-            
-            // 폼 초기화
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmPassword').value = '';
-        });
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            if (!dateString) return '없음';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ko-KR');
+        }
 
-        // 알림 메시지 표시
-        function showAlert(message, type) {
-            const alertDiv = document.getElementById('alertMessage');
-            alertDiv.textContent = message;
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                alertDiv.style.display = 'none';
-            }, 3000);
+        // 설정 토글
+        function toggleSetting(settingName) {
+            const toggle = event.target;
+            toggle.classList.toggle('active');
+
+            // 실제로는 서버에 설정 저장 API 호출
+            console.log(`${settingName} 설정이 ${toggle.classList.contains('active') ? '활성화' : '비활성화'}되었습니다.`);
+        }
+
+        // 계정 삭제
+        function deleteAccount() {
+            if (confirm('정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                if (confirm('마지막 확인: 계정을 삭제하시겠습니까?')) {
+                    alert('계정 삭제 기능은 구현 예정입니다.');
+                }
+            }
         }
 
         // 로그아웃
-        function logout() {
+        async function logout() {
             if (confirm('정말로 로그아웃하시겠습니까?')) {
-                localStorage.removeItem('user_email');
-                localStorage.removeItem('user_name');
-                window.location.href = '/';
+                try {
+                    // 서버에 로그아웃 요청
+                    const response = await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    // 로컬 스토리지 정리
+                    localStorage.removeItem('user_email');
+                    localStorage.removeItem('user_name');
+                    localStorage.removeItem('auto_login');
+                    localStorage.removeItem('session_id');
+
+                    // 홈페이지로 이동
+                    window.location.href = '/';
+                } catch (error) {
+                    console.error('로그아웃 오류:', error);
+                    // 오류 발생 시에도 로컬 정리 후 홈페이지로 이동
+                    localStorage.removeItem('user_email');
+                    localStorage.removeItem('user_name');
+                    localStorage.removeItem('auto_login');
+                    localStorage.removeItem('session_id');
+                    window.location.href = '/';
+                }
             }
         }
     </script>
 </body>
-</html> 
+
+</html>

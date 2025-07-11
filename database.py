@@ -14,7 +14,17 @@ class DatabaseManager:
     def __init__(self):
         self.client: Optional[AsyncIOMotorClient] = None
         self.db = None
-        self.mongodb_url = os.getenv('MONGODB_URL', 'mongodb://localhost:27017')
+        self.is_connected = False
+        
+        # 환경변수에서 가져오고, 없으면 기본값 사용
+        self.mongodb_url = os.environ.get('MONGODB_URL')
+        if not self.mongodb_url:
+            # 로컬 MongoDB 기본 연결 문자열
+            self.mongodb_url = "mongodb://localhost:27017/eora_ai"
+            logger.warning("⚠️ MONGODB_URL 환경변수가 설정되지 않아 로컬 기본값을 사용합니다.")
+            logger.warning("💡 환경 변수 MONGODB_URL을 설정하세요.")
+        else:
+            logger.info("✅ MONGODB_URL 환경변수 확인됨")
         
     async def connect(self):
         """MongoDB 연결"""
@@ -24,6 +34,7 @@ class DatabaseManager:
             
             # 연결 테스트
             await self.client.admin.command('ping')
+            self.is_connected = True
             logger.info("MongoDB 연결 성공")
             
             # 컬렉션 초기화
@@ -31,6 +42,9 @@ class DatabaseManager:
             
         except Exception as e:
             logger.error(f"MongoDB 연결 실패: {str(e)}")
+            self.is_connected = False
+            self.client = None
+            self.db = None
             raise
     
     async def disconnect(self):
@@ -70,6 +84,9 @@ class DatabaseManager:
     
     async def store_interaction(self, user_id: str, user_input: str, ai_response: str, 
                                consciousness_level: float = 0.0, metadata: Dict = None):
+        if not self.is_connected or self.db is None:
+            logger.error("DB 연결이 되어 있지 않습니다.")
+            return None
         """사용자 상호작용 저장"""
         try:
             interaction_data = {
@@ -83,13 +100,16 @@ class DatabaseManager:
             
             result = await self.db.user_interactions.insert_one(interaction_data)
             logger.info(f"상호작용 저장 완료: {result.inserted_id}")
-            return result.inserted_id
+            # ObjectId를 문자열로 변환하여 반환
+            return str(result.inserted_id)
             
         except Exception as e:
             logger.error(f"상호작용 저장 실패: {str(e)}")
             return None
     
     async def get_user_interactions(self, user_id: str, limit: int = 50) -> List[Dict]:
+        if self.db is None:
+            raise RuntimeError('DB 연결이 되어 있지 않습니다.')
         """사용자 상호작용 조회"""
         try:
             cursor = self.db.user_interactions.find(
@@ -139,7 +159,8 @@ class DatabaseManager:
             
             result = await self.db.consciousness_events.insert_one(event_data)
             logger.info(f"의식 이벤트 저장 완료: {result.inserted_id}")
-            return result.inserted_id
+            # ObjectId를 문자열로 변환하여 반환
+            return str(result.inserted_id)
             
         except Exception as e:
             logger.error(f"의식 이벤트 저장 실패: {str(e)}")
@@ -235,7 +256,8 @@ class DatabaseManager:
             
             result = await self.db.system_logs.insert_one(log_data)
             logger.info(f"시스템 로그 저장 완료: {result.inserted_id}")
-            return result.inserted_id
+            # ObjectId를 문자열로 변환하여 반환
+            return str(result.inserted_id)
             
         except Exception as e:
             logger.error(f"시스템 로그 저장 실패: {str(e)}")
@@ -343,6 +365,9 @@ class DatabaseManager:
     
     # 사용자 관리 메서드들
     async def create_user(self, user_data: Dict) -> str:
+        if not self.is_connected or self.db is None:
+            logger.error("DB 연결이 되어 있지 않습니다.")
+            return None
         """사용자 생성"""
         try:
             result = await self.db.users.insert_one(user_data)
@@ -350,10 +375,13 @@ class DatabaseManager:
             return str(result.inserted_id)
         except Exception as e:
             logger.error(f"사용자 생성 실패: {str(e)}")
-            raise
+            return None
     
     async def get_user_by_username(self, username: str) -> Optional[Dict]:
         """사용자명으로 사용자 조회"""
+        if not self.is_connected or self.db is None:
+            logger.error("DB 연결이 되어 있지 않습니다.")
+            return None
         try:
             user = await self.db.users.find_one({"username": username})
             return user
@@ -363,6 +391,9 @@ class DatabaseManager:
     
     async def get_user_by_id(self, user_id: str) -> Optional[Dict]:
         """사용자 ID로 사용자 조회"""
+        if not self.is_connected or self.db is None:
+            logger.error("DB 연결이 되어 있지 않습니다.")
+            return None
         try:
             from bson import ObjectId
             user = await self.db.users.find_one({"_id": ObjectId(user_id)})
@@ -371,12 +402,28 @@ class DatabaseManager:
             logger.error(f"사용자 조회 실패: {str(e)}")
             return None
     
-    async def get_all_users(self) -> List[Dict]:
-        """모든 사용자 조회"""
+    async def get_user_by_email(self, email: str) -> Optional[Dict]:
+        """이메일로 사용자 조회"""
+        if not self.is_connected or self.db is None:
+            logger.error("DB 연결이 되어 있지 않습니다.")
+            return None
         try:
-            cursor = self.db.users.find({}).sort("created_at", -1)
+            user = await self.db.users.find_one({"email": email})
+            if user and "_id" in user:
+                user["_id"] = str(user["_id"])
+            return user
+        except Exception as e:
+            logger.error(f"이메일로 사용자 조회 실패: {str(e)}")
+            return None
+    
+    async def get_all_users(self) -> List[Dict]:
+        if not self.is_connected or self.db is None:
+            logger.error("DB 연결이 되어 있지 않습니다.")
+            return []
+        try:
+            cursor = self.db.users.find({})
             users = await cursor.to_list(length=100)
-            return users
+            return self._convert_objectid_to_str(users)
         except Exception as e:
             logger.error(f"사용자 목록 조회 실패: {str(e)}")
             return []
@@ -434,14 +481,18 @@ class DatabaseManager:
     
     # 세션 관리 메서드들
     async def create_session(self, session_data: Dict) -> str:
+        if not self.is_connected or self.db is None:
+            logger.error("DB 연결이 되어 있지 않습니다.")
+            return None
         """세션 생성"""
         try:
             result = await self.db.sessions.insert_one(session_data)
             logger.info(f"세션 생성 완료: {result.inserted_id}")
             return str(result.inserted_id)
+            
         except Exception as e:
             logger.error(f"세션 생성 실패: {str(e)}")
-            raise
+            return None
     
     async def get_session_by_id(self, session_id: str) -> Optional[Dict]:
         """세션 ID로 세션 조회"""
@@ -484,35 +535,50 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"사용자 세션 목록 조회 실패: {str(e)}")
             return []
+
+    async def get_sessions(self, query: Dict = None) -> List[Dict]:
+        if not self.is_connected or self.db is None:
+            logger.error("DB 연결이 되어 있지 않습니다.")
+            return []
+        try:
+            filter_query = query or {}
+            cursor = self.db.sessions.find(filter_query).sort("created_at", -1)
+            sessions = await cursor.to_list(length=100)
+            return sessions
+        except Exception as e:
+            logger.error(f"세션 목록 조회 실패: {str(e)}")
+            return []
     
     async def save_message(self, session_id: str, sender: str, content: str, timestamp: str = None) -> str:
+        if not self.is_connected or self.db is None:
+            logger.error("DB 연결이 되어 있지 않습니다.")
+            return None
         """메시지 저장"""
         try:
-            if timestamp is None:
-                timestamp = asyncio.get_event_loop().time()
-            
             message_data = {
                 "session_id": session_id,
-                "sender": sender,
                 "content": content,
-                "timestamp": timestamp
+                "sender": sender,
+                "timestamp": timestamp or asyncio.get_event_loop().time()
             }
             
             result = await self.db.messages.insert_one(message_data)
             logger.info(f"메시지 저장 완료: {result.inserted_id}")
             return str(result.inserted_id)
+            
         except Exception as e:
             logger.error(f"메시지 저장 실패: {str(e)}")
-            raise
+            return None
     
     async def get_session_messages(self, session_id: str) -> List[Dict]:
-        """세션의 메시지 목록 조회"""
+        if not self.is_connected or self.db is None:
+            logger.error("DB 연결이 되어 있지 않습니다.")
+            return []
         try:
             cursor = self.db.messages.find({"session_id": session_id}).sort("timestamp", 1)
-            messages = await cursor.to_list(length=1000)
-            
-            # ObjectId를 문자열로 변환
-            return self._convert_objectid_to_str(messages)
+            messages = await cursor.to_list(length=100)
+            logger.info(f"세션 메시지 조회 성공: {session_id} - {len(messages)}개 메시지")
+            return messages
         except Exception as e:
             logger.error(f"세션 메시지 조회 실패: {str(e)}")
             return []
@@ -537,6 +603,7 @@ class DatabaseManager:
             
             result = await self.db.user_interactions.insert_one(aura_data)
             logger.info(f"아우라 데이터 저장 완료: {result.inserted_id}")
+            # ObjectId를 문자열로 변환하여 반환
             return str(result.inserted_id)
         except Exception as e:
             logger.error(f"아우라 데이터 저장 실패: {str(e)}")
@@ -571,4 +638,8 @@ class DatabaseManager:
             logger.error(f"기본 관리자 계정 생성 실패: {str(e)}")
 
 # 전역 데이터베이스 매니저 인스턴스
-db_manager = DatabaseManager() 
+try:
+    db_manager = DatabaseManager()
+except Exception as e:
+    logger.error(f"DatabaseManager 초기화 실패: {e}")
+    db_manager = None 

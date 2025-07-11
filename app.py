@@ -354,13 +354,14 @@ def setup_templates():
     """템플릿 디렉토리 설정 - Railway 환경 최적화"""
     # Railway 환경에서 가능한 모든 경로 시도
     possible_paths = [
-        Path(__file__).parent,  # 현재 파일 디렉토리 (/app/templates)
+        Path(__file__).parent / "templates",  # 현재 파일 디렉토리의 templates
+        Path(__file__).parent,  # 현재 파일 디렉토리
         Path("/app/templates"),  # Railway 템플릿 경로
+        Path.cwd() / "templates",  # 현재 작업 디렉토리의 templates
         Path.cwd(),  # 현재 작업 디렉토리
-        Path.cwd() / "templates",  # 현재 디렉토리의 templates
         Path("/app"),  # Railway 기본 경로
-        Path("/app/templates"),  # Railway 컨테이너 내부
-        Path("/workspace/templates"),  # Railway 작업 공간
+        Path("/workspace/templates"),  # Railway 작업 공간의 templates
+        Path("/workspace"),  # Railway 작업 공간
     ]
     
     for path in possible_paths:
@@ -509,9 +510,10 @@ app.add_middleware(
 def setup_static_files():
     """정적 파일 디렉토리 설정 - Railway 환경 최적화"""
     possible_paths = [
-        Path(__file__).parent / "static",
-        Path("/app/static"),
-        Path.cwd() / "static",
+        Path(__file__).parent / "static",  # 현재 파일 디렉토리의 static
+        Path("/app/static"),  # Railway static 경로
+        Path.cwd() / "static",  # 현재 작업 디렉토리의 static
+        Path("/workspace/static"),  # Railway 작업 공간의 static
     ]
     
     for path in possible_paths:
@@ -534,6 +536,16 @@ async def home(request: Request):
         return templates.TemplateResponse("home.html", {"request": request})
     except Exception as e:
         logger.error(f"홈 템플릿 렌더링 오류: {e}")
+        
+        # 템플릿 경로 디버그 정보 수집
+        debug_info = {
+            "template_path": str(templates_path),
+            "template_exists": templates_path.exists(),
+            "current_dir": str(Path.cwd()),
+            "script_dir": str(Path(__file__).parent),
+            "error": str(e)
+        }
+        
         return HTMLResponse(f"""
         <!DOCTYPE html>
         <html>
@@ -547,6 +559,7 @@ async def home(request: Request):
                 h1 {{ color: #333; text-align: center; }}
                 .status {{ background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; }}
                 .error {{ background: #ffe8e8; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .debug {{ background: #f0f0f0; padding: 15px; border-radius: 5px; margin: 20px 0; font-family: monospace; font-size: 12px; }}
                 .nav {{ text-align: center; margin: 20px 0; }}
                 .nav a {{ display: inline-block; margin: 10px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }}
                 .nav a:hover {{ background: #0056b3; }}
@@ -565,6 +578,13 @@ async def home(request: Request):
                     <h3>⚠️ 템플릿 파일 경고</h3>
                     <p>템플릿 파일(home.html)을 찾을 수 없습니다.</p>
                     <p>오류: {str(e)}</p>
+                </div>
+                <div class="debug">
+                    <h4>디버그 정보:</h4>
+                    <p>템플릿 경로: {debug_info['template_path']}</p>
+                    <p>템플릿 존재: {debug_info['template_exists']}</p>
+                    <p>현재 디렉토리: {debug_info['current_dir']}</p>
+                    <p>스크립트 디렉토리: {debug_info['script_dir']}</p>
                 </div>
                 <div class="nav">
                     <a href="/api/debug/files">파일 시스템 진단</a>
@@ -806,7 +826,7 @@ async def prompts(request: Request):
 
 @app.get("/health")
 async def health():
-    return {
+    return safe_json_response({
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "services": {
@@ -814,17 +834,17 @@ async def health():
             "redis": "connected" if redis_connected else "disconnected",
             "openai": "configured" if openai_client else "not_configured"
         }
-    }
+    })
 
 @app.get("/api/status")
 async def api_status():
-    return {
+    return safe_json_response({
         "message": "EORA AI System API - Railway 최종 버전",
         "version": "2.0.0",
         "status": "running",
         "server_file": "railway_final.py",
         "timestamp": datetime.now().isoformat()
-    }
+    })
 
 @app.get("/api/debug/files")
 async def debug_files():
@@ -893,7 +913,7 @@ async def debug_files():
         except Exception as e:
             debug_info["app_scan_error"] = str(e)
     
-    return debug_info
+    return safe_json_response(debug_info)
 
 @app.get("/api/debug/templates")
 async def debug_templates():
@@ -908,17 +928,17 @@ async def debug_templates():
             for file in templates_path.glob("*.html"):
                 template_files.append(file.name)
         
-        return {
+        return safe_json_response({
             "current_template_path": current_template_path,
             "template_path_exists": templates_path.exists(),
             "template_files": template_files,
             "total_html_files": len(template_files)
-        }
+        })
     except Exception as e:
-        return {
+        return safe_json_response({
             "error": str(e),
             "current_template_path": "unknown"
-        }
+        })
 
 # 기본 세션 및 메시지 API
 @app.get("/api/sessions")
@@ -933,7 +953,7 @@ async def get_sessions():
                 for session in sessions:
                     convert_objectid(session)
                 logger.info(f"✅ MongoDB에서 {len(sessions)}개 세션 조회")
-                return {"sessions": sessions}
+                return safe_json_response({"sessions": sessions})
             except Exception as e:
                 logger.error(f"❌ MongoDB 세션 조회 실패: {e}")
                 # MongoDB 실패 시 메모리로 전환
@@ -950,7 +970,7 @@ async def get_sessions():
             sessions = get_sessions_from_memory()
         
         logger.info(f"✅ 메모리에서 {len(sessions)}개 세션 조회")
-        return {"sessions": sessions}
+        return safe_json_response({"sessions": sessions})
         
     except Exception as e:
         logger.error(f"❌ 세션 조회 오류: {e}")
@@ -961,10 +981,10 @@ async def get_sessions():
                 default_session_id = "default_session"
                 save_session_to_memory(default_session_id, {"name": "기본 세션"})
                 sessions = get_sessions_from_memory()
-            return {"sessions": sessions}
+            return safe_json_response({"sessions": sessions})
         except Exception as fallback_error:
             logger.error(f"❌ 메모리 기반 세션 조회도 실패: {fallback_error}")
-            return {"sessions": []}
+            return safe_json_response({"sessions": []})
 
 @app.post("/api/sessions")
 async def create_session(request: Request):
@@ -991,17 +1011,17 @@ async def create_session(request: Request):
             session_doc["_id"] = str(session_doc["_id"])
             session_doc["created_at"] = session_doc["created_at"].isoformat()
             session_doc["last_activity"] = session_doc["last_activity"].isoformat()
-            return session_doc
+            return safe_json_response(session_doc)
         else:
             # 메모리 기반 저장
             save_session_to_memory(session_id, session_data)
-            return {
+            return safe_json_response({
                 "_id": session_id,
                 "name": session_name,
                 "created_at": datetime.now().isoformat(),
                 "last_activity": datetime.now().isoformat(),
                 "message_count": 0
-            }
+            })
     except Exception as e:
         logger.error(f"세션 생성 오류: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -1018,7 +1038,7 @@ async def get_session_messages(session_id: str):
                 for message in messages:
                     convert_objectid(message)
                 logger.info(f"✅ MongoDB에서 {len(messages)}개 메시지 조회")
-                return {"messages": messages}
+                return safe_json_response({"messages": messages})
             except Exception as e:
                 logger.error(f"❌ MongoDB 메시지 조회 실패: {e}")
                 # MongoDB 실패 시 메모리로 전환
@@ -1028,11 +1048,11 @@ async def get_session_messages(session_id: str):
         logger.info("ℹ️ 메모리 기반 메시지 조회")
         messages = get_messages_from_memory(session_id)
         logger.info(f"✅ 메모리에서 {len(messages)}개 메시지 조회")
-        return {"messages": messages}
+        return safe_json_response({"messages": messages})
         
     except Exception as e:
         logger.error(f"❌ 메시지 조회 오류: {e}")
-        return {"messages": []}
+        return safe_json_response({"messages": []})
 
 @app.post("/api/messages")
 async def save_message(request: Request):
@@ -1071,7 +1091,7 @@ async def save_message(request: Request):
                         logger.warning(f"⚠️ 세션 업데이트 실패: {session_error}")
                 
                 logger.info(f"✅ MongoDB에 메시지 저장 완료: {result.inserted_id}")
-                return message_data
+                return safe_json_response(message_data)
             except Exception as e:
                 logger.error(f"❌ MongoDB 메시지 저장 실패: {e}")
                 # MongoDB 실패 시 메모리로 전환
@@ -1082,7 +1102,7 @@ async def save_message(request: Request):
         message_id = save_message_to_memory(message_data)
         message_data["_id"] = message_id
         logger.info(f"✅ 메모리에 메시지 저장 완료: {message_id}")
-        return message_data
+        return safe_json_response(message_data)
         
     except Exception as e:
         logger.error(f"❌ 메시지 저장 오류: {e}")
@@ -1096,6 +1116,13 @@ async def chat_endpoint(request: Request):
         session_id = data.get("session_id", "default_session")
         user_id = data.get("user_id", "anonymous")
         
+        # 입력 검증
+        if not user_message.strip():
+            return safe_json_response({
+                "error": "메시지가 비어있습니다.",
+                "status": "error"
+            })
+        
         # 사용자 메시지 저장
         user_msg_data = {
             "session_id": session_id,
@@ -1106,10 +1133,17 @@ async def chat_endpoint(request: Request):
         }
         
         if chat_logs_collection is not None:
-            chat_logs_collection.insert_one(user_msg_data)
+            try:
+                chat_logs_collection.insert_one(user_msg_data)
+                logger.info(f"✅ MongoDB에 사용자 메시지 저장: {session_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ MongoDB 메시지 저장 실패: {e}")
+                # 메모리 기반 저장으로 전환
+                save_message_to_memory(user_msg_data)
         else:
             # 메모리 기반 저장
             save_message_to_memory(user_msg_data)
+            logger.info(f"✅ 메모리에 사용자 메시지 저장: {session_id}")
         
         # EORA 응답 생성
         if openai_client:
@@ -1125,6 +1159,7 @@ async def chat_endpoint(request: Request):
                     temperature=0.7
                 )
                 eora_response = response.choices[0].message.content
+                logger.info(f"✅ OpenAI API 응답 생성 성공")
             except Exception as e:
                 logger.warning(f"OpenAI API 호출 실패: {e}")
                 eora_response = f"안녕하세요! '{user_message}'에 대해 이야기하고 싶으시군요. 현재 AI 서비스에 일시적인 문제가 있어 기본 응답을 드립니다."
@@ -1141,66 +1176,75 @@ async def chat_endpoint(request: Request):
         }
         
         if chat_logs_collection is not None:
-            result = chat_logs_collection.insert_one(eora_msg_data)
-            message_id = str(result.inserted_id)
+            try:
+                result = chat_logs_collection.insert_one(eora_msg_data)
+                message_id = str(result.inserted_id)
+                logger.info(f"✅ MongoDB에 EORA 응답 저장: {message_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ MongoDB EORA 응답 저장 실패: {e}")
+                message_id = save_message_to_memory(eora_msg_data)
         else:
             # 메모리 기반 저장
             message_id = save_message_to_memory(eora_msg_data)
+            logger.info(f"✅ 메모리에 EORA 응답 저장: {message_id}")
         
         # 아우라 데이터 저장
-        if aura_collection is not None:
-            aura_data = {
-                "user_id": user_id,
-                "session_id": session_id,
-                "aura_level": 5.0,
-                "aura_type": "creative",
-                "timestamp": datetime.now(),
-                "interaction_count": 1
-            }
-            aura_collection.insert_one(aura_data)
-        else:
-            # 메모리 기반 아우라 데이터 저장
-            memory_aura_data[f"{user_id}_{session_id}"] = {
-                "user_id": user_id,
-                "session_id": session_id,
-                "aura_level": 5.0,
-                "aura_type": "creative",
-                "timestamp": datetime.now().isoformat(),
-                "interaction_count": 1
-            }
+        try:
+            if aura_collection is not None:
+                aura_data = {
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "aura_level": 5.0,
+                    "aura_type": "creative",
+                    "timestamp": datetime.now(),
+                    "interaction_count": 1
+                }
+                aura_collection.insert_one(aura_data)
+                logger.info(f"✅ MongoDB에 아우라 데이터 저장")
+            else:
+                # 메모리 기반 아우라 데이터 저장
+                memory_aura_data[f"{user_id}_{session_id}"] = {
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "aura_level": 5.0,
+                    "aura_type": "creative",
+                    "timestamp": datetime.now().isoformat(),
+                    "interaction_count": 1
+                }
+                logger.info(f"✅ 메모리에 아우라 데이터 저장")
+        except Exception as e:
+            logger.warning(f"⚠️ 아우라 데이터 저장 실패: {e}")
         
         # 상호작용 로그
-        if system_logs_collection is not None:
-            interaction_data = {
-                "user_id": user_id,
-                "session_id": session_id,
-                "interaction_type": "chat",
-                "timestamp": datetime.now(),
-                "content_length": len(user_message)
-            }
-            system_logs_collection.insert_one(interaction_data)
+        try:
+            if system_logs_collection is not None:
+                interaction_data = {
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "interaction_type": "chat",
+                    "timestamp": datetime.now(),
+                    "content_length": len(user_message)
+                }
+                system_logs_collection.insert_one(interaction_data)
+                logger.info(f"✅ 시스템 로그 저장")
+        except Exception as e:
+            logger.warning(f"⚠️ 시스템 로그 저장 실패: {e}")
         
-        logger.info(f"✅ 아우라 데이터 저장 완료 - 사용자: {user_id}")
-        
-        return {
+        return safe_json_response({
             "response": eora_response,
             "message_id": message_id,
-            "timestamp": datetime.now().isoformat()
-        }
+            "timestamp": datetime.now().isoformat(),
+            "status": "success",
+            "session_id": session_id
+        })
+        
     except Exception as e:
         logger.error(f"채팅 처리 오류: {e}")
-        # 오류 시에도 메모리 기반 저장 시도
-        try:
-            save_message_to_memory(user_msg_data)
-            message_id = save_message_to_memory(eora_msg_data)
-            return {
-                "response": eora_response,
-                "message_id": message_id,
-                "timestamp": datetime.now().isoformat()
-            }
-        except Exception as mem_error:
-            logger.error(f"메모리 저장도 실패: {mem_error}")
-            raise HTTPException(status_code=500, detail="Internal server error")
+        return safe_json_response({
+            "error": "채팅 처리 중 오류가 발생했습니다.",
+            "status": "error",
+            "details": str(e)
+        })
 
 # 웹소켓 엔드포인트
 @app.websocket("/ws/{session_id}")
@@ -1229,41 +1273,41 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 # 사용자 관련 API
 @app.get("/api/user/info")
 async def get_user_info():
-    return {
+    return safe_json_response({
         "user_id": "anonymous",
         "username": "게스트",
         "email": "guest@example.com",
         "created_at": datetime.now().isoformat()
-    }
+    })
 
 @app.get("/api/user/stats")
 async def get_user_stats():
-    return {
+    return safe_json_response({
         "total_messages": 0,
         "total_sessions": 1,
         "points": 1000,
         "aura_level": 5
-    }
+    })
 
 # 포인트 시스템 API
 @app.get("/api/user/points")
 async def get_user_points():
-    return {"points": 1000, "user_id": "anonymous"}
+    return safe_json_response({"points": 1000, "user_id": "anonymous"})
 
 @app.get("/api/points/packages")
 async def get_point_packages():
-    return {
+    return safe_json_response({
         "packages": [
             {"id": 1, "name": "기본 패키지", "points": 100, "price": 1000},
             {"id": 2, "name": "프리미엄 패키지", "points": 500, "price": 5000},
             {"id": 3, "name": "VIP 패키지", "points": 1000, "price": 10000}
         ]
-    }
+    })
 
 # 아우라 시스템 API
 @app.get("/api/aura/status")
 async def get_aura_status():
-    return {"aura_level": 5, "aura_type": "creative"}
+    return safe_json_response({"aura_level": 5, "aura_type": "creative"})
 
 @app.post("/api/aura/save")
 async def save_aura(request: Request):
@@ -1276,12 +1320,291 @@ async def save_aura(request: Request):
         }
         if aura_collection is not None:
             result = aura_collection.insert_one(aura_data)
-            return {"message": "아우라 저장 완료", "id": str(result.inserted_id)}
+            return safe_json_response({"message": "아우라 저장 완료", "id": str(result.inserted_id)})
         else:
-            return {"message": "아우라 저장 완료", "id": "temp_id"}
+            return safe_json_response({"message": "아우라 저장 완료", "id": "temp_id"})
     except Exception as e:
         logger.error(f"아우라 저장 오류: {e}")
-        return {"message": "아우라 저장 완료"}
+        return safe_json_response({"message": "아우라 저장 완료"})
+
+# 시스템 상태 및 통계 API
+@app.get("/api/system/status")
+async def get_system_status():
+    """시스템 전체 상태 정보를 반환합니다."""
+    try:
+        # MongoDB 연결 상태 확인
+        mongodb_status = "connected" if client else "disconnected"
+        
+        # Redis 연결 상태 확인
+        redis_status = "connected" if redis_connected else "disconnected"
+        
+        # OpenAI API 상태 확인
+        openai_status = "configured" if openai_client else "not_configured"
+        
+        # 메모리 기반 데이터 통계
+        memory_stats = {
+            "sessions": len(memory_sessions),
+            "messages": sum(len(messages) for messages in memory_messages.values()),
+            "aura_data": len(memory_aura_data)
+        }
+        
+        # MongoDB 데이터 통계 (가능한 경우)
+        mongodb_stats = {}
+        if client:
+            try:
+                if chat_logs_collection:
+                    mongodb_stats["total_messages"] = chat_logs_collection.count_documents({})
+                if sessions_collection:
+                    mongodb_stats["total_sessions"] = sessions_collection.count_documents({})
+                if users_collection:
+                    mongodb_stats["total_users"] = users_collection.count_documents({})
+            except Exception as e:
+                logger.warning(f"⚠️ MongoDB 통계 조회 실패: {e}")
+        
+        return safe_json_response({
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "version": "2.0.0",
+            "services": {
+                "mongodb": mongodb_status,
+                "redis": redis_status,
+                "openai": openai_status
+            },
+            "memory_stats": memory_stats,
+            "mongodb_stats": mongodb_stats,
+            "uptime": "running"
+        })
+    except Exception as e:
+        logger.error(f"시스템 상태 조회 오류: {e}")
+        return safe_json_response({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        })
+
+@app.get("/api/system/health")
+async def get_system_health():
+    """간단한 헬스체크 엔드포인트"""
+    return safe_json_response({
+        "status": "ok",
+        "timestamp": datetime.now().isoformat(),
+        "message": "EORA AI System is running"
+    })
+
+@app.get("/api/system/info")
+async def get_system_info():
+    """시스템 정보를 반환합니다."""
+    import platform
+    
+    try:
+        import psutil
+        system_info = {
+            "python_version": platform.python_version(),
+            "platform": platform.platform(),
+            "cpu_count": psutil.cpu_count(),
+            "memory_total": psutil.virtual_memory().total,
+            "memory_available": psutil.virtual_memory().available,
+            "disk_usage": psutil.disk_usage('/').percent if hasattr(psutil, 'disk_usage') else "N/A"
+        }
+    except ImportError:
+        # psutil이 설치되지 않은 경우
+        system_info = {
+            "python_version": platform.python_version(),
+            "platform": platform.platform(),
+            "note": "psutil not available for detailed system info"
+        }
+    
+    return safe_json_response({
+        "system_info": system_info,
+        "timestamp": datetime.now().isoformat()
+    })
+
+# 완전히 안전한 JSON 응답을 위한 래퍼 함수
+from fastapi.responses import Response
+from bson import ObjectId
+from datetime import datetime, date
+
+def safe_json_response(data):
+    """완전히 안전한 JSON 응답 생성 - FastAPI 내부 직렬화 우회"""
+    try:
+        def ultra_safe_serialize(obj):
+            if obj is None:
+                return None
+            elif isinstance(obj, ObjectId):
+                return str(obj)
+            elif isinstance(obj, (datetime, date)):
+                return obj.isoformat()
+            elif isinstance(obj, dict):
+                return {k: ultra_safe_serialize(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [ultra_safe_serialize(item) for item in obj]
+            elif isinstance(obj, tuple):
+                return [ultra_safe_serialize(item) for item in obj]
+            elif isinstance(obj, set):
+                return [ultra_safe_serialize(item) for item in obj]
+            elif isinstance(obj, (str, int, float, bool)):
+                return obj
+            else:
+                try:
+                    return str(obj)
+                except:
+                    return "직렬화_불가능한_객체"
+        safe_data = ultra_safe_serialize(data)
+        import json
+        json_str = json.dumps(safe_data, ensure_ascii=False, default=str)
+        return Response(
+            content=json_str,
+            media_type="application/json",
+            headers={"Content-Type": "application/json; charset=utf-8"}
+        )
+    except Exception as e:
+        return Response(content=json.dumps({"error": f"safe_json_response 오류: {str(e)}"}, ensure_ascii=False), media_type="application/json")
+
+# 관리자 API 엔드포인트
+@app.get("/api/admin/sessions")
+async def admin_get_sessions():
+    """관리자용 세션 목록 조회"""
+    try:
+        sessions = []
+        
+        # MongoDB에서 세션 조회
+        if sessions_collection is not None:
+            try:
+                db_sessions = list(sessions_collection.find().sort("last_activity", -1))
+                for session in db_sessions:
+                    convert_objectid(session)
+                sessions.extend(db_sessions)
+            except Exception as e:
+                logger.warning(f"⚠️ MongoDB 세션 조회 실패: {e}")
+        
+        # 메모리 기반 세션 추가
+        memory_sessions_list = get_sessions_from_memory()
+        sessions.extend(memory_sessions_list)
+        
+        # 중복 제거 (session_id 기준)
+        unique_sessions = {}
+        for session in sessions:
+            session_id = session.get("_id", "unknown")
+            if session_id not in unique_sessions:
+                unique_sessions[session_id] = session
+        
+        return safe_json_response({
+            "sessions": list(unique_sessions.values()),
+            "total_count": len(unique_sessions),
+            "source": "mongodb_and_memory"
+        })
+    except Exception as e:
+        logger.error(f"관리자 세션 조회 오류: {e}")
+        return safe_json_response({
+            "error": str(e),
+            "sessions": []
+        })
+
+@app.get("/api/admin/messages")
+async def admin_get_messages(limit: int = 100, offset: int = 0):
+    """관리자용 메시지 목록 조회"""
+    try:
+        messages = []
+        
+        # MongoDB에서 메시지 조회
+        if chat_logs_collection is not None:
+            try:
+                db_messages = list(chat_logs_collection.find().sort("timestamp", -1).skip(offset).limit(limit))
+                for message in db_messages:
+                    convert_objectid(message)
+                messages.extend(db_messages)
+            except Exception as e:
+                logger.warning(f"⚠️ MongoDB 메시지 조회 실패: {e}")
+        
+        # 메모리 기반 메시지 추가
+        for session_messages in memory_messages.values():
+            messages.extend(session_messages)
+        
+        # 시간순 정렬
+        messages.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+        
+        return safe_json_response({
+            "messages": messages[offset:offset+limit],
+            "total_count": len(messages),
+            "limit": limit,
+            "offset": offset
+        })
+    except Exception as e:
+        logger.error(f"관리자 메시지 조회 오류: {e}")
+        return safe_json_response({
+            "error": str(e),
+            "messages": []
+        })
+
+@app.delete("/api/admin/sessions/{session_id}")
+async def admin_delete_session(session_id: str):
+    """관리자용 세션 삭제"""
+    try:
+        deleted_count = 0
+        
+        # MongoDB에서 세션 삭제
+        if sessions_collection is not None:
+            try:
+                result = sessions_collection.delete_one({"_id": session_id})
+                deleted_count += result.deleted_count
+            except Exception as e:
+                logger.warning(f"⚠️ MongoDB 세션 삭제 실패: {e}")
+        
+        # 메모리에서 세션 삭제
+        if session_id in memory_sessions:
+            del memory_sessions[session_id]
+            deleted_count += 1
+        
+        # 관련 메시지도 삭제
+        if chat_logs_collection is not None:
+            try:
+                chat_logs_collection.delete_many({"session_id": session_id})
+            except Exception as e:
+                logger.warning(f"⚠️ MongoDB 메시지 삭제 실패: {e}")
+        
+        # 메모리에서 메시지 삭제
+        if session_id in memory_messages:
+            del memory_messages[session_id]
+        
+        return safe_json_response({
+            "message": f"세션 {session_id} 삭제 완료",
+            "deleted_count": deleted_count
+        })
+    except Exception as e:
+        logger.error(f"세션 삭제 오류: {e}")
+        return safe_json_response({
+            "error": str(e)
+        })
+
+@app.post("/api/admin/clear-memory")
+async def admin_clear_memory():
+    """관리자용 메모리 캐시 초기화"""
+    try:
+        global memory_cache, memory_sessions, memory_messages, memory_aura_data
+        
+        # 메모리 데이터 백업 (선택사항)
+        backup_data = {
+            "cache_size": len(memory_cache),
+            "sessions_count": len(memory_sessions),
+            "messages_count": sum(len(messages) for messages in memory_messages.values()),
+            "aura_data_count": len(memory_aura_data)
+        }
+        
+        # 메모리 초기화
+        memory_cache.clear()
+        memory_sessions.clear()
+        memory_messages.clear()
+        memory_aura_data.clear()
+        
+        return safe_json_response({
+            "message": "메모리 캐시 초기화 완료",
+            "cleared_data": backup_data
+        })
+    except Exception as e:
+        logger.error(f"메모리 초기화 오류: {e}")
+        return safe_json_response({
+            "error": str(e)
+        })
 
 if __name__ == "__main__":
     import uvicorn
@@ -1291,13 +1614,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="EORA AI System - Railway 최종 서버")
     parser.add_argument("--host", default="0.0.0.0", help="서버 호스트")
     parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8000)), help="서버 포트")
+    parser.add_argument("--debug", action="store_true", help="디버그 모드 활성화")
     args = parser.parse_args()
     
     # Railway 환경에서 안정적인 실행
     port = args.port
     host = args.host
+    debug_mode = args.debug
+    
     logger.info("🚀 ==========================================")
     logger.info(f"🚀 Railway 최종 서버 시작 - 호스트: {host}, 포트: {port}")
+    logger.info(f"🚀 디버그 모드: {'활성화' if debug_mode else '비활성화'}")
     logger.info("🚀 이 파일은 railway_final.py입니다!")
     logger.info("🚀 모든 문제가 해결된 최신 버전입니다!")
     logger.info("✅ DeprecationWarning 완전 제거됨")
@@ -1305,37 +1632,41 @@ if __name__ == "__main__":
     logger.info("✅ MongoDB 연결 안정성 확보됨")
     logger.info("✅ Redis 연결 오류 해결됨")
     logger.info("✅ 세션 저장 기능 완성됨")
+    logger.info("✅ 새로운 관리자 API 추가됨")
+    logger.info("✅ 시스템 상태 모니터링 추가됨")
     logger.info("🚀 ==========================================")
     
     # 포트 충돌 방지를 위한 안전한 실행
-    try:
-        uvicorn.run(
-            app, 
-            host=host, 
-            port=port,
-            reload=False,  # 재시작 완전 비활성화
-            log_level="info",
-            access_log=True,
-            use_colors=True
-        )
-    except OSError as e:
-        if "Address already in use" in str(e) or "10048" in str(e):
-            logger.error(f"❌ 포트 {port}가 이미 사용 중입니다. 다른 포트를 시도합니다.")
-            # 다른 포트 시도
-            for alt_port in [8001, 8002, 8003, 8004, 8005]:
-                try:
-                    logger.info(f"🔄 포트 {alt_port} 시도 중...")
-                    uvicorn.run(
-                        app, 
-                        host=host, 
-                        port=alt_port,
-                        reload=False,
-                        log_level="info",
-                        access_log=True,
-                        use_colors=True
-                    )
-                    break
-                except OSError:
-                    continue
+    def start_server(host, port, debug=False):
+        """서버 시작 함수"""
+        try:
+            uvicorn.run(
+                app, 
+                host=host, 
+                port=port,
+                reload=debug,  # 디버그 모드에서만 재시작 활성화
+                log_level="debug" if debug else "info",
+                access_log=True,
+                use_colors=True
+            )
+            return True
+        except OSError as e:
+            if "Address already in use" in str(e) or "10048" in str(e):
+                logger.error(f"❌ 포트 {port}가 이미 사용 중입니다.")
+                return False
+            else:
+                raise e
+    
+    # 메인 포트에서 시작 시도
+    if not start_server(host, port, debug_mode):
+        # 다른 포트 시도
+        alt_ports = [8001, 8002, 8003, 8004, 8005, 8006, 8007, 8008, 8009, 8010]
+        for alt_port in alt_ports:
+            logger.info(f"🔄 포트 {alt_port} 시도 중...")
+            if start_server(host, alt_port, debug_mode):
+                logger.info(f"✅ 서버가 포트 {alt_port}에서 성공적으로 시작되었습니다.")
+                break
         else:
-            raise e 
+            logger.error("❌ 사용 가능한 포트를 찾을 수 없습니다.")
+            logger.error("시스템을 종료합니다.")
+            sys.exit(1)
