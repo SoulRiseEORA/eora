@@ -250,6 +250,15 @@ def save_message_to_memory(message_data: dict):
     if session_id not in memory_messages:
         memory_messages[session_id] = []
     
+    # 중복 메시지 방지: 최근 30초 내 같은 내용의 메시지 확인
+    recent_time = datetime.now() - timedelta(seconds=30)
+    for existing_msg in memory_messages[session_id][-10:]:  # 최근 10개 메시지만 확인
+        if (existing_msg.get("content") == message_data.get("content") and
+            existing_msg.get("role") == message_data.get("role") and
+            existing_msg.get("timestamp", "") > recent_time.isoformat()):
+            logger.info(f"⚠️ 중복 메시지 감지 - 저장 건너뜀: {session_id}")
+            return existing_msg.get("_id", "duplicate")
+    
     message_id = str(len(memory_messages[session_id]) + 1)
     message_data["_id"] = message_id
     message_data["timestamp"] = message_data["timestamp"].isoformat()
@@ -1050,6 +1059,26 @@ async def save_message(request: Request):
         
         if chat_logs_collection is not None:
             try:
+                # 중복 메시지 방지: 최근 30초 내 같은 내용의 메시지 확인
+                recent_time = datetime.now() - timedelta(seconds=30)
+                duplicate_check = chat_logs_collection.find_one({
+                    "session_id": message_data["session_id"],
+                    "content": message_data["content"],
+                    "role": message_data["role"],
+                    "timestamp": {"$gte": recent_time}
+                }, projection={"_id": 1})
+                
+                if duplicate_check:
+                    logger.info(f"⚠️ 중복 메시지 감지 - MongoDB 저장 건너뜀: {message_data['session_id']}")
+                    return {
+                        "_id": str(duplicate_check["_id"]),
+                        "session_id": message_data["session_id"],
+                        "content": message_data["content"],
+                        "role": message_data["role"],
+                        "timestamp": message_data["timestamp"].isoformat(),
+                        "duplicate": True
+                    }
+                
                 result = chat_logs_collection.insert_one(message_data)
                 message_data["_id"] = str(result.inserted_id)
                 message_data["timestamp"] = message_data["timestamp"].isoformat()
@@ -1081,7 +1110,14 @@ async def save_message(request: Request):
         logger.info("ℹ️ 메모리 기반 메시지 저장")
         message_id = save_message_to_memory(message_data)
         message_data["_id"] = message_id
-        logger.info(f"✅ 메모리에 메시지 저장 완료: {message_id}")
+        
+        # 중복 메시지인 경우 플래그 추가
+        if message_id == "duplicate":
+            message_data["duplicate"] = True
+            logger.info(f"⚠️ 중복 메시지 감지 - 메모리 저장 건너뜀")
+        else:
+            logger.info(f"✅ 메모리에 메시지 저장 완료: {message_id}")
+        
         return message_data
         
     except Exception as e:
@@ -1141,8 +1177,21 @@ async def chat_endpoint(request: Request):
         }
         
         if chat_logs_collection is not None:
-            result = chat_logs_collection.insert_one(eora_msg_data)
-            message_id = str(result.inserted_id)
+            # 중복 응답 방지
+            recent_time = datetime.now() - timedelta(seconds=30)
+            duplicate_check = chat_logs_collection.find_one({
+                "session_id": session_id,
+                "content": eora_response,
+                "role": "assistant",
+                "timestamp": {"$gte": recent_time}
+            }, projection={"_id": 1})
+            
+            if duplicate_check:
+                logger.info(f"⚠️ 중복 AI 응답 감지 - 저장 건너뜀: {session_id}")
+                message_id = str(duplicate_check["_id"])
+            else:
+                result = chat_logs_collection.insert_one(eora_msg_data)
+                message_id = str(result.inserted_id)
         else:
             # 메모리 기반 저장
             message_id = save_message_to_memory(eora_msg_data)

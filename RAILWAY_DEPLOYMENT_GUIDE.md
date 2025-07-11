@@ -1,172 +1,119 @@
-# Railway 배포 및 MongoDB 연결 종합 가이드
+# 🚀 Railway 배포 가이드
 
-## 🚀 개요
+## 📋 사전 준비
 
-이 가이드는 EORA AI 시스템을 Railway에 배포하고 MongoDB를 연결하는 전체 과정을 설명합니다.
+### 1. Railway 계정 생성
+- https://railway.app 접속
+- GitHub 계정으로 로그인
 
-## 📋 현재 상황
+### 2. GitHub 저장소 준비
+- 프로젝트를 GitHub에 푸시
+- `railway_requirements.txt` 파일이 포함되어 있는지 확인
 
-### ✅ 완료된 작업
-- Railway MongoDB 서비스 추가
-- GitHub 저장소 설정
-- 서버 코드 업데이트 (Railway MongoDB 연결 지원)
-- 배포 스크립트 준비
+## 🔧 배포 단계
 
-### ❌ 해결해야 할 문제
-- Railway MongoDB 연결 실패
-- 컬렉션이 생성되지 않음
-- GitHub 배포 상태 확인 필요
+### 1. Railway 프로젝트 생성
+1. Railway 대시보드에서 "New Project" 클릭
+2. "Deploy from GitHub repo" 선택
+3. GitHub 저장소 선택
 
-## 🔧 단계별 해결 방법
-
-### 1단계: GitHub 배포 확인
-
-```bash
-# GitHub에 코드 배포
-deploy_to_github.bat
-```
-
-**확인사항:**
-- GitHub 저장소에 코드가 업로드되었는지 확인
-- Railway 대시보드에서 GitHub 저장소 연결 상태 확인
-
-### 2단계: Railway 환경변수 확인
-
-Railway 대시보드에서 다음 환경변수들을 확인하세요:
+### 2. 환경변수 설정
+Railway 대시보드에서 다음 환경변수들을 설정:
 
 ```
-MONGO_INITDB_ROOT_PASSWORD="HYxotmUHxMxbYAejsOxEnHwrgKpAochC"
-MONGO_INITDB_ROOT_USERNAME="mongo"
-RAILWAY_TCP_PROXY_DOMAIN="실제_도메인_값"
-RAILWAY_TCP_PROXY_PORT="실제_포트_값"
-RAILWAY_PRIVATE_DOMAIN="실제_내부_도메인_값"
+OPENAI_API_KEY=sk-your-openai-api-key-here
+MONGODB_URL=mongodb://localhost:27017/eora_ai
+PORT=8000
+ENVIRONMENT=production
 ```
 
-### 3단계: MongoDB 연결 테스트
+### 3. 배포 설정 확인
+- **Build Command**: `pip install -r railway_requirements.txt`
+- **Start Command**: `python railway_main.py`
+- **Port**: `8000`
 
-#### 방법 1: 간단한 테스트
-```bash
-python simple_mongo_test.py
+## 🚨 문제 해결
+
+### itsdangerous 모듈 오류
+만약 다음과 같은 오류가 발생한다면:
+```
+ModuleNotFoundError: No module named 'itsdangerous'
 ```
 
-#### 방법 2: 상세 테스트
-```bash
-python check_railway_deployment.py
+**해결 방법:**
+1. `railway_requirements.txt`에 다음 라인 추가:
+```
+itsdangerous==2.1.2
 ```
 
-#### 방법 3: 환경변수 설정 후 테스트
-```bash
-setup_railway_env.bat
+2. GitHub에 변경사항 푸시
+3. Railway에서 자동 재배포 대기
+
+### 기타 의존성 문제
+필요한 경우 다음 패키지들도 추가:
+```
+starlette==0.27.0
+python-dotenv==1.0.0
+aiofiles==23.2.1
 ```
 
-### 4단계: 서버 실행
+## ✅ 배포 확인
 
-```bash
-# Railway MongoDB 연결로 서버 실행
-run_server_with_railway_mongo.bat
-```
+### 1. 배포 상태 확인
+- Railway 대시보드에서 배포 로그 확인
+- "Deployments" 탭에서 배포 상태 모니터링
 
-## 🔍 문제 해결
+### 2. 애플리케이션 테스트
+배포 완료 후 제공된 URL로 접속하여 테스트:
+- 홈페이지: `https://your-app-name.railway.app/`
+- AURA 시스템: `https://your-app-name.railway.app/aura_system`
+- 채팅: `https://your-app-name.railway.app/chat`
 
-### MongoDB 연결 실패 시
+### 3. 로그 확인
+Railway 대시보드에서 실시간 로그 확인:
+- 애플리케이션 시작 로그
+- 오류 메시지
+- 요청/응답 로그
 
-#### 1. Authentication failed
-**원인:** 사용자명/비밀번호 오류
-**해결방법:**
-- Railway 대시보드에서 `MONGO_INITDB_ROOT_PASSWORD` 확인
-- Railway 대시보드에서 `MONGO_INITDB_ROOT_USERNAME` 확인
+## 🔄 업데이트 배포
 
-#### 2. getaddrinfo failed
-**원인:** 호스트 주소를 찾을 수 없음
-**해결방법:**
-- Railway 대시보드에서 `RAILWAY_TCP_PROXY_DOMAIN` 확인
-- Railway 대시보드에서 `RAILWAY_TCP_PROXY_PORT` 확인
+### 자동 배포
+- GitHub 저장소에 푸시하면 자동으로 재배포
+- `railway_requirements.txt` 변경 시 자동으로 의존성 재설치
 
-#### 3. Connection timeout
-**원인:** 서비스가 실행되지 않거나 네트워크 문제
-**해결방법:**
-- Railway 대시보드에서 MongoDB 서비스 상태 확인
-- Railway 프로젝트가 실행 중인지 확인
+### 수동 재배포
+Railway 대시보드에서:
+1. "Deployments" 탭 클릭
+2. "Redeploy" 버튼 클릭
 
-### GitHub 배포 실패 시
+## 📊 모니터링
 
-#### 1. 저장소 접근 권한 오류
-**해결방법:**
-- GitHub 개인 액세스 토큰 생성
-- Git 자격 증명 설정
+### 성능 모니터링
+- Railway 대시보드에서 CPU, 메모리 사용량 확인
+- 응답 시간 모니터링
 
-#### 2. Railway 연결 실패
-**해결방법:**
-- Railway 대시보드에서 GitHub 저장소 재연결
-- Railway 프로젝트 설정 확인
+### 오류 모니터링
+- 실시간 로그 스트림 확인
+- 오류 알림 설정
 
-## 📊 예상 결과
+## 🛠️ 추가 설정
 
-### 성공 시나리오
+### 커스텀 도메인
+1. Railway 프로젝트 설정에서 "Custom Domains" 클릭
+2. 도메인 추가 및 DNS 설정
 
-```
-🔗 Railway MongoDB 연결 테스트
-📝 연결 URL: mongodb://mongo:***@실제_도메인:실제_포트
-✅ MongoDB 연결 성공!
-📋 현재 컬렉션 목록: []
-✅ 테스트 사용자 생성 성공: [ObjectId]
-✅ 테스트 사용자 삭제 완료
-📋 최종 컬렉션 목록: ['users']
-🎉 Railway MongoDB 연결이 성공했습니다!
-```
+### SSL 인증서
+- Railway에서 자동으로 SSL 인증서 제공
+- HTTPS 리다이렉션 자동 설정
 
-### 서버 실행 성공 시
+## 📞 지원
 
-```
-🔗 MongoDB 연결 시도: Railway 공개 URL (자동 구성)
-📝 연결 URL: mongodb://mongo:***@실제_도메인:실제_포트
-✅ MongoDB 연결 성공: Railway
-✅ 관리자 계정 생성 (MongoDB): admin@eora.ai (ID: admin, PW: admin1234)
-🚀 EORA AI 최종 서버를 시작합니다...
-📍 주소: http://localhost:8010
-```
-
-## 🌐 배포된 서비스 접속
-
-### 로컬 개발 환경
-- **홈**: http://localhost:8010/
-- **로그인**: http://localhost:8010/login
-- **대시보드**: http://localhost:8010/dashboard
-- **관리자**: http://localhost:8010/admin
-
-### Railway 배포 환경
-- **메인 사이트**: https://www.eora.life
-- **API 문서**: https://www.eora.life/docs
-- **헬스 체크**: https://www.eora.life/health
-
-## 📝 중요 참고사항
-
-### 1. Railway 환경변수
-- Railway의 `${{}}` 구문은 자동으로 실제 값으로 치환됩니다
-- 로컬 개발 환경에서는 실제 값들을 직접 입력해야 합니다
-
-### 2. MongoDB 연결
-- Railway 내부 URL은 Railway 내부에서만 접근 가능합니다
-- 로컬 개발 환경에서는 공개 URL을 사용해야 합니다
-
-### 3. 보안
-- 실제 운영 환경에서는 환경변수를 통해 민감한 정보를 관리하세요
-- GitHub에 민감한 정보가 업로드되지 않도록 주의하세요
-
-## 🔄 다음 단계
-
-1. **Railway 배포 확인**: `check_railway_deployment.py` 실행
-2. **MongoDB 연결 테스트**: `simple_mongo_test.py` 실행
-3. **서버 실행**: `run_server_with_railway_mongo.bat` 실행
-4. **관리자 로그인**: admin@eora.ai / admin1234
-
-## 📞 문제 발생 시
-
-1. Railway 대시보드에서 서비스 상태 확인
-2. Railway 로그에서 오류 메시지 확인
-3. GitHub 저장소에서 최신 코드 확인
-4. 환경변수 설정 재확인
+문제가 발생하면:
+1. Railway 로그 확인
+2. 의존성 파일 검증
+3. 환경변수 설정 확인
+4. GitHub 저장소 상태 확인
 
 ---
 
-**💡 팁:** Railway 대시보드에서 실시간으로 서비스 상태와 로그를 확인할 수 있습니다. 
+**참고:** Railway는 무료 티어에서 월 500시간 제공하며, 추가 사용 시 요금이 발생할 수 있습니다. 
