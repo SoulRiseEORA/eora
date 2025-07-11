@@ -227,10 +227,11 @@
             border-radius: 10px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             padding: 0.5rem 0;
-            min-width: 120px;
+            min-width: 150px;
             display: none;
             z-index: 1001;
             margin-top: 5px;
+            border: 1px solid #e9ecef;
         }
 
         .language-dropdown.show {
@@ -245,6 +246,8 @@
             align-items: center;
             gap: 0.5rem;
             font-size: 12px;
+            color: #333;
+            background: white;
         }
 
         .language-option:hover {
@@ -657,8 +660,29 @@
                             <div class="language-option" data-lang="ja">
                                 🇯🇵 日本語
                             </div>
-                            <div class="language-option" data-lang="zh">
-                                🇨🇳 中文
+                            <div class="language-option" data-lang="zh-CN">
+                                🇨🇳 中文(简体)
+                            </div>
+                            <div class="language-option" data-lang="zh-TW">
+                                🇹🇼 中文(繁體)
+                            </div>
+                            <div class="language-option" data-lang="es">
+                                🇪🇸 Español
+                            </div>
+                            <div class="language-option" data-lang="fr">
+                                🇫🇷 Français
+                            </div>
+                            <div class="language-option" data-lang="de">
+                                🇩🇪 Deutsch
+                            </div>
+                            <div class="language-option" data-lang="ru">
+                                🇷🇺 Русский
+                            </div>
+                            <div class="language-option" data-lang="ar">
+                                🇸🇦 العربية
+                            </div>
+                            <div class="language-option" data-lang="hi">
+                                🇮🇳 हिन्दी
                             </div>
                         </div>
                     </div>
@@ -801,7 +825,7 @@
                 "message.confirm_delete": "このセッションを削除してもよろしいですか？",
                 "message.confirm_clear_all": "すべてのセッションを削除してもよろしいですか？"
             },
-            zh: {
+            "zh-CN": {
                 // 侧边栏
                 "sidebar.title": "聊天会话",
                 "sidebar.subtitle": "查看之前的对话",
@@ -832,6 +856,230 @@
                 "message.export_success": "聊天已成功导出。",
                 "message.confirm_delete": "确定要删除此会话吗？",
                 "message.confirm_clear_all": "确定要删除所有会话吗？"
+            },
+            "zh-TW": {
+                // 側邊欄
+                "sidebar.title": "聊天會話",
+                "sidebar.subtitle": "查看之前的對話",
+                "sidebar.new_session": "新會話",
+                "sidebar.delete": "刪除",
+                "sidebar.export": "匯出聊天",
+                "sidebar.clear_all": "清除所有會話",
+
+                // 聊天
+                "chat.title": "EORA AI 聊天",
+                "chat.home": "首頁",
+                "chat.dashboard": "儀表板",
+                "chat.memory": "記憶管理",
+                "chat.typing": "AI正在生成回覆...",
+                "chat.input_placeholder": "輸入您的訊息...",
+                "chat.send": "傳送",
+
+                // 上下文選單
+                "context.rename": "重新命名",
+                "context.delete": "刪除",
+                "context.export": "匯出",
+
+                // 訊息
+                "message.error": "發生錯誤。請重試。",
+                "message.session_created": "新會話已建立。",
+                "message.session_deleted": "會話已刪除。",
+                "message.session_renamed": "會話已重新命名。",
+                "message.export_success": "聊天已成功匯出。",
+                "message.confirm_delete": "確定要刪除此會話嗎？",
+                "message.confirm_clear_all": "確定要刪除所有會話嗎？"
+            },
+            es: {
+                // Barra lateral
+                "sidebar.title": "Sesiones de Chat",
+                "sidebar.subtitle": "Ver conversaciones anteriores",
+                "sidebar.new_session": "Nueva Sesión",
+                "sidebar.delete": "Eliminar",
+                "sidebar.export": "Exportar Chats",
+                "sidebar.clear_all": "Borrar Todas las Sesiones",
+
+                // Chat
+                "chat.title": "EORA AI Chat",
+                "chat.home": "Inicio",
+                "chat.dashboard": "Panel",
+                "chat.memory": "Memoria",
+                "chat.typing": "AI está generando una respuesta...",
+                "chat.input_placeholder": "Escribe tu mensaje...",
+                "chat.send": "Enviar",
+
+                // Menú de contexto
+                "context.rename": "Renombrar",
+                "context.delete": "Eliminar",
+                "context.export": "Exportar",
+
+                // Mensajes
+                "message.error": "Ocurrió un error. Por favor, inténtalo de nuevo.",
+                "message.session_created": "Nueva sesión creada.",
+                "message.session_deleted": "Sesión eliminada.",
+                "message.session_renamed": "Sesión renombrada.",
+                "message.export_success": "Chat exportado exitosamente.",
+                "message.confirm_delete": "¿Estás seguro de que quieres eliminar esta sesión?",
+                "message.confirm_clear_all": "¿Estás seguro de que quieres eliminar todas las sesiones?"
+            },
+            fr: {
+                // Barre latérale
+                "sidebar.title": "Sessions de Chat",
+                "sidebar.subtitle": "Voir les conversations précédentes",
+                "sidebar.new_session": "Nouvelle Session",
+                "sidebar.delete": "Supprimer",
+                "sidebar.export": "Exporter les Chats",
+                "sidebar.clear_all": "Effacer Toutes les Sessions",
+
+                // Chat
+                "chat.title": "EORA AI Chat",
+                "chat.home": "Accueil",
+                "chat.dashboard": "Tableau de bord",
+                "chat.memory": "Mémoire",
+                "chat.typing": "L'IA génère une réponse...",
+                "chat.input_placeholder": "Tapez votre message...",
+                "chat.send": "Envoyer",
+
+                // Menu contextuel
+                "context.rename": "Renommer",
+                "context.delete": "Supprimer",
+                "context.export": "Exporter",
+
+                // Messages
+                "message.error": "Une erreur s'est produite. Veuillez réessayer.",
+                "message.session_created": "Nouvelle session créée.",
+                "message.session_deleted": "Session supprimée.",
+                "message.session_renamed": "Session renommée.",
+                "message.export_success": "Chat exporté avec succès.",
+                "message.confirm_delete": "Êtes-vous sûr de vouloir supprimer cette session ?",
+                "message.confirm_clear_all": "Êtes-vous sûr de vouloir supprimer toutes les sessions ?"
+            },
+            de: {
+                // Seitenleiste
+                "sidebar.title": "Chat-Sitzungen",
+                "sidebar.subtitle": "Frühere Gespräche anzeigen",
+                "sidebar.new_session": "Neue Sitzung",
+                "sidebar.delete": "Löschen",
+                "sidebar.export": "Chats exportieren",
+                "sidebar.clear_all": "Alle Sitzungen löschen",
+
+                // Chat
+                "chat.title": "EORA AI Chat",
+                "chat.home": "Startseite",
+                "chat.dashboard": "Dashboard",
+                "chat.memory": "Speicher",
+                "chat.typing": "KI generiert eine Antwort...",
+                "chat.input_placeholder": "Geben Sie Ihre Nachricht ein...",
+                "chat.send": "Senden",
+
+                // Kontextmenü
+                "context.rename": "Umbenennen",
+                "context.delete": "Löschen",
+                "context.export": "Exportieren",
+
+                // Nachrichten
+                "message.error": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+                "message.session_created": "Neue Sitzung erstellt.",
+                "message.session_deleted": "Sitzung gelöscht.",
+                "message.session_renamed": "Sitzung umbenannt.",
+                "message.export_success": "Chat erfolgreich exportiert.",
+                "message.confirm_delete": "Sind Sie sicher, dass Sie diese Sitzung löschen möchten?",
+                "message.confirm_clear_all": "Sind Sie sicher, dass Sie alle Sitzungen löschen möchten?"
+            },
+            ru: {
+                // Боковая панель
+                "sidebar.title": "Чат-сессии",
+                "sidebar.subtitle": "Просмотр предыдущих разговоров",
+                "sidebar.new_session": "Новая сессия",
+                "sidebar.delete": "Удалить",
+                "sidebar.export": "Экспорт чатов",
+                "sidebar.clear_all": "Очистить все сессии",
+
+                // Чат
+                "chat.title": "EORA AI Чат",
+                "chat.home": "Главная",
+                "chat.dashboard": "Панель управления",
+                "chat.memory": "Память",
+                "chat.typing": "ИИ генерирует ответ...",
+                "chat.input_placeholder": "Введите ваше сообщение...",
+                "chat.send": "Отправить",
+
+                // Контекстное меню
+                "context.rename": "Переименовать",
+                "context.delete": "Удалить",
+                "context.export": "Экспорт",
+
+                // Сообщения
+                "message.error": "Произошла ошибка. Пожалуйста, попробуйте снова.",
+                "message.session_created": "Новая сессия создана.",
+                "message.session_deleted": "Сессия удалена.",
+                "message.session_renamed": "Сессия переименована.",
+                "message.export_success": "Чат успешно экспортирован.",
+                "message.confirm_delete": "Вы уверены, что хотите удалить эту сессию?",
+                "message.confirm_clear_all": "Вы уверены, что хотите удалить все сессии?"
+            },
+            ar: {
+                // الشريط الجانبي
+                "sidebar.title": "جلسات الدردشة",
+                "sidebar.subtitle": "عرض المحادثات السابقة",
+                "sidebar.new_session": "جلسة جديدة",
+                "sidebar.delete": "حذف",
+                "sidebar.export": "تصدير الدردشات",
+                "sidebar.clear_all": "مسح جميع الجلسات",
+
+                // الدردشة
+                "chat.title": "EORA AI دردشة",
+                "chat.home": "الرئيسية",
+                "chat.dashboard": "لوحة التحكم",
+                "chat.memory": "الذاكرة",
+                "chat.typing": "الذكاء الاصطناعي يولد رداً...",
+                "chat.input_placeholder": "اكتب رسالتك...",
+                "chat.send": "إرسال",
+
+                // قائمة السياق
+                "context.rename": "إعادة تسمية",
+                "context.delete": "حذف",
+                "context.export": "تصدير",
+
+                // الرسائل
+                "message.error": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+                "message.session_created": "تم إنشاء جلسة جديدة.",
+                "message.session_deleted": "تم حذف الجلسة.",
+                "message.session_renamed": "تم إعادة تسمية الجلسة.",
+                "message.export_success": "تم تصدير الدردشة بنجاح.",
+                "message.confirm_delete": "هل أنت متأكد من أنك تريد حذف هذه الجلسة؟",
+                "message.confirm_clear_all": "هل أنت متأكد من أنك تريد حذف جميع الجلسات؟"
+            },
+            hi: {
+                // साइडबार
+                "sidebar.title": "चैट सेशन",
+                "sidebar.subtitle": "पिछली बातचीत देखें",
+                "sidebar.new_session": "नया सेशन",
+                "sidebar.delete": "हटाएं",
+                "sidebar.export": "चैट निर्यात करें",
+                "sidebar.clear_all": "सभी सेशन साफ़ करें",
+
+                // चैट
+                "chat.title": "EORA AI चैट",
+                "chat.home": "होम",
+                "chat.dashboard": "डैशबोर्ड",
+                "chat.memory": "मेमोरी",
+                "chat.typing": "AI प्रतिक्रिया उत्पन्न कर रहा है...",
+                "chat.input_placeholder": "अपना संदेश टाइप करें...",
+                "chat.send": "भेजें",
+
+                // संदर्भ मेनू
+                "context.rename": "नाम बदलें",
+                "context.delete": "हटाएं",
+                "context.export": "निर्यात करें",
+
+                // संदेश
+                "message.error": "एक त्रुटि हुई। कृपया पुनः प्रयास करें।",
+                "message.session_created": "नया सेशन बनाया गया।",
+                "message.session_deleted": "सेशन हटा दिया गया।",
+                "message.session_renamed": "सेशन का नाम बदला गया।",
+                "message.export_success": "चैट सफलतापूर्वक निर्यात किया गया।",
+                "message.confirm_delete": "क्या आप वाकई इस सेशन को हटाना चाहते हैं?",
+                "message.confirm_clear_all": "क्या आप वाकई सभी सेशन हटाना चाहते हैं?"
             }
         };
 
