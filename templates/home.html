@@ -1302,14 +1302,30 @@
                     document.getElementById('userDisplayEmail').textContent = userEmail;
 
                     // 관리자 계정인 경우 관리자 버튼 표시
-                    if (userEmail === 'admin@eora.com') {
+                    const isAdmin = localStorage.getItem('is_admin') === 'true';
+                    if (isAdmin || userEmail === 'admin@eora.com') {
                         const adminBtn = document.getElementById('adminBtn');
                         if (adminBtn) {
                             adminBtn.style.display = 'inline-block';
                         }
                     }
                 }
-                // 자동 채팅 이동 로직 제거 (홈에 머무름)
+
+                // URL 파라미터를 확인하여 홈 버튼을 클릭해서 온 경우가 아닌지 확인
+                const urlParams = new URLSearchParams(window.location.search);
+                const fromHome = urlParams.get('from');
+
+                // 첫 로그인 여부 확인
+                const firstLogin = localStorage.getItem('first_login');
+
+                // 첫 로그인이면서 홈 버튼을 클릭해서 온 경우가 아니면 자동으로 채팅 페이지로 이동
+                if (firstLogin === 'true' && !fromHome) {
+                    // 첫 로그인 플래그 제거
+                    localStorage.removeItem('first_login');
+                    setTimeout(() => {
+                        window.location.href = '/chat';
+                    }, 1000);
+                }
             } else {
                 // 로그인되지 않은 경우
                 if (userSection) {
@@ -1354,8 +1370,9 @@
                         }
 
                         alert('로그인 성공!');
-                        // 로그인 성공 시에만 채팅 페이지로 이동
-                        window.location.href = '/chat';
+                        // 새 창에서 채팅창 열기
+                        window.open('/chat', '_blank');
+                        window.location.href = '/'; // 홈페이지로 리다이렉트하여 로그인 상태 표시
                     } else {
                         alert('로그인 실패: ' + data.message);
                     }
@@ -1426,76 +1443,22 @@
         }
 
         // 로그아웃
-        async function logout() {
+        function logout() {
             if (confirm('정말로 로그아웃하시겠습니까?')) {
-                try {
-                    // 서버에 로그아웃 요청
-                    const response = await fetch('/api/auth/logout', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (response.ok) {
-                        // 로컬 스토리지 정리
-                        localStorage.removeItem('user_email');
-                        localStorage.removeItem('user_name');
-                        localStorage.removeItem('auto_login');
-                        localStorage.removeItem('session_id');
-
-                        // 홈페이지로 이동 (로그아웃 파라미터 추가)
-                        window.location.href = '/?logout=true';
-                    } else {
-                        console.error('로그아웃 실패:', response.status);
-                        // 로컬 정리 후 홈페이지로 이동
-                        localStorage.removeItem('user_email');
-                        localStorage.removeItem('user_name');
-                        localStorage.removeItem('auto_login');
-                        localStorage.removeItem('session_id');
-                        window.location.href = '/';
-                    }
-                } catch (error) {
-                    console.error('로그아웃 오류:', error);
-                    // 오류 발생 시에도 로컬 정리 후 홈페이지로 이동
-                    localStorage.removeItem('user_email');
-                    localStorage.removeItem('user_name');
-                    localStorage.removeItem('auto_login');
-                    localStorage.removeItem('session_id');
-                    window.location.href = '/';
-                }
+                localStorage.removeItem('user_email');
+                localStorage.removeItem('user_name');
+                localStorage.removeItem('auto_login');
+                window.location.href = '/';
             }
         }
 
         // 홈페이지에서 로그아웃
-        async function logoutFromHome() {
+        function logoutFromHome() {
             if (confirm('정말로 로그아웃하시겠습니까?')) {
-                try {
-                    // 서버에 로그아웃 요청
-                    const response = await fetch('/api/auth/logout', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    // 로컬 스토리지 정리
-                    localStorage.removeItem('user_email');
-                    localStorage.removeItem('user_name');
-                    localStorage.removeItem('auto_login');
-                    localStorage.removeItem('session_id');
-
-                    // 페이지 새로고침하여 로그인 창 표시
-                    window.location.reload();
-                } catch (error) {
-                    console.error('로그아웃 오류:', error);
-                    // 오류 발생 시에도 로컬 정리 후 새로고침
-                    localStorage.removeItem('user_email');
-                    localStorage.removeItem('user_name');
-                    localStorage.removeItem('auto_login');
-                    localStorage.removeItem('session_id');
-                    window.location.reload();
-                }
+                localStorage.removeItem('user_email');
+                localStorage.removeItem('user_name');
+                localStorage.removeItem('auto_login');
+                window.location.reload(); // 페이지 새로고침하여 로그인 창 표시
             }
         }
 
