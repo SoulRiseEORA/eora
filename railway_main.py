@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.sessions import SessionMiddleware
+
 import uvicorn
 from datetime import datetime
 import json
@@ -28,8 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 세션 미들웨어
-app.add_middleware(SessionMiddleware, secret_key="your-secret-key")
+
 
 # 템플릿 설정
 templates = Jinja2Templates(directory="templates")
