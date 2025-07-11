@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -140,7 +141,8 @@
             border-collapse: collapse;
         }
 
-        th, td {
+        th,
+        td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #eee;
@@ -358,17 +360,20 @@
             box-shadow: none;
         }
 
-        .learning-log, .learning-memo {
+        .learning-log,
+        .learning-memo {
             margin-bottom: 20px;
         }
 
-        .learning-log h4, .learning-memo h4 {
+        .learning-log h4,
+        .learning-memo h4 {
             margin-bottom: 10px;
             color: #333;
             font-size: 16px;
         }
 
-        .log-content, .memo-content {
+        .log-content,
+        .memo-content {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
             border-radius: 10px;
@@ -400,23 +405,322 @@
             .admin-content {
                 padding: 20px;
             }
-            
+
             .stats-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .admin-nav {
                 flex-direction: column;
             }
         }
+
+        /* 프롬프트 관리 스타일 */
+        .prompt-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .prompt-filters select,
+        .prompt-filters input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .prompt-categories {
+            margin-top: 20px;
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .category-tab {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .category-tab.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .category-tab:hover {
+            background: #e9ecef;
+        }
+
+        .category-tab.active:hover {
+            background: #0056b3;
+        }
+
+        .prompt-content {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            min-height: 400px;
+        }
+
+        .prompt-item {
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+        }
+
+        .prompt-item h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .prompt-item p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .prompt-item strong {
+            color: #333;
+        }
+
+        .prompt-item .action-btn {
+            margin-right: 5px;
+            margin-top: 10px;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .action-btn.danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .action-btn.danger:hover {
+            background: #c82333;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            /* Include padding and border in element's total width and height */
+        }
+
+        .form-group textarea {
+            height: 100px;
+            /* Default height for textarea */
+            resize: vertical;
+            /* Allow vertical resizing */
+        }
+
+        .form-actions {
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        .form-actions button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+
+        .prompt-category-group h3 {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            color: #007bff;
+        }
+
+        .prompt-details {
+            margin-top: 15px;
+        }
+
+        .prompt-details p {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .prompt-details strong {
+            color: #007bff;
+        }
+
+        /* 트리형 네비게이션 스타일 */
+        .prompt-tree-nav {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px 10px 20px 20px;
+        }
+
+        .ai-tree,
+        .category-tree {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .ai-label {
+            font-weight: bold;
+            color: #007bff;
+            cursor: pointer;
+            display: block;
+            padding: 8px 0 8px 5px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+
+        .ai-label:hover,
+        .ai-label.selected {
+            background: #e3f0ff;
+        }
+
+        .category-tree {
+            margin-left: 15px;
+            margin-top: 5px;
+        }
+
+        .category-label {
+            color: #333;
+            cursor: pointer;
+            padding: 5px 0 5px 10px;
+            border-radius: 5px;
+            display: block;
+            font-size: 14px;
+        }
+
+        .category-label:hover,
+        .category-label.selected {
+            background: #e9ecef;
+            color: #007bff;
+        }
+
+        .prompt-list-panel {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 25px 30px;
+            min-height: 500px;
+        }
+
+        .prompt-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .prompt-list-table th,
+        .prompt-list-table td {
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .prompt-list-table th {
+            background: #f1f3f6;
+            color: #333;
+        }
+
+        .prompt-list-table td {
+            background: #fafbfc;
+        }
+
+        .prompt-list-table td .action-btn {
+            margin-right: 5px;
+        }
+
+        .prompt-list-table td .action-btn.danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .prompt-list-table td .action-btn.danger:hover {
+            background: #c82333;
+        }
+
+        .prompt-list-table td .action-btn {
+            font-size: 12px;
+            padding: 4px 10px;
+        }
+
+        .prompt-list-panel .action-btn {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
+
 <body>
     <div class="admin-container">
         <div class="admin-header">
             <div class="user-info">
                 <span id="user-email">관리자</span>
                 <button class="back-btn" onclick="goBack()">뒤로가기</button>
+                <button class="back-btn" onclick="goHome()" style="background: rgba(255, 255, 255, 0.3);">🏠
+                    홈으로</button>
             </div>
             <h1>🔧 EORA AI 관리자</h1>
             <p>시스템 관리 및 모니터링</p>
@@ -429,6 +733,7 @@
                 <button class="nav-btn" onclick="showSection('points')">💰 포인트 관리</button>
                 <button class="nav-btn" onclick="showSection('storage')">💾 저장공간 관리</button>
                 <button class="nav-btn" onclick="showSection('learning')">🧠 학습 관리</button>
+                <button class="nav-btn" onclick="window.location.href='/prompt-management'">📝 프롬프트 관리</button>
                 <button class="nav-btn" onclick="showSection('system')">⚙️ 시스템</button>
             </div>
 
@@ -601,7 +906,8 @@
                     <div class="learning-panel">
                         <h3>🤖 자동 학습</h3>
                         <div class="file-upload-area">
-                            <input type="file" id="auto-learning-files" multiple accept=".txt,.md,.docx,.py,.xlsx,.xls,.pdf" style="display: none;">
+                            <input type="file" id="auto-learning-files" multiple
+                                accept=".txt,.md,.docx,.py,.xlsx,.xls,.pdf" style="display: none;">
                             <button class="upload-btn" onclick="document.getElementById('auto-learning-files').click()">
                                 📂 학습할 문서 등록
                             </button>
@@ -623,8 +929,10 @@
                     <div class="learning-panel">
                         <h3>📎 첨부 학습</h3>
                         <div class="file-upload-area">
-                            <input type="file" id="attach-learning-files" multiple accept=".txt,.md,.docx" style="display: none;">
-                            <button class="upload-btn" onclick="document.getElementById('attach-learning-files').click()">
+                            <input type="file" id="attach-learning-files" multiple accept=".txt,.md,.docx"
+                                style="display: none;">
+                            <button class="upload-btn"
+                                onclick="document.getElementById('attach-learning-files').click()">
                                 📂 대화 문서 등록
                             </button>
                             <div id="attach-file-list" class="file-list"></div>
@@ -699,7 +1007,7 @@
                 if (response.ok) {
                     const userData = await response.json();
                     document.getElementById('user-email').textContent = userData.email;
-                    
+
                     if (!userData.is_admin) {
                         alert('관리자 권한이 필요합니다.');
                         window.location.href = '/dashboard';
@@ -724,18 +1032,18 @@
             document.querySelectorAll('.admin-section').forEach(section => {
                 section.classList.remove('active');
             });
-            
+
             // 모든 네비게이션 버튼 비활성화
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            
+
             // 선택된 섹션과 버튼 활성화
             document.getElementById(`${sectionName}-section`).classList.add('active');
             event.target.classList.add('active');
-            
+
             // 섹션별 데이터 로드
-            switch(sectionName) {
+            switch (sectionName) {
                 case 'overview':
                     loadOverview();
                     break;
@@ -747,6 +1055,9 @@
                     break;
                 case 'storage':
                     loadStorageStatus();
+                    break;
+                case 'prompts':
+                    loadPrompts();
                     break;
                 case 'system':
                     loadSystemStatus();
@@ -789,7 +1100,7 @@
                 if (response.ok) {
                     const users = await response.json();
                     const tbody = document.getElementById('users-table-body');
-                    
+
                     if (users.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">사용자가 없습니다.</td></tr>';
                     } else {
@@ -827,7 +1138,7 @@
                 if (response.ok) {
                     const points = await response.json();
                     const tbody = document.getElementById('points-table-body');
-                    
+
                     if (points.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">포인트 데이터가 없습니다.</td></tr>';
                     } else {
@@ -871,7 +1182,7 @@
 
                         // 사용자별 저장공간 정보 표시
                         displayStorageUsers(data.users_storage || []);
-                        
+
                         // 저장공간 부족 사용자 표시
                         displayCriticalUsers(data.critical_users || []);
                     }
@@ -895,7 +1206,7 @@
                 const row = document.createElement('tr');
                 const usagePercentage = user.usage_percentage || 0;
                 const status = getStorageStatus(usagePercentage);
-                
+
                 row.innerHTML = `
                     <td>${user.user_id}</td>
                     <td>${user.email || 'N/A'}</td>
@@ -906,7 +1217,7 @@
                     <td>
                         <button class="action-btn" onclick="upgradeUserStorage('${user.user_id}')">⬆️ 업그레이드</button>
                         <button class="action-btn" onclick="resetUserStorage('${user.user_id}')">🔄 초기화</button>
-                    </td>
+                                </td>
                 `;
                 tbody.appendChild(row);
             });
@@ -927,7 +1238,7 @@
                 const usagePercentage = user.usage_percentage || 0;
                 const shortage = Math.max(0, (user.used_mb || 0) - (user.total_quota_mb || 500));
                 const recommendation = getStorageRecommendation(usagePercentage);
-                
+
                 row.innerHTML = `
                     <td>${user.user_id}</td>
                     <td>${user.email || 'N/A'}</td>
@@ -1052,6 +1363,11 @@
             window.location.href = '/dashboard';
         }
 
+        // 홈으로 가기
+        function goHome() {
+            window.location.href = '/';
+        }
+
         // 사용자 편집
         function editUser(userId) {
             alert(`사용자 ${userId} 편집 기능이 곧 추가됩니다!`);
@@ -1075,12 +1391,12 @@
             document.querySelectorAll('.learning-tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
-            
+
             // 모든 학습 탭 버튼 비활성화
             document.querySelectorAll('.learning-tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            
+
             // 선택된 탭과 버튼 활성화
             document.getElementById(`${tabName}-learning-tab`).classList.add('active');
             event.target.classList.add('active');
@@ -1093,15 +1409,15 @@
         let attachLearningRunning = false;
 
         // 자동 학습 파일 업로드
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('auto-learning-files').addEventListener('change', function(e) {
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('auto-learning-files').addEventListener('change', function (e) {
                 const files = Array.from(e.target.files);
                 autoLearningFiles = files;
                 updateFileList('auto-file-list', files);
             });
 
             // 첨부 학습 파일 업로드
-            document.getElementById('attach-learning-files').addEventListener('change', function(e) {
+            document.getElementById('attach-learning-files').addEventListener('change', function (e) {
                 const files = Array.from(e.target.files);
                 attachLearningFiles = files;
                 updateFileList('attach-file-list', files);
@@ -1112,7 +1428,7 @@
         function updateFileList(containerId, files) {
             const container = document.getElementById(containerId);
             container.innerHTML = '';
-            
+
             files.forEach((file, index) => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
@@ -1145,7 +1461,7 @@
             autoLearningRunning = true;
             document.querySelector('#auto-learning-tab .start-btn').disabled = true;
             document.querySelector('#auto-learning-tab .stop-btn').disabled = false;
-            
+
             const logContainer = document.getElementById('auto-learning-log');
             logContainer.textContent = '🚀 자동 학습을 시작합니다...\n';
 
@@ -1198,7 +1514,7 @@
             attachLearningRunning = true;
             document.querySelector('#attach-learning-tab .start-btn').disabled = true;
             document.querySelector('#attach-learning-tab .stop-btn').disabled = false;
-            
+
             const logContainer = document.getElementById('attach-learning-log');
             const memoContainer = document.getElementById('attach-learning-memo');
             logContainer.textContent = '🚀 첨부 학습을 시작합니다...\n';
@@ -1306,6 +1622,365 @@
             alert('저장공간 업그레이드 기능은 곧 추가됩니다!');
         }
 
+        // 프롬프트 관리 함수들
+        let allPrompts = [];
+        let selectedAI = null;
+        let selectedCategory = null;
+
+        // 프롬프트 목록 로드
+        async function loadPrompts() {
+            try {
+                const response = await fetch('/api/prompts');
+                if (response.ok) {
+                    allPrompts = await response.json();
+                    renderTreeCategories();
+                } else {
+                    console.error('프롬프트 로드 실패:', response.status);
+                    document.getElementById('prompt-content').innerHTML =
+                        '<p style="text-align: center; color: #666;">프롬프트를 불러오는데 실패했습니다.</p>';
+                }
+            } catch (e) {
+                console.error('프롬프트 로드 오류:', e);
+                document.getElementById('prompt-content').innerHTML =
+                    '<p style="text-align: center; color: #666;">프롬프트를 불러오는데 실패했습니다.</p>';
+            }
+        }
+
+        // 트리 카테고리 동적 생성
+        function renderTreeCategories() {
+            const aiList = ['ai1', 'ai2', 'ai3', 'ai4', 'ai5', 'ai6'];
+            aiList.forEach(ai => {
+                const categories = Array.from(new Set(
+                    allPrompts.filter(p => p.ai_name === ai).map(p => p.category)
+                ));
+                const ul = document.getElementById(`${ai}-categories`);
+                ul.innerHTML = '';
+                categories.forEach(cat => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span class="category-label" onclick="selectCategory('${ai}','${cat}')">${cat}</span>`;
+                    ul.appendChild(li);
+                });
+            });
+        }
+
+        // AI 선택 시 카테고리 트리 표시
+        function selectAI(ai) {
+            selectedAI = ai;
+            selectedCategory = null;
+            document.querySelectorAll('.ai-label').forEach(el => el.classList.remove('selected'));
+            document.querySelector(`.ai-label[onclick="selectAI('${ai}')"]`).classList.add('selected');
+            document.querySelectorAll('.category-tree').forEach(ul => ul.style.display = 'none');
+            document.getElementById(`${ai}-categories`).style.display = 'block';
+            document.getElementById('prompt-list-header').innerHTML = `<h3 style='color:#007bff;'>${ai.toUpperCase()} 카테고리를 선택하세요</h3>`;
+            document.getElementById('prompt-list-content').innerHTML = '';
+        }
+
+        // 카테고리 선택 시 프롬프트 리스트 표시
+        function selectCategory(ai, cat) {
+            selectedAI = ai;
+            selectedCategory = cat;
+            document.querySelectorAll('.category-label').forEach(el => el.classList.remove('selected'));
+            document.querySelector(`.category-label[onclick="selectCategory('${ai}','${cat}')"]`).classList.add('selected');
+            renderPromptList(ai, cat);
+        }
+
+        // 프롬프트 리스트 렌더링
+        function renderPromptList(ai, cat) {
+            const prompts = allPrompts.filter(p => p.ai_name === ai && p.category === cat);
+            let html = `<div style='margin-bottom:10px;'>
+                <button class='action-btn' onclick='showAddPromptModal()'>➕ 새 프롬프트 추가</button>
+                <button class='action-btn' onclick='loadPrompts()'>🔄 새로고침</button>
+                <button class='action-btn' onclick='exportPrompts()'>📥 내보내기</button>
+                <button class='action-btn' onclick='importPrompts()'>📤 가져오기</button>
+            </div>`;
+            if (prompts.length === 0) {
+                html += `<div style='color:#888;'>프롬프트가 없습니다.</div>`;
+            } else {
+                html += `<table class='prompt-list-table'><thead><tr><th>이름</th><th>내용</th><th>작업</th></tr></thead><tbody>`;
+                prompts.forEach(prompt => {
+                    html += `<tr>
+                        <td>${prompt.name}</td>
+                        <td style='max-width:350px;white-space:pre-line;'>${prompt.content.length > 100 ? prompt.content.substring(0, 100) + '...' : prompt.content}</td>
+                        <td>
+                            <button class='action-btn' onclick='editPrompt("${prompt.id}")'>✏️ 수정</button>
+                            <button class='action-btn' onclick='viewPrompt("${prompt.id}")'>👁️ 보기</button>
+                            <button class='action-btn danger' onclick='deletePrompt("${prompt.id}")'>🗑️ 삭제</button>
+                        </td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+            }
+            document.getElementById('prompt-list-header').innerHTML = `<h3 style='color:#007bff;'>${ai.toUpperCase()} - ${cat} 프롬프트</h3>`;
+            document.getElementById('prompt-list-content').innerHTML = html;
+        }
+
+        // 새 프롬프트 추가 모달 표시
+        function showAddPromptModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>새 프롬프트 추가</h3>
+                    <form id="add-prompt-form">
+                        <div class="form-group">
+                            <label>AI 선택:</label>
+                            <select name="ai_name" required>
+                                <option value="ai1">AI1 (이오라)</option>
+                                <option value="ai2">AI2 (API 설계)</option>
+                                <option value="ai3">AI3 (코드 리팩토링)</option>
+                                <option value="ai4">AI4 (테스트/QA)</option>
+                                <option value="ai5">AI5 (보안)</option>
+                                <option value="ai6">AI6 (문서화)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>카테고리:</label>
+                            <select name="category" required>
+                                <option value="system">시스템</option>
+                                <option value="role">역할</option>
+                                <option value="guide">가이드</option>
+                                <option value="format">포맷</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>이름:</label>
+                            <input type="text" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>설명:</label>
+                            <textarea name="description" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>내용:</label>
+                            <textarea name="content" rows="10" required style="font-family: monospace;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>태그 (쉼표로 구분):</label>
+                            <input type="text" name="tags" placeholder="ai1, system, guide">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="action-btn">추가</button>
+                            <button type="button" class="action-btn" onclick="closeModal()">취소</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // 폼 제출 이벤트
+            document.getElementById('add-prompt-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const promptData = {
+                    name: formData.get('name'),
+                    category: formData.get('category'),
+                    content: formData.get('content'),
+                    description: formData.get('description'),
+                    tags: formData.get('tags').split(',').map(tag => tag.trim()).filter(tag => tag),
+                    ai_name: formData.get('ai_name')
+                };
+
+                try {
+                    const response = await fetch('/api/prompts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(promptData)
+                    });
+
+                    if (response.ok) {
+                        alert('프롬프트가 추가되었습니다.');
+                        closeModal();
+                        loadPrompts();
+                    } else {
+                        alert('프롬프트 추가에 실패했습니다.');
+                    }
+                } catch (error) {
+                    console.error('프롬프트 추가 오류:', error);
+                    alert('프롬프트 추가 중 오류가 발생했습니다.');
+                }
+            });
+        }
+
+        // 프롬프트 수정
+        async function editPrompt(promptId) {
+            const prompt = allPrompts.find(p => p.id === promptId);
+            if (!prompt) {
+                alert('프롬프트를 찾을 수 없습니다.');
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>프롬프트 수정</h3>
+                    <form id="edit-prompt-form">
+                        <div class="form-group">
+                            <label>AI:</label>
+                            <input type="text" name="ai_name" value="${prompt.ai_name}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>카테고리:</label>
+                            <input type="text" name="category" value="${prompt.category}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>이름:</label>
+                            <input type="text" name="name" value="${prompt.name}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>설명:</label>
+                            <textarea name="description" rows="3">${prompt.description || ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>내용:</label>
+                            <textarea name="content" rows="15" required style="font-family: monospace;">${prompt.content}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>태그:</label>
+                            <input type="text" name="tags" value="${prompt.tags ? prompt.tags.join(', ') : ''}">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="action-btn">수정</button>
+                            <button type="button" class="action-btn" onclick="closeModal()">취소</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // 폼 제출 이벤트
+            document.getElementById('edit-prompt-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const promptData = {
+                    name: formData.get('name'),
+                    category: formData.get('category'),
+                    content: formData.get('content'),
+                    description: formData.get('description'),
+                    tags: formData.get('tags').split(',').map(tag => tag.trim()).filter(tag => tag),
+                    ai_name: formData.get('ai_name')
+                };
+
+                try {
+                    const response = await fetch(`/api/prompts/${promptId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(promptData)
+                    });
+
+                    if (response.ok) {
+                        alert('프롬프트가 수정되었습니다.');
+                        closeModal();
+                        loadPrompts();
+                    } else {
+                        alert('프롬프트 수정에 실패했습니다.');
+                    }
+                } catch (error) {
+                    console.error('프롬프트 수정 오류:', error);
+                    alert('프롬프트 수정 중 오류가 발생했습니다.');
+                }
+            });
+        }
+
+        // 프롬프트 상세보기
+        function viewPrompt(promptId) {
+            const prompt = allPrompts.find(p => p.id === promptId);
+            if (!prompt) {
+                alert('프롬프트를 찾을 수 없습니다.');
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>프롬프트 상세보기</h3>
+                    <div class="prompt-details">
+                        <p><strong>AI:</strong> ${prompt.ai_name.toUpperCase()}</p>
+                        <p><strong>카테고리:</strong> ${prompt.category}</p>
+                        <p><strong>이름:</strong> ${prompt.name}</p>
+                        <p><strong>설명:</strong> ${prompt.description || '설명 없음'}</p>
+                        <p><strong>태그:</strong> ${prompt.tags ? prompt.tags.join(', ') : '없음'}</p>
+                        <div style="margin: 15px 0;">
+                            <strong>내용:</strong>
+                            <div style="background: #f8f9fa; border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin-top: 5px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px; white-space: pre-wrap; line-height: 1.4;">
+                                ${prompt.content}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="action-btn" onclick="editPrompt('${prompt.id}')">✏️ 수정</button>
+                        <button class="action-btn" onclick="closeModal()">닫기</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // 프롬프트 삭제
+        async function deletePrompt(promptId) {
+            if (!confirm('정말로 이 프롬프트를 삭제하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/prompts/${promptId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert('프롬프트가 삭제되었습니다.');
+                    loadPrompts();
+                } else {
+                    alert('프롬프트 삭제에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('프롬프트 삭제 오류:', error);
+                alert('프롬프트 삭제 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 모달 닫기
+        function closeModal() {
+            const modal = document.querySelector('.modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // 프롬프트 내보내기
+        function exportPrompts() {
+            const dataStr = JSON.stringify(allPrompts, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'prompts_export.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 프롬프트 가져오기
+        function importPrompts() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    try {
+                        const text = await file.text();
+                        const prompts = JSON.parse(text);
+                        // 여기서 가져온 프롬프트를 처리하는 로직을 추가할 수 있습니다
+                        alert(`${prompts.length}개의 프롬프트를 가져왔습니다.`);
+                    } catch (error) {
+                        alert('파일을 읽는 중 오류가 발생했습니다.');
+                    }
+                }
+            };
+            input.click();
+        }
+
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', async () => {
             const hasPermission = await checkAdminPermission();
@@ -1315,4 +1990,5 @@
         });
     </script>
 </body>
-</html> 
+
+</html>

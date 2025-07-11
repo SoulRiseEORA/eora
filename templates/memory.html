@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,7 +24,7 @@
             margin: 40px auto;
             background: #fff;
             border-radius: 18px;
-            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.10);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.10);
             padding: 32px;
         }
 
@@ -234,7 +235,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         @media (max-width: 768px) {
@@ -276,6 +279,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -349,7 +353,7 @@
 
             renderMemories() {
                 const memoryItems = document.getElementById('memoryItems');
-                
+
                 if (this.filteredMemories.length === 0) {
                     memoryItems.innerHTML = `
                         <div class="empty-state">
@@ -362,15 +366,15 @@
 
                 memoryItems.innerHTML = this.filteredMemories.map(memory => `
                     <div class="memory-item" onclick="memoryManager.viewMemory(${memory.id})">
-                        <div class="memory-title">${memory.title}</div>
+                    <div class="memory-title">${memory.title}</div>
                         <div class="memory-content">${memory.content}</div>
-                        <div class="memory-meta">
+                    <div class="memory-meta">
                             <span class="memory-type">${this.getTypeLabel(memory.type)}</span>
                             <span>중요도: ${Math.round(memory.importance * 100)}%</span>
                             <span>${this.formatDate(memory.lastAccessed)}</span>
                         </div>
-                    </div>
-                `).join('');
+                </div>
+            `).join('');
             }
 
             getTypeLabel(type) {
@@ -388,7 +392,7 @@
                 const date = new Date(isoString);
                 const now = new Date();
                 const diff = now - date;
-                
+
                 if (diff < 60000) return '방금 전';
                 if (diff < 3600000) return Math.floor(diff / 60000) + '분 전';
                 if (diff < 86400000) return Math.floor(diff / 3600000) + '시간 전';
@@ -397,23 +401,23 @@
 
             updateStats() {
                 document.getElementById('totalMemories').textContent = this.memories.length;
-                document.getElementById('recentMemories').textContent = 
+                document.getElementById('recentMemories').textContent =
                     this.memories.filter(m => {
                         const lastAccessed = new Date(m.lastAccessed);
                         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
                         return lastAccessed > oneDayAgo;
                     }).length;
-                
+
                 const types = new Set(this.memories.map(m => m.type));
                 document.getElementById('memoryTypes').textContent = types.size;
-                
+
                 const avgImportance = this.memories.reduce((sum, m) => sum + m.importance, 0) / this.memories.length;
                 document.getElementById('memoryScore').textContent = Math.round(avgImportance * 100);
             }
 
             searchMemories() {
                 const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-                this.filteredMemories = this.memories.filter(memory => 
+                this.filteredMemories = this.memories.filter(memory =>
                     memory.title.toLowerCase().includes(searchTerm) ||
                     memory.content.toLowerCase().includes(searchTerm) ||
                     this.getTypeLabel(memory.type).toLowerCase().includes(searchTerm)
@@ -438,10 +442,10 @@
         }
 
         function exportMemories() {
-            const content = memoryManager.memories.map(memory => 
+            const content = memoryManager.memories.map(memory =>
                 `제목: ${memory.title}\n내용: ${memory.content}\n유형: ${memoryManager.getTypeLabel(memory.type)}\n중요도: ${Math.round(memory.importance * 100)}%\n생성일: ${new Date(memory.createdAt).toLocaleString()}\n\n`
             ).join('---\n\n');
-            
+
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -454,7 +458,7 @@
         function clearOldMemories() {
             if (confirm('30일 이상 된 기억을 삭제하시겠습니까?')) {
                 const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                memoryManager.memories = memoryManager.memories.filter(memory => 
+                memoryManager.memories = memoryManager.memories.filter(memory =>
                     new Date(memory.lastAccessed) > thirtyDaysAgo
                 );
                 memoryManager.filteredMemories = [...memoryManager.memories];
@@ -466,7 +470,7 @@
 
         function optimizeMemories() {
             if (confirm('중요도가 낮은 기억을 정리하시겠습니까?')) {
-                memoryManager.memories = memoryManager.memories.filter(memory => 
+                memoryManager.memories = memoryManager.memories.filter(memory =>
                     memory.importance > 0.3
                 );
                 memoryManager.filteredMemories = [...memoryManager.memories];
@@ -492,4 +496,5 @@
         }
     </script>
 </body>
-</html> 
+
+</html>

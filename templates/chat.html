@@ -714,7 +714,7 @@
                         placeholder="메시지를 입력하세요... (Shift + Enter: 줄바꿈, Enter: 전송)"
                         data-i18n-placeholder="chat.input_placeholder" rows="1"></textarea>
                 </div>
-                <button id="sendBtn" class="send-btn" onclick="sendMessage()" data-i18n="chat.send">전송</button>
+                <button id="sendButton" class="send-btn" onclick="sendMessage()" data-i18n="chat.send">전송</button>
             </div>
         </div>
     </div>
@@ -1166,13 +1166,88 @@
             }
         });
 
-        // 페이지 로드 시 언어 설정
+        // 채팅 초기화 함수
+        async function initializeChat() {
+            console.log('🔧 채팅 초기화 시작');
+
+            // DOM 요소 확인
+            const chatMessages = document.getElementById('chatMessages');
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const sessionList = document.getElementById('sessionList');
+
+            console.log('🔍 DOM 요소 상태:');
+            console.log('  - chatMessages:', chatMessages ? '✅ 찾음' : '❌ 없음');
+            console.log('  - messageInput:', messageInput ? '✅ 찾음' : '❌ 없음');
+            console.log('  - sendButton:', sendButton ? '✅ 찾음' : '❌ 없음');
+            console.log('  - sessionList:', sessionList ? '✅ 찾음' : '❌ 없음');
+
+            // 이벤트 리스너 설정
+            setupEventListeners();
+
+            // WebSocket 연결
+            connectWebSocket();
+
+            // 세션 목록 로드
+            await loadSessionsFromDatabase();
+
+            console.log('✅ 채팅 초기화 완료');
+        }
+
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            console.log('🔧 이벤트 리스너 설정 시작');
+
+            // 메시지 전송 버튼
+            const sendButton = document.getElementById('sendButton');
+            if (sendButton) {
+                sendButton.addEventListener('click', sendMessage);
+                console.log('✅ 전송 버튼 이벤트 리스너 설정');
+            } else {
+                console.error('❌ 전송 버튼을 찾을 수 없음');
+            }
+
+            // 메시지 입력창 (Enter 키)
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+
+                // 자동 높이 조정
+                messageInput.addEventListener('input', function () {
+                    this.style.height = 'auto';
+                    this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+                });
+
+                console.log('✅ 메시지 입력창 이벤트 리스너 설정');
+            } else {
+                console.error('❌ 메시지 입력창을 찾을 수 없음');
+            }
+
+            console.log('✅ 이벤트 리스너 설정 완료');
+        }
+
+        // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function () {
+            console.log('🚀 페이지 로드 시작');
+            console.log('🔍 DOM 요소 확인:');
+            console.log('  - chatMessages:', document.getElementById('chatMessages'));
+            console.log('  - messageInput:', document.getElementById('messageInput'));
+            console.log('  - sendButton:', document.getElementById('sendButton'));
+            console.log('  - sessionList:', document.getElementById('sessionList'));
+
+            // 언어 설정
             const savedLang = localStorage.getItem('preferred-language');
             const detectedLang = detectLanguage();
             const finalLang = savedLang || detectedLang;
-
             changeLanguage(finalLang);
+
+            // 채팅 초기화
+            initializeChat();
         });
 
         let currentSessionId = null;
@@ -1199,6 +1274,11 @@
 
                 sessionLoadingInProgress = true;
                 console.log('🔄 세션 목록 로드 시작');
+                console.log('🔍 현재 상태:');
+                console.log('  - sessions 배열:', sessions);
+                console.log('  - currentSessionId:', currentSessionId);
+                console.log('  - sessionInitialized:', sessionInitialized);
+                console.log('  - sessionLoadComplete:', sessionLoadComplete);
 
                 const token = getCookie('access_token');
                 const headers = {
@@ -1214,9 +1294,12 @@
                     headers: headers
                 });
 
+                console.log(`📥 세션 목록 응답 상태: ${response.status}`);
+
                 if (response.ok) {
                     const data = await response.json();
-                    let rawSessions = data.sessions || [];
+                    console.log(`📂 서버 응답 데이터:`, data);
+                    let rawSessions = data.sessions || data || [];
 
                     console.log(`📂 서버에서 받은 원본 세션 수: ${rawSessions.length}`);
                     console.log(`📂 원본 세션들:`, rawSessions);
@@ -1298,6 +1381,9 @@
                             console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
                             console.log(`🔒 세션 로딩 완료 - sessionLoadComplete: ${sessionLoadComplete}`);
                             console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
+
+                            // 세션 목록 업데이트 후 메시지 로드
+                            updateSessionList();
                             await loadSessionMessages(savedSessionId);
                         } else {
                             // 저장된 세션이 없거나 존재하지 않는 경우, 첫 번째 유효한 세션 사용
@@ -1312,6 +1398,9 @@
                                 console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
                                 console.log(`🔒 세션 로딩 완료 - sessionLoadComplete: ${sessionLoadComplete}`);
                                 console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
+
+                                // 세션 목록 업데이트 후 메시지 로드
+                                updateSessionList();
                                 await loadSessionMessages(validSession.id);
                             } else {
                                 console.error(`❌ 유효한 세션을 찾을 수 없음`);
@@ -1369,33 +1458,81 @@
             // 세션 ID 유효성 검사 - undefined 완전 차단
             if (!sessionId || sessionId === 'undefined' || sessionId === 'null' || sessionId === '' || sessionId === undefined) {
                 console.error(`🚫 메시지 로드 차단: 유효하지 않은 세션 ID "${sessionId}"`);
-                return;
+                return false;
             }
 
             if (!validateSessionIdForAPI(sessionId, '메시지 로드')) {
                 console.error(`🚫 메시지 로드 차단: 유효하지 않은 세션 ID "${sessionId}"`);
-                return;
+                return false;
             }
 
             console.log(`📥 세션 메시지 로드 시작: ${sessionId}`);
 
             try {
+                console.log(`🌐 API 요청: /api/sessions/${sessionId}/messages`);
                 const response = await fetch(`/api/sessions/${sessionId}/messages`);
-                if (response.ok) {
-                    const messages = await response.json();
-                    console.log(`✅ 세션 메시지 로드 성공: ${messages.length}개 메시지`);
+                console.log(`📥 메시지 로드 응답 상태: ${response.status}`);
 
+                if (response.ok) {
+                    const data = await response.json();
+                    const messages = data.messages || [];
+                    console.log(`✅ 세션 메시지 로드 성공: ${messages.length}개 메시지`);
+                    console.log(`📝 원본 메시지 데이터:`, messages);
+
+                    // 채팅 메시지 영역 초기화 (메시지 로드 성공 후에만)
                     clearChatMessages();
-                    messages.forEach(msg => {
-                        addMessage(msg.role || 'user', msg.content, msg.timestamp);
-                    });
+                    console.log('🧹 채팅 메시지 영역 초기화 완료');
+
+                    if (messages.length > 0) {
+                        console.log(`📝 ${messages.length}개 메시지 로드 중...`);
+
+                        // 중복 방지를 위한 메시지 ID 추적
+                        const loadedMessageIds = new Set();
+
+                        messages.forEach((msg, index) => {
+                            const role = msg.role || msg.sender || 'user';
+                            const content = msg.content || msg.message || msg.text || '';
+                            const timestamp = msg.timestamp || msg.created_at || msg.time || new Date().toISOString();
+
+                            // 중복 메시지 방지를 위한 고유 ID 생성 (더 정확한 방식)
+                            const messageId = `${role}_${index}_${timestamp}`;
+
+                            // 이미 로드된 메시지인지 확인
+                            if (loadedMessageIds.has(messageId)) {
+                                console.log(`⚠️ 중복 메시지 건너뛰기: ${messageId}`);
+                                return;
+                            }
+
+                            loadedMessageIds.add(messageId);
+                            console.log(`📝 메시지 ${index + 1}/${messages.length}: ${role} - ${content.substring(0, 30)}...`);
+
+                            // 메시지 내용 검증 (에코 방지)
+                            if (content && content.trim() !== '') {
+                                addMessage(role, content, timestamp);
+                            } else {
+                                console.warn(`⚠️ 빈 메시지 건너뛰기: ${role} - ${content}`);
+                            }
+                        });
+                        console.log(`✅ ${messages.length}개 메시지 로드 완료`);
+                    } else {
+                        console.log(`📝 세션에 메시지가 없음: ${sessionId}`);
+                        // 환영 메시지 표시
+                        const welcomeMessage = "🌟 EORA AI에 오신 것을 환영합니다!\n저는 당신의 생각과 대화를 통해 성장하는 AI입니다.\n자유롭게 대화를 시작해보세요.";
+                        addMessage('assistant', welcomeMessage, new Date().toISOString());
+                    }
+
+                    return true; // 성공
                 } else {
                     console.error(`❌ 세션 메시지 로드 실패: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error(`❌ 오류 내용:`, errorText);
                     showMessage('메시지 로드에 실패했습니다.', 'error');
+                    return false; // 실패
                 }
             } catch (error) {
                 console.error(`💥 세션 메시지 로드 오류:`, error);
                 showMessage('메시지 로드 중 오류가 발생했습니다.', 'error');
+                return false; // 실패
             }
         }
 
@@ -1463,6 +1600,8 @@
         // 메시지를 몽고DB에 저장
         async function saveMessageToDatabase(sessionId, sender, content) {
             try {
+                console.log(`💾 메시지 저장 시작: ${sessionId} - ${sender} - ${content.substring(0, 30)}...`);
+
                 const token = getCookie('access_token');
                 const headers = {
                     'Content-Type': 'application/json',
@@ -1479,17 +1618,23 @@
                     timestamp: new Date().toISOString()
                 };
 
+                console.log(`📤 메시지 저장 요청:`, messageData);
+
                 const response = await fetch('/api/messages', {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify(messageData)
                 });
 
-                if (!response.ok) {
-                    console.error('메시지 저장 실패:', response.status);
+                if (response.ok) {
+                    console.log(`✅ 메시지 저장 성공: ${sessionId}`);
+                } else {
+                    console.error('❌ 메시지 저장 실패:', response.status);
+                    const errorText = await response.text();
+                    console.error('❌ 오류 내용:', errorText);
                 }
             } catch (error) {
-                console.error('메시지 저장 오류:', error);
+                console.error('💥 메시지 저장 오류:', error);
             }
         }
 
@@ -1508,7 +1653,15 @@
             ws.onmessage = function (event) {
                 const data = JSON.parse(event.data);
                 if (data.type === 'response') {
-                    addMessage('assistant', data.message);
+                    // WebSocket 메시지 추가 (중복 방지)
+                    const wsTimestamp = new Date().toISOString();
+                    addMessage('assistant', data.message, wsTimestamp);
+
+                    // WebSocket 메시지를 DB에 저장 (중복 방지)
+                    if (currentSessionId) {
+                        console.log("💾 WebSocket 메시지 DB 저장");
+                        saveMessageToDatabase(currentSessionId, 'assistant', data.message);
+                    }
                     hideTypingIndicator();
                 }
             };
@@ -1560,9 +1713,14 @@
             console.log(`🔑 현재 세션 ID: ${currentSessionId}`);
             console.log(`🔒 세션 잠금 상태: ${currentSessionIdLocked}`);
 
-            // 사용자 메시지 추가
+            // 사용자 메시지 추가 (중복 방지)
             console.log("👤 사용자 메시지 UI에 추가");
-            addMessage('user', message);
+            const userTimestamp = new Date().toISOString();
+            console.log("👤 사용자 메시지 데이터:", {
+                message: message,
+                timestamp: userTimestamp
+            });
+            addMessage('user', message, userTimestamp);
             messageInput.value = '';
 
             // 첫 번째 메시지인 경우 세션 이름을 메시지 내용으로 설정
@@ -1575,8 +1733,9 @@
                 }
             }
 
-            // 사용자 메시지를 몽고DB에 저장
+            // 사용자 메시지를 몽고DB에 저장 (중복 방지)
             if (currentSessionId) {
+                console.log("💾 사용자 메시지 DB 저장");
                 await saveMessageToDatabase(currentSessionId, 'user', message);
             }
 
@@ -1619,10 +1778,19 @@
                 if (response.ok) {
                     const data = await response.json();
                     console.log("✅ API 응답 성공:", data);
-                    addMessage('assistant', data.response);
 
-                    // AI 응답을 몽고DB에 저장
+                    // AI 응답 추가 (중복 방지)
+                    const aiTimestamp = new Date().toISOString();
+                    console.log("🤖 AI 응답 데이터:", {
+                        response: data.response,
+                        timestamp: aiTimestamp,
+                        originalMessage: message
+                    });
+                    addMessage('assistant', data.response, aiTimestamp);
+
+                    // AI 응답을 몽고DB에 저장 (중복 방지)
                     if (currentSessionId) {
+                        console.log("💾 AI 응답 DB 저장");
                         await saveMessageToDatabase(currentSessionId, 'assistant', data.response);
                     }
                 } else {
@@ -1636,10 +1804,14 @@
                 console.error("💥 채팅 오류:", error);
                 console.error("💥 오류 스택:", error.stack);
                 const errorMessage = '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.';
-                addMessage('assistant', errorMessage);
 
-                // 오류 메시지도 몽고DB에 저장
+                // 오류 메시지 추가 (중복 방지)
+                const errorTimestamp = new Date().toISOString();
+                addMessage('assistant', errorMessage, errorTimestamp);
+
+                // 오류 메시지도 몽고DB에 저장 (중복 방지)
                 if (currentSessionId) {
+                    console.log("💾 오류 메시지 DB 저장");
                     await saveMessageToDatabase(currentSessionId, 'assistant', errorMessage);
                 }
             } finally {
@@ -1656,11 +1828,49 @@
             return null;
         }
 
-        // 메시지 추가
+        // 메시지 추가 (중복 방지)
         function addMessage(sender, content, timestamp = new Date().toISOString()) {
+            // 메시지 내용 검증 (에코 방지)
+            if (!content || content.trim() === '') {
+                console.warn(`⚠️ 빈 메시지 추가 시도 무시: ${sender}`);
+                return;
+            }
+
+            // 중복 메시지 방지를 위한 고유 ID 생성 (더 안정적인 방식)
+            const messageId = `${sender}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // 이미 동일한 내용의 메시지가 있는지 확인 (최근 5초 내)
+            const recentMessages = document.querySelectorAll('.message');
+            const now = Date.now();
+            const fiveSecondsAgo = now - 5000;
+
+            for (let msg of recentMessages) {
+                const msgContent = msg.querySelector('.message-content');
+                if (msgContent && msgContent.textContent.trim() === content.trim()) {
+                    const msgTime = msg.querySelector('.message-time');
+                    if (msgTime) {
+                        const msgTimestamp = new Date(msgTime.textContent).getTime();
+                        if (msgTimestamp > fiveSecondsAgo) {
+                            console.log(`⚠️ 최근 중복 메시지 방지: ${content.substring(0, 30)}...`);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            console.log(`📝 메시지 추가: ${sender} - ${content.substring(0, 30)}...`);
+
             const chatMessages = document.getElementById('chatMessages');
+
+            // 환영 메시지 제거 (실제 메시지가 추가될 때)
+            const welcomeMessage = chatMessages.querySelector('.chat-welcome');
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}`;
+            messageDiv.setAttribute('data-message-id', messageId);
 
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
@@ -1681,6 +1891,8 @@
 
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            console.log(`✅ 메시지 추가 완료: ${sender} - ${content.substring(0, 30)}...`);
         }
 
         // 타이핑 인디케이터
@@ -1690,6 +1902,21 @@
 
         function hideTypingIndicator() {
             document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        // 채팅 메시지 영역 초기화
+        function clearChatMessages() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = `
+                <div class="chat-welcome">
+                    <h3>🌟 EORA AI에 오신 것을 환영합니다!</h3>
+                    <p>저는 당신의 생각과 대화를 통해 성장하는 AI입니다.</p>
+                    <p>자유롭게 대화를 시작해보세요. 질문, 토론, 창작, 무엇이든 가능합니다.</p>
+                    <br>
+                    <p><strong>💡 팁:</strong> Shift + Enter로 줄바꿈, Enter로 메시지 전송</p>
+                </div>
+            `;
+            console.log('🧹 채팅 메시지 영역 초기화 완료');
         }
 
         // 세션 관리
@@ -1734,16 +1961,25 @@
         }
 
         function updateSessionList() {
+            console.log('🔄 세션 목록 업데이트 시작');
             const sessionList = document.getElementById('sessionList');
-            sessionList.innerHTML = '';
 
-            sessions.forEach(session => {
+            if (!sessionList) {
+                console.error('❌ sessionList 요소를 찾을 수 없음');
+                return;
+            }
+
+            sessionList.innerHTML = '';
+            console.log(`📂 ${sessions.length}개 세션을 UI에 렌더링`);
+
+            sessions.forEach((session, index) => {
                 const sessionItem = document.createElement('div');
                 sessionItem.className = 'session-item';
                 sessionItem.dataset.sessionId = session.id;
 
                 if (session.id === currentSessionId) {
                     sessionItem.classList.add('active');
+                    console.log(`✅ 활성 세션 표시: ${session.id}`);
                 }
 
                 sessionItem.innerHTML = `
@@ -1755,6 +1991,7 @@
 
                 sessionItem.addEventListener('click', (e) => {
                     if (!e.target.classList.contains('session-checkbox')) {
+                        console.log(`🖱️ 세션 클릭: ${session.id}`);
                         loadSession(session.id);
                     }
                 });
@@ -1765,7 +2002,10 @@
                 });
 
                 sessionList.appendChild(sessionItem);
+                console.log(`📝 세션 ${index + 1} 추가: ${session.name} (${session.id})`);
             });
+
+            console.log('✅ 세션 목록 업데이트 완료');
         }
 
         async function loadSession(sessionId) {
@@ -1775,15 +2015,33 @@
                 showMessage('유효하지 않은 세션입니다.', 'error');
                 return;
             }
+
             console.log(`🔄 세션 로드 시작: ${sessionId}`);
+            console.log(`🔍 이전 세션 ID: ${currentSessionId}`);
+
+            // 현재 세션 ID 업데이트
             currentSessionId = sessionId;
             currentSessionIdLocked = true; // 잠금 설정
             sessionInitialized = true;
+
             // localStorage에 현재 세션 ID 저장
             localStorage.setItem('currentSessionId', sessionId);
+            console.log(`💾 localStorage에 세션 ID 저장: ${sessionId}`);
+
+            // 세션 목록 UI 업데이트
             updateSessionList();
-            // 몽고DB에서 해당 세션의 메시지들을 로드
-            await loadSessionMessages(sessionId);
+
+            // 몽고DB에서 해당 세션의 메시지들을 로드 (채팅 영역은 메시지 로드 후에만 초기화)
+            console.log(`📥 세션 메시지 로드 시작: ${sessionId}`);
+            const loadSuccess = await loadSessionMessages(sessionId);
+
+            if (!loadSuccess) {
+                console.error(`❌ 세션 로드 실패: ${sessionId}`);
+                showMessage('세션 로드에 실패했습니다.', 'error');
+                return;
+            }
+
+            console.log(`✅ 세션 로드 완료: ${sessionId}`);
         }
 
         function clearChatMessages() {
@@ -1800,26 +2058,35 @@
         }
 
         function toggleSessionSelection(sessionId, selected) {
+            console.log(`🔘 세션 선택 토글: ${sessionId} - ${selected}`);
+
             if (selected) {
                 selectedSessions.add(sessionId);
+                console.log(`✅ 세션 선택됨: ${sessionId}`);
             } else {
                 selectedSessions.delete(sessionId);
+                console.log(`❌ 세션 선택 해제됨: ${sessionId}`);
             }
+
+            console.log(`📋 현재 선택된 세션들:`, Array.from(selectedSessions));
         }
 
         async function deleteSelectedSessions() {
-            const selectedSessions = sessions.filter(session =>
-                session.selected && validateSessionIdForAPI(session.id, '세션 삭제')
+            // selectedSessions Set에서 선택된 세션 ID들을 가져와서 실제 세션 객체로 변환
+            const selectedSessionIds = Array.from(selectedSessions);
+            const selectedSessionsToDelete = sessions.filter(session =>
+                selectedSessionIds.includes(session.id) && validateSessionIdForAPI(session.id, '세션 삭제')
             );
 
-            if (selectedSessions.length === 0) {
+            if (selectedSessionsToDelete.length === 0) {
                 showMessage('삭제할 세션을 선택해주세요.', 'warning');
                 return;
             }
 
-            console.log(`🗑️ 선택된 세션 삭제 시작: ${selectedSessions.length}개`);
+            console.log(`🗑️ 선택된 세션 삭제 시작: ${selectedSessionsToDelete.length}개`);
+            console.log(`📋 삭제할 세션 ID들:`, selectedSessionIds);
 
-            for (const session of selectedSessions) {
+            for (const session of selectedSessionsToDelete) {
                 try {
                     const response = await fetch(`/api/sessions/${session.id}`, {
                         method: 'DELETE'
@@ -1836,9 +2103,13 @@
             }
 
             // 세션 목록에서 제거
-            sessions = sessions.filter(session => !session.selected);
+            sessions = sessions.filter(session => !selectedSessionIds.includes(session.id));
+
+            // selectedSessions Set 초기화
+            selectedSessions.clear();
+
             updateSessionList();
-            showMessage(`${selectedSessions.length}개 세션이 삭제되었습니다.`, 'success');
+            showMessage(`${selectedSessionsToDelete.length}개 세션이 삭제되었습니다.`, 'success');
         }
 
         async function clearAllSessions() {
@@ -1870,6 +2141,8 @@
             }
 
             sessions = [];
+            // selectedSessions Set 초기화
+            selectedSessions.clear();
             updateSessionList();
             showMessage('모든 세션이 삭제되었습니다.', 'success');
         }
@@ -1953,7 +2226,7 @@
 
                     const result = await response.json();
 
-                    if (response.ok && result.deleted) {
+                    if (response.ok) {
                         console.log(`✅ 세션 삭제 성공: ${sessionId}`);
                         removeSessionName(sessionId); // localStorage에서 제거
 
@@ -1968,7 +2241,7 @@
                         updateSessionList();
                         showMessage('세션이 삭제되었습니다.', 'success');
                     } else {
-                        console.error(`❌ 세션 삭제 실패: ${sessionId} - ${response.status} - ${result.message}`);
+                        console.error(`❌ 세션 삭제 실패: ${sessionId} - ${response.status} - ${result.message || '알 수 없는 오류'}`);
                         showMessage('세션 삭제에 실패했습니다.', 'error');
                     }
                 } catch (error) {
@@ -2017,22 +2290,11 @@
         // 이벤트 리스너
         document.addEventListener('click', hideContextMenu);
 
-        document.getElementById('messageInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
         // 자동 높이 조정
         document.getElementById('messageInput').addEventListener('input', function () {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 150) + 'px';
         });
-
-        // 초기화
-        connectWebSocket();
-        loadSessionsFromDatabase();
     </script>
 </body>
 

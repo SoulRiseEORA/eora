@@ -134,22 +134,71 @@ class EORACore:
     def __init__(self):
         self.name = "EORA Core"
         self.version = "2.0.0"
+        self.openai_client = None
+        self._initialize_openai()
+    
+    def _initialize_openai(self):
+        """OpenAI 클라이언트 초기화"""
+        try:
+            from openai import OpenAI
+            import os
+            api_key = os.getenv("OPENAI_API_KEY")
+            if api_key:
+                self.openai_client = OpenAI(api_key=api_key)
+                logger.info("✅ OpenAI 클라이언트 초기화 완료")
+            else:
+                logger.warning("⚠️ OPENAI_API_KEY 환경변수가 설정되지 않았습니다.")
+        except Exception as e:
+            logger.error(f"❌ OpenAI 클라이언트 초기화 실패: {e}")
     
     def process_input(self, message: str, user_id: str = None) -> str:
-        """사용자 입력 처리"""
-        responses = [
-            "안녕하세요! EORA AI 시스템입니다. 무엇을 도와드릴까요?",
+        """사용자 입력 처리 - GPT API 사용"""
+        try:
+            if not self.openai_client:
+                return self._fallback_response(message)
+            
+            # GPT API 호출
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "당신은 EORA AI입니다. 사용자와 따뜻하고 공감적인 대화를 나누며, 그들의 성장과 자기 이해를 돕는 AI 상담사입니다. 한국어로 응답해주세요."
+                    },
+                    {
+                        "role": "user", 
+                        "content": message
+                    }
+                ],
+                max_tokens=500,
+                temperature=0.7
+            )
+            
+            ai_response = response.choices[0].message.content
+            logger.info(f"✅ GPT API 응답 생성 완료 - 사용자: {user_id}")
+            return ai_response
+            
+        except Exception as e:
+            logger.error(f"❌ GPT API 호출 실패: {e}")
+            return self._fallback_response(message)
+    
+    def _fallback_response(self, message: str) -> str:
+        """GPT API 실패 시 대체 응답"""
+        fallback_responses = [
+            "안녕하세요! EORA AI입니다. 무엇을 도와드릴까요?",
             "흥미로운 질문이네요. 더 자세히 설명해주시겠어요?",
             "좋은 질문입니다. 제가 도움을 드릴 수 있는 부분이 있나요?",
             "EORA AI가 당신의 질문에 답변하고 있습니다. 잠시만 기다려주세요.",
             "의식적 AI 시스템과의 대화를 즐기고 계시는군요!",
             "당신의 생각이 흥미롭습니다. 더 자세히 들어보고 싶어요.",
             "EORA AI는 학습과 성장을 통해 더 나은 답변을 제공하려고 합니다.",
-            "의식과 지능의 경계에서 당신과 대화하는 것이 즐겁습니다."
+            "의식과 지능의 경계에서 당신과 대화하는 것이 즐겁습니다.",
+            "현재 AI 서비스에 일시적인 문제가 있어 기본 응답을 드립니다. 곧 정상화될 예정입니다.",
+            "죄송합니다. 현재 응답을 생성할 수 없습니다. 잠시 후 다시 시도해주세요."
         ]
         
         import random
-        return random.choice(responses)
+        return random.choice(fallback_responses)
 
 # EORA Core 인스턴스 생성
 eora_core = EORACore()
@@ -688,12 +737,12 @@ async def chat_endpoint(request: Request, chat_data: ChatMessage):
             logger.error(f"EORA Core 처리 실패: {e}")
             response = "죄송합니다. 현재 응답을 생성할 수 없습니다. 잠시 후 다시 시도해주세요."
         
-        # 채팅 기록 저장
+        # 채팅 기록 저장 (사용자 메시지는 프론트엔드에서 저장하므로 여기서는 AI 응답만 저장)
         if chat_data.session_id and chat_data.session_id in chat_history:
+            # AI 응답만 저장 (사용자 메시지는 프론트엔드에서 이미 저장됨)
             chat_history[chat_data.session_id].append({
-                "user": user_id,
-                "message": chat_data.message,
-                "response": response,
+                "role": "assistant",
+                "content": response,
                 "timestamp": datetime.now().isoformat()
             })
             
@@ -721,10 +770,33 @@ async def get_session_messages(request: Request, session_id: str):
     user = get_current_user(request)  # 인증 없이도 접근 가능하도록 수정
     
     try:
+        # chat_history에서 해당 세션의 메시지 조회
         if session_id not in chat_history:
+            logger.info(f"세션 {session_id}의 메시지가 없습니다.")
             return JSONResponse(content={"messages": []})
         
-        return JSONResponse(content={"messages": chat_history[session_id]})
+        messages = chat_history[session_id]
+        logger.info(f"세션 {session_id}에서 {len(messages)}개 메시지 조회")
+        
+        # 메시지 형식 통일 (role, content, timestamp)
+        formatted_messages = []
+        for msg in messages:
+            if isinstance(msg, dict):
+                formatted_msg = {
+                    "role": msg.get("role", msg.get("user", "user")),
+                    "content": msg.get("content", msg.get("message", "")),
+                    "timestamp": msg.get("timestamp", msg.get("time", datetime.now().isoformat()))
+                }
+                formatted_messages.append(formatted_msg)
+            else:
+                # 문자열인 경우 기본 형식으로 변환
+                formatted_messages.append({
+                    "role": "user",
+                    "content": str(msg),
+                    "timestamp": datetime.now().isoformat()
+                })
+        
+        return JSONResponse(content={"messages": formatted_messages})
         
     except Exception as e:
         logger.error(f"세션 메시지 조회 오류: {e}")
@@ -735,12 +807,27 @@ async def get_session_messages(request: Request, session_id: str):
 
 @app.get("/api/sessions")
 async def get_sessions(request: Request):
-    """사용자 세션 목록 조회"""
-    user = get_current_user(request)
-    user_id = user["user_id"] if user else "anonymous"
-    
+    """사용자의 세션 목록 조회"""
     try:
-        user_sessions = [s for s in sessions_db.values() if s.get("user_id") == user_id]
+        user = get_current_user(request)
+        user_id = user.get("user_id") if user else "anonymous"
+        
+        # 사용자별 세션 필터링
+        user_sessions = []
+        for session_id, session_data in sessions_db.items():
+            if session_data.get("user_id") == user_id:
+                user_sessions.append({
+                    "id": session_id,
+                    "name": session_data.get("name", "새 세션"),
+                    "created_at": session_data.get("created_at"),
+                    "last_message": session_data.get("last_message"),
+                    "message_count": len(chat_history.get(session_id, []))
+                })
+        
+        # 최신 세션부터 정렬
+        user_sessions.sort(key=lambda x: x["created_at"], reverse=True)
+        
+        logger.info(f"✅ 세션 목록 조회: {user_id} - {len(user_sessions)}개 세션")
         return JSONResponse(content={"sessions": user_sessions})
         
     except Exception as e:
@@ -829,26 +916,52 @@ async def get_aura_recall(request: Request):
 async def save_message(request: Request):
     """메시지 저장"""
     user = get_current_user(request)
-    user_id = user["user_id"] if user else "anonymous"
+    user_id = user.get("user_id") if user else "anonymous"
     
     try:
         data = await request.json()
-        message = data.get("message", "")
+        role = data.get("role", "user")
+        content = data.get("content", "")
         session_id = data.get("session_id", "")
         
-        if session_id and session_id in chat_history:
-            chat_history[session_id].append({
-                "user": user_id,
-                "message": message,
-                "timestamp": datetime.now().isoformat()
-            })
+        if session_id and content:
+            # chat_history 초기화
+            if session_id not in chat_history:
+                chat_history[session_id] = []
+            
+            # 중복 메시지 방지 (최근 5초 내 동일한 내용의 메시지가 있는지 확인)
+            now = datetime.now()
+            recent_messages = [msg for msg in chat_history[session_id] 
+                             if isinstance(msg, dict) and 
+                             msg.get("content") == content and
+                             (now - datetime.fromisoformat(msg.get("timestamp", now.isoformat()))).total_seconds() < 5]
+            
+            if recent_messages:
+                logger.info(f"⚠️ 중복 메시지 저장 방지: {content[:30]}...")
+                return JSONResponse(content={"status": "duplicate", "message": "중복 메시지입니다."})
+            
+            # 메시지 저장 (role, content, timestamp 형식)
+            message_data = {
+                "role": role,
+                "content": content,
+                "timestamp": now.isoformat()
+            }
+            chat_history[session_id].append(message_data)
             
             # 세션 업데이트
             if session_id in sessions_db:
-                sessions_db[session_id]["message_count"] += 1
+                sessions_db[session_id]["message_count"] = len(chat_history[session_id])
                 sessions_db[session_id]["last_activity"] = datetime.now().isoformat()
-        
-        return JSONResponse(content={"status": "success"})
+                sessions_db[session_id]["last_message"] = content[:50] + "..." if len(content) > 50 else content
+            
+            logger.info(f"✅ 메시지 저장 완료: {session_id} - {role} - {content[:30]}...")
+            return JSONResponse(content={"status": "success", "message_id": len(chat_history[session_id])})
+        else:
+            logger.warning(f"⚠️ 메시지 저장 실패: 세션 ID 또는 내용 없음")
+            return JSONResponse(
+                status_code=400,
+                content={"error": "세션 ID와 메시지 내용이 필요합니다."}
+            )
         
     except Exception as e:
         logger.error(f"메시지 저장 오류: {e}")
@@ -1532,6 +1645,24 @@ def log_api_response(status_code: int, message: str = ""):
     """API 응답 로깅"""
     status_icon = "✅" if status_code < 400 else "❌"
     logger.info(f"{status_icon} API 응답 - {status_code} - {message}")
+
+# 세션 삭제 API 추가
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(request: Request, session_id: str):
+    """채팅 세션 삭제"""
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "인증이 필요합니다."})
+    if session_id not in sessions_db:
+        return JSONResponse(status_code=404, content={"error": "세션을 찾을 수 없습니다."})
+    # 세션 소유자만 삭제 가능
+    if sessions_db[session_id].get("user_id") != user["user_id"]:
+        return JSONResponse(status_code=403, content={"error": "세션을 삭제할 권한이 없습니다."})
+    del sessions_db[session_id]
+    if session_id in chat_history:
+        del chat_history[session_id]
+    logger.info(f"✅ 세션 삭제: {session_id} (사용자: {user['user_id']})")
+    return JSONResponse(content={"message": "세션이 삭제되었습니다.", "deleted": True})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8002, reload=True) 
