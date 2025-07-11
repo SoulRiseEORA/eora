@@ -415,6 +415,7 @@ async def login_user(request: Request, login_data: UserLogin):
             "name": user["name"],
             "email": user["email"],
             "role": user["role"],
+            "is_admin": user.get("is_admin", False),
             "username": user["name"]  # home.html에서 사용하는 필드
         }
         
@@ -492,6 +493,31 @@ async def get_user_stats(request: Request):
         return JSONResponse(
             status_code=500,
             content={"error": "통계 조회 중 오류가 발생했습니다."}
+        )
+
+@app.get("/api/user/info")
+async def get_user_info(request: Request):
+    """사용자 정보 조회"""
+    user = require_auth(request)
+    
+    try:
+        user_info = users_db.get(user["user_id"], {})
+        return JSONResponse(content={
+            "user_id": user["user_id"],
+            "name": user["name"],
+            "email": user["email"],
+            "role": user["role"],
+            "is_admin": user_info.get("is_admin", False),
+            "is_active": user_info.get("is_active", True),
+            "created_at": user_info.get("created_at"),
+            "last_login": user_info.get("last_login")
+        })
+        
+    except Exception as e:
+        logger.error(f"사용자 정보 조회 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "사용자 정보 조회 중 오류가 발생했습니다."}
         )
 
 @app.get("/api/user/activity")
