@@ -161,6 +161,7 @@ DEFAULT_ADMIN = {
     "email": "admin@eora.com",
     "password_hash": hashlib.sha256("admin123".encode()).hexdigest(),
     "role": "admin",
+    "is_admin": True,
     "is_active": True,
     "created_at": datetime.now().isoformat(),
     "last_login": None,
@@ -221,7 +222,7 @@ def require_auth(request: Request) -> Dict:
 def require_admin(request: Request) -> Dict:
     """관리자 권한 필요"""
     user = require_auth(request)
-    if user.get("role") != "admin":
+    if user.get("role") != "admin" and not user.get("is_admin", False):
         raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다")
     return user
 
@@ -407,6 +408,7 @@ async def login_user(request: Request, login_data: UserLogin):
             "name": user["name"],
             "email": user["email"],
             "role": user["role"],
+            "is_admin": user.get("is_admin", False),
             "is_active": user["is_active"]
         }
         

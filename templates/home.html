@@ -1302,7 +1302,8 @@
                     document.getElementById('userDisplayEmail').textContent = userEmail;
 
                     // 관리자 계정인 경우 관리자 버튼 표시
-                    if (userEmail === 'admin@eora.com') {
+                    const isAdmin = localStorage.getItem('is_admin') === 'true';
+                    if (isAdmin || userEmail === 'admin@eora.com') {
                         const adminBtn = document.getElementById('adminBtn');
                         if (adminBtn) {
                             adminBtn.style.display = 'inline-block';
