@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>채팅 API 테스트 (localStorage 저장)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            overflow-y: auto;
+            background-color: white;
+            border-radius: 8px;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        #sendBtn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #sendBtn:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+        }
+        .ai-message {
+            background-color: #f3e5f5;
+            margin-right: 20%;
+        }
+        .debug-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .clear-btn {
+            padding: 8px 16px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .clear-btn:hover {
+            background-color: #c82333;
+        }
+        .timestamp {
+            font-size: 10px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 채팅 API 테스트 (localStorage 저장)</h1>
+    <p>이 페이지는 localStorage를 사용하여 대화 내용을 저장합니다. 새로고침해도 대화가 유지됩니다.</p>
+    
+    <div class="status info">
+        🌐 현재 페이지: <span id="currentUrl"></span><br>
+        🔧 API 서버: <span id="apiServer"></span>
+    </div>
+    
+    <div class="controls">
+        <button class="clear-btn" onclick="clearChat()">대화 초기화</button>
+        <span id="storageInfo">저장된 메시지: 0개</span>
+    </div>
+    
+    <div class="debug-info">
+        <strong>디버그 정보:</strong><br>
+        <div id="debugInfo">로딩 중...</div>
+    </div>
+    
+    <div class="chat-container" id="chatContainer">
+        <div class="message ai-message">
+            안녕하세요! EORA AI 테스트 페이지입니다. 메시지를 보내보세요! 🤖
+            <div class="timestamp">지금</div>
+        </div>
+    </div>
+    
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." onkeypress="handleKeyPress(event)">
+        <button id="sendBtn" onclick="sendMessage()">전송</button>
+    </div>
+    
+    <script>
+        const API_BASE = window.location.origin;
+        const STORAGE_KEY = 'test_chat_history';
+        
+        // 현재 페이지 URL과 API 서버 URL 설정
+        const currentUrl = window.location.origin;
+        const apiServer = currentUrl; // 같은 서버 사용
+        
+        document.getElementById('currentUrl').textContent = currentUrl;
+        document.getElementById('apiServer').textContent = apiServer;
+        
+        // 디버그 정보 업데이트
+        function updateDebugInfo(message) {
+            const debugInfo = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            debugInfo.innerHTML += `[${timestamp}] ${message}<br>`;
+            debugInfo.scrollTop = debugInfo.scrollHeight;
+        }
+        
+        // 채팅 기록 로드 (몽고DB에서)
+        async function loadChatHistory() {
+            try {
+                updateDebugInfo('몽고DB에서 대화 기록 로드 중...');
+                
+                const response = await fetch(`${apiServer}/api/sessions/test_session/messages`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const messages = data.messages || [];
+                    
+                    const chatContainer = document.getElementById('chatContainer');
+                    chatContainer.innerHTML = '';
+                    
+                    if (messages.length > 0) {
+                        messages.forEach(msg => {
+                            addMessageToChat(msg.content, msg.sender, msg.timestamp);
+                        });
+                        updateDebugInfo(`✅ 몽고DB에서 ${messages.length}개 메시지 로드 완료`);
+                    } else {
+                        // 환영 메시지 표시
+                        addMessageToChat('안녕하세요! EORA AI 테스트 페이지입니다. 메시지를 보내보세요! 🤖', 'ai');
+                    }
+                } else {
+                    updateDebugInfo('❌ 대화 기록 로드 실패, 환영 메시지 표시');
+                    addMessageToChat('안녕하세요! EORA AI 테스트 페이지입니다. 메시지를 보내보세요! 🤖', 'ai');
+                }
+                
+                updateStorageInfo();
+            } catch (error) {
+                updateDebugInfo(`❌ 대화 기록 로드 오류: ${error.message}`);
+                addMessageToChat('안녕하세요! EORA AI 테스트 페이지입니다. 메시지를 보내보세요! 🤖', 'ai');
+            }
+        }
+        
+        // 서버 상태 확인
+        async function checkServerStatus() {
+            try {
+                updateDebugInfo('서버 상태 확인 중...');
+                const response = await fetch(`${apiServer}/api/status`);
+                const data = await response.json();
+                updateDebugInfo(`✅ 서버 상태: ${data.status}`);
+                updateDebugInfo(`📊 OpenAI: ${data.openai.available ? '사용 가능' : '사용 불가'}`);
+                updateDebugInfo(`🗄️ MongoDB: ${data.database.mongo_connected ? '연결됨' : '메모리 DB'}`);
+                return true;
+            } catch (error) {
+                updateDebugInfo(`❌ 서버 상태 확인 실패: ${error.message}`);
+                return false;
+            }
+        }
+        
+        // 메시지 전송
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+            
+            // 사용자 메시지 추가 (몽고DB에 자동 저장됨)
+            await addMessageToChat(message, 'user');
+            messageInput.value = '';
+            
+            updateDebugInfo(`📤 메시지 전송: ${message}`);
+            
+            try {
+                const response = await fetch(`${apiServer}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: 'test_session'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateDebugInfo(`✅ 응답 수신: ${data.response.substring(0, 50)}...`);
+                    // AI 응답 추가 (몽고DB에 자동 저장됨)
+                    await addMessageToChat(data.response, 'ai');
+                } else {
+                    const errorText = await response.text();
+                    updateDebugInfo(`❌ API 오류: ${response.status} - ${errorText}`);
+                    await addMessageToChat('죄송합니다. 응답을 생성할 수 없습니다.', 'ai');
+                }
+            } catch (error) {
+                updateDebugInfo(`❌ 네트워크 오류: ${error.message}`);
+                await addMessageToChat('네트워크 오류가 발생했습니다.', 'ai');
+            }
+        }
+        
+        // 메시지 추가 (몽고DB 저장 포함)
+        async function addMessageToChat(content, sender, timestamp = null) {
+            const container = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const time = timestamp || new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                ${content}
+                <div class="timestamp">${time}</div>
+            `;
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            // 몽고DB에 저장
+            await saveChatToMongoDB(content, sender, time);
+        }
+        
+        // 채팅 기록을 몽고DB에 저장
+        async function saveChatToMongoDB(content, sender, timestamp) {
+            try {
+                const messageData = {
+                    session_id: 'test_session',
+                    sender: sender,
+                    content: content,
+                    timestamp: new Date(timestamp).toISOString()
+                };
+                
+                const response = await fetch(`${apiServer}/api/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(messageData)
+                });
+                
+                if (response.ok) {
+                    updateDebugInfo(`💾 메시지 저장 완료: ${sender}`);
+                } else {
+                    updateDebugInfo(`❌ 메시지 저장 실패: ${response.status}`);
+                }
+                
+                updateStorageInfo();
+            } catch (error) {
+                updateDebugInfo(`❌ 메시지 저장 오류: ${error.message}`);
+            }
+        }
+        
+        // 저장된 메시지 개수 표시 업데이트
+        async function updateStorageInfo() {
+            try {
+                const response = await fetch(`${apiServer}/api/sessions/test_session/messages`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const messageCount = data.messages ? data.messages.length : 0;
+                    document.getElementById('storageInfo').textContent = `저장된 메시지: ${messageCount}개`;
+                } else {
+                    document.getElementById('storageInfo').textContent = `저장된 메시지: 0개`;
+                }
+            } catch (error) {
+                document.getElementById('storageInfo').textContent = `저장된 메시지: 0개`;
+            }
+        }
+        
+        // 대화 초기화
+        async function clearChat() {
+            if (confirm('정말로 대화 내용을 초기화하시겠습니까?')) {
+                try {
+                    // 몽고DB에서 test_session의 모든 메시지 삭제
+                    const response = await fetch(`${apiServer}/api/sessions/test_session`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        updateDebugInfo('🗑️ 몽고DB에서 대화 내용 삭제 완료');
+                    } else {
+                        updateDebugInfo('❌ 대화 내용 삭제 실패');
+                    }
+                } catch (error) {
+                    updateDebugInfo(`❌ 대화 내용 삭제 오류: ${error.message}`);
+                }
+                
+                const chatContainer = document.getElementById('chatContainer');
+                chatContainer.innerHTML = `
+                    <div class="message ai-message">
+                        안녕하세요! EORA AI 테스트 페이지입니다. 메시지를 보내보세요! 🤖
+                        <div class="timestamp">지금</div>
+                    </div>
+                `;
+                updateStorageInfo();
+            }
+        }
+        
+        // 엔터키 처리
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // 페이지 로드 시 서버 상태 확인 및 채팅 기록 로드
+        window.onload = async function() {
+            updateDebugInfo('페이지 로드 완료');
+            await checkServerStatus();
+            await loadChatHistory();
+        };
+    </script>
+</body>
+</html> 

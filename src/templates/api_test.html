@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI API 테스트</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #fff;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input, textarea {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: rgba(46, 204, 113, 0.3); }
+        .error { background: rgba(231, 76, 60, 0.3); }
+        .loading { background: rgba(52, 152, 219, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 EORA AI API 테스트</h1>
+        
+        <!-- 서버 상태 확인 -->
+        <div class="test-section">
+            <h3>📊 서버 상태 확인</h3>
+            <button onclick="checkServerStatus()">서버 상태 확인</button>
+            <div id="serverStatus" class="result"></div>
+        </div>
+        
+        <!-- API 상태 확인 -->
+        <div class="test-section">
+            <h3>🔧 API 상태 확인</h3>
+            <button onclick="checkApiStatus()">API 상태 확인</button>
+            <div id="apiStatus" class="result"></div>
+        </div>
+        
+        <!-- 채팅 API 테스트 -->
+        <div class="test-section">
+            <h3>💬 채팅 API 테스트</h3>
+            <textarea id="chatMessage" placeholder="메시지를 입력하세요..." rows="3">안녕하세요! 테스트 메시지입니다.</textarea>
+            <button onclick="testChatApi()">채팅 API 테스트</button>
+            <div id="chatResult" class="result"></div>
+        </div>
+        
+        <!-- 로그인 테스트 -->
+        <div class="test-section">
+            <h3>🔐 로그인 테스트</h3>
+            <input type="email" id="loginEmail" placeholder="이메일" value="admin@eora.ai">
+            <input type="password" id="loginPassword" placeholder="비밀번호" value="admin1234">
+            <button onclick="testLogin()">로그인 테스트</button>
+            <div id="loginResult" class="result"></div>
+        </div>
+        
+        <!-- 사용자 정보 테스트 -->
+        <div class="test-section">
+            <h3>👤 사용자 정보 테스트</h3>
+            <button onclick="testUserInfo()">사용자 정보 가져오기</button>
+            <div id="userInfoResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = window.location.origin;
+        let authToken = null;
+        
+        // 서버 상태 확인
+        async function checkServerStatus() {
+            const resultDiv = document.getElementById('serverStatus');
+            resultDiv.innerHTML = '<div class="status loading">서버 상태 확인 중...</div>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.text();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="status success">✅ 서버 정상 작동</div><pre>${data}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="status error">❌ 서버 오류</div><pre>${data}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="status error">❌ 연결 실패</div><pre>${error.message}</pre>`;
+            }
+        }
+        
+        // API 상태 확인
+        async function checkApiStatus() {
+            const resultDiv = document.getElementById('apiStatus');
+            resultDiv.innerHTML = '<div class="status loading">API 상태 확인 중...</div>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/status`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="status success">✅ API 정상 작동</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="status error">❌ API 오류</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="status error">❌ 연결 실패</div><pre>${error.message}</pre>`;
+            }
+        }
+        
+        // 채팅 API 테스트
+        async function testChatApi() {
+            const resultDiv = document.getElementById('chatResult');
+            const message = document.getElementById('chatMessage').value;
+            
+            resultDiv.innerHTML = '<div class="status loading">채팅 API 테스트 중...</div>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: 'test_session_' + Date.now()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="status success">✅ 채팅 API 성공</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="status error">❌ 채팅 API 오류</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="status error">❌ 연결 실패</div><pre>${error.message}</pre>`;
+            }
+        }
+        
+        // 로그인 테스트
+        async function testLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            resultDiv.innerHTML = '<div class="status loading">로그인 테스트 중...</div>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.access_token;
+                    resultDiv.innerHTML = `<div class="status success">✅ 로그인 성공</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="status error">❌ 로그인 실패</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="status error">❌ 연결 실패</div><pre>${error.message}</pre>`;
+            }
+        }
+        
+        // 사용자 정보 테스트
+        async function testUserInfo() {
+            const resultDiv = document.getElementById('userInfoResult');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = '<div class="status error">❌ 먼저 로그인해주세요</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="status loading">사용자 정보 가져오는 중...</div>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/user/info`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="status success">✅ 사용자 정보 성공</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="status error">❌ 사용자 정보 오류</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="status error">❌ 연결 실패</div><pre>${error.message}</pre>`;
+            }
+        }
+        
+        // 페이지 로드 시 서버 상태 확인
+        window.onload = function() {
+            checkServerStatus();
+            checkApiStatus();
+        };
+    </script>
+</body>
+</html> 

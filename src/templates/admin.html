@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 관리자 페이지</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .title {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .admin-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .admin-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .admin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .card-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .card-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .card-description {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1em;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .logout-section {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-email {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .user-role {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .title {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🚀 EORA AI 관리자 페이지</h1>
+            <p class="subtitle">AI 시스템 관리 및 모니터링</p>
+        </div>
+
+        <div class="user-info">
+            <div class="user-email" id="user-email">관리자</div>
+            <div class="user-role">시스템 관리자</div>
+        </div>
+
+        <div class="admin-panel">
+            <div class="admin-grid">
+                <div class="admin-card">
+                    <div class="card-icon">📝</div>
+                    <h3 class="card-title">프롬프트 관리</h3>
+                    <p class="card-description">AI별 프롬프트를 수정하고 관리합니다. 시스템, 역할, 가이드, 포맷 프롬프트를 편집할 수 있습니다.</p>
+                    <button class="btn btn-primary" onclick="openPromptManagement()">프롬프트 관리</button>
+                </div>
+
+                <div class="admin-card">
+                    <div class="card-icon">📊</div>
+                    <h3 class="card-title">시스템 모니터링</h3>
+                    <p class="card-description">시스템 상태, 사용자 활동, 성능 지표를 실시간으로 모니터링합니다.</p>
+                    <button class="btn btn-secondary" onclick="openMonitoring()">모니터링</button>
+                </div>
+
+                <div class="admin-card">
+                    <div class="card-icon">👥</div>
+                    <h3 class="card-title">사용자 관리</h3>
+                    <p class="card-description">사용자 계정, 권한, 세션을 관리하고 사용자 활동을 추적합니다.</p>
+                    <button class="btn btn-secondary" onclick="openUserManagement()">사용자 관리</button>
+                </div>
+
+                <div class="admin-card">
+                    <div class="card-icon">⚙️</div>
+                    <h3 class="card-title">시스템 설정</h3>
+                    <p class="card-description">AI 모델 설정, API 키 관리, 시스템 환경을 구성합니다.</p>
+                    <button class="btn btn-secondary" onclick="openSystemSettings()">시스템 설정</button>
+                </div>
+
+                <div class="admin-card">
+                    <div class="card-icon">📈</div>
+                    <h3 class="card-title">성능 분석</h3>
+                    <p class="card-description">AI 응답 시간, 정확도, 사용자 만족도를 분석하고 개선점을 찾습니다.</p>
+                    <button class="btn btn-secondary" onclick="openPerformanceAnalysis()">성능 분석</button>
+                </div>
+
+                <div class="admin-card">
+                    <div class="card-icon">🔒</div>
+                    <h3 class="card-title">보안 관리</h3>
+                    <p class="card-description">보안 설정, 접근 로그, 위험 요소를 모니터링하고 관리합니다.</p>
+                    <button class="btn btn-secondary" onclick="openSecurityManagement()">보안 관리</button>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <h3 style="margin-bottom: 20px; color: #333;">📊 시스템 현황</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-users">0</div>
+                        <div class="stat-label">총 사용자</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="active-sessions">0</div>
+                        <div class="stat-label">활성 세션</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-chats">0</div>
+                        <div class="stat-label">총 채팅</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="system-status">정상</div>
+                        <div class="stat-label">시스템 상태</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="logout-section">
+                <button class="btn btn-danger" onclick="logout()">로그아웃</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 로그인 체크 및 사용자 정보 로드
+        document.addEventListener('DOMContentLoaded', function () {
+            checkLogin();
+            loadUserInfo();
+            loadSystemStats();
+        });
+
+        // 로그인 상태 체크
+        function checkLogin() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!user.email || !user.role || user.role !== 'admin') {
+                alert('관리자 로그인이 필요합니다.');
+                window.location.href = '/login';
+                return false;
+            }
+            return true;
+        }
+
+        // 사용자 정보 로드
+        function loadUserInfo() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const userEmail = document.getElementById('user-email');
+            if (user.email) {
+                userEmail.textContent = user.email;
+            } else {
+                userEmail.textContent = '관리자';
+            }
+        }
+
+        // 시스템 통계 로드
+        async function loadSystemStats() {
+            try {
+                // 실제 API 호출로 대체
+                const response = await fetch('/api/admin/users');
+                const data = await response.json();
+
+                if (data.statistics) {
+                    document.getElementById('total-users').textContent = data.statistics.total_users;
+                    document.getElementById('active-sessions').textContent = data.statistics.active_users;
+                    document.getElementById('total-chats').textContent = data.statistics.total_sessions;
+                } else {
+                    // 기본값 설정
+                    document.getElementById('total-users').textContent = '0';
+                    document.getElementById('active-sessions').textContent = '0';
+                    document.getElementById('total-chats').textContent = '0';
+                }
+                document.getElementById('system-status').textContent = '정상';
+            } catch (error) {
+                console.error('통계 로드 오류:', error);
+                // 오류 시 기본값 설정
+                document.getElementById('total-users').textContent = '0';
+                document.getElementById('active-sessions').textContent = '0';
+                document.getElementById('total-chats').textContent = '0';
+                document.getElementById('system-status').textContent = '오류';
+            }
+        }
+
+        // 프롬프트 관리 페이지 열기
+        function openPromptManagement() {
+            window.location.href = '/prompt-management';
+        }
+
+        // 모니터링 페이지 열기
+        async function openMonitoring() {
+            try {
+                const response = await fetch('/api/admin/monitoring');
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('모니터링 데이터를 가져올 수 없습니다: ' + data.error);
+                    return;
+                }
+
+                // 모니터링 데이터를 모달로 표시
+                showMonitoringModal(data);
+            } catch (error) {
+                console.error('모니터링 오류:', error);
+                alert('모니터링 기능을 사용할 수 없습니다.');
+            }
+        }
+
+        // 사용자 관리 페이지 열기
+        async function openUserManagement() {
+            try {
+                const response = await fetch('/api/admin/users');
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('사용자 데이터를 가져올 수 없습니다: ' + data.error);
+                    return;
+                }
+
+                // 사용자 관리 데이터를 모달로 표시
+                showUserManagementModal(data);
+            } catch (error) {
+                console.error('사용자 관리 오류:', error);
+                alert('사용자 관리 기능을 사용할 수 없습니다.');
+            }
+        }
+
+        // 시스템 설정 페이지 열기
+        async function openSystemSettings() {
+            try {
+                const response = await fetch('/api/admin/system-settings');
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('시스템 설정 데이터를 가져올 수 없습니다: ' + data.error);
+                    return;
+                }
+
+                // 시스템 설정 데이터를 모달로 표시
+                showSystemSettingsModal(data);
+            } catch (error) {
+                console.error('시스템 설정 오류:', error);
+                alert('시스템 설정 기능을 사용할 수 없습니다.');
+            }
+        }
+
+        // 성능 분석 페이지 열기
+        async function openPerformanceAnalysis() {
+            try {
+                const response = await fetch('/api/admin/performance');
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('성능 분석 데이터를 가져올 수 없습니다: ' + data.error);
+                    return;
+                }
+
+                // 성능 분석 데이터를 모달로 표시
+                showPerformanceModal(data);
+            } catch (error) {
+                console.error('성능 분석 오류:', error);
+                alert('성능 분석 기능을 사용할 수 없습니다.');
+            }
+        }
+
+        // 보안 관리 페이지 열기
+        async function openSecurityManagement() {
+            try {
+                const response = await fetch('/api/admin/security');
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('보안 데이터를 가져올 수 없습니다: ' + data.error);
+                    return;
+                }
+
+                // 보안 관리 데이터를 모달로 표시
+                showSecurityModal(data);
+            } catch (error) {
+                console.error('보안 관리 오류:', error);
+                alert('보안 관리 기능을 사용할 수 없습니다.');
+            }
+        }
+
+        // 로그아웃
+        async function logout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    localStorage.removeItem('user');
+                    window.location.href = '/';
+                } else {
+                    alert('로그아웃 중 오류가 발생했습니다.');
+                }
+            } catch (error) {
+                console.error('로그아웃 오류:', error);
+                localStorage.removeItem('user');
+                window.location.href = '/';
+            }
+        }
+
+        // 모니터링 모달 표시
+        function showMonitoringModal(data) {
+            const modal = createModal('시스템 모니터링', `
+                <div class="monitoring-grid">
+                    <div class="monitoring-item">
+                        <h4>CPU 사용률</h4>
+                        <div class="metric">${data.cpu_usage || 'N/A'}%</div>
+                    </div>
+                    <div class="monitoring-item">
+                        <h4>메모리 사용률</h4>
+                        <div class="metric">${data.memory_usage || 'N/A'}%</div>
+                    </div>
+                    <div class="monitoring-item">
+                        <h4>디스크 사용률</h4>
+                        <div class="metric">${data.disk_usage || 'N/A'}%</div>
+                    </div>
+                    <div class="monitoring-item">
+                        <h4>네트워크 상태</h4>
+                        <div class="metric">${data.network_status || 'N/A'}</div>
+                    </div>
+                    <div class="monitoring-item">
+                        <h4>활성 세션</h4>
+                        <div class="metric">${data.active_sessions || 'N/A'}</div>
+                    </div>
+                    <div class="monitoring-item">
+                        <h4>시스템 상태</h4>
+                        <div class="metric">${data.system_status || 'N/A'}</div>
+                    </div>
+                </div>
+            `);
+            document.body.appendChild(modal);
+        }
+
+        // 사용자 관리 모달 표시
+        function showUserManagementModal(data) {
+            const users = data.users || [];
+            const userRows = users.map(user => `
+                <tr>
+                    <td>${user.email || 'N/A'}</td>
+                    <td>${user.role || '사용자'}</td>
+                    <td>${user.last_login || 'N/A'}</td>
+                    <td>${user.status || '활성'}</td>
+                </tr>
+            `).join('');
+
+            const modal = createModal('사용자 관리', `
+                <div class="user-management">
+                    <div class="stats-summary">
+                        <div class="stat-item">
+                            <span class="stat-number">${data.statistics?.total_users || 0}</span>
+                            <span class="stat-label">총 사용자</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${data.statistics?.active_users || 0}</span>
+                            <span class="stat-label">활성 사용자</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${data.statistics?.total_sessions || 0}</span>
+                            <span class="stat-label">총 세션</span>
+                        </div>
+                    </div>
+                    <table class="user-table">
+                        <thead>
+                            <tr>
+                                <th>이메일</th>
+                                <th>역할</th>
+                                <th>마지막 로그인</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${userRows}
+                        </tbody>
+                    </table>
+                </div>
+            `);
+            document.body.appendChild(modal);
+        }
+
+        // 시스템 설정 모달 표시
+        function showSystemSettingsModal(data) {
+            const modal = createModal('시스템 설정', `
+                <div class="system-settings">
+                    <div class="setting-group">
+                        <h4>환경 변수</h4>
+                        <div class="setting-item">
+                            <span class="setting-label">OpenAI API 키:</span>
+                            <span class="setting-value">${data.openai_api_key ? '설정됨' : '설정되지 않음'}</span>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">MongoDB 연결:</span>
+                            <span class="setting-value">${data.mongodb_status || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <h4>시스템 정보</h4>
+                        <div class="setting-item">
+                            <span class="setting-label">Python 버전:</span>
+                            <span class="setting-value">${data.python_version || 'N/A'}</span>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">FastAPI 버전:</span>
+                            <span class="setting-value">${data.fastapi_version || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <h4>프롬프트 상태</h4>
+                        <div class="setting-item">
+                            <span class="setting-label">로드된 AI:</span>
+                            <span class="setting-value">${data.loaded_ais || 'N/A'}</span>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">프롬프트 파일:</span>
+                            <span class="setting-value">${data.prompts_file || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+            `);
+            document.body.appendChild(modal);
+        }
+
+        // 성능 분석 모달 표시
+        function showPerformanceModal(data) {
+            const modal = createModal('성능 분석', `
+                <div class="performance-analysis">
+                    <div class="performance-grid">
+                        <div class="performance-item">
+                            <h4>평균 응답 시간</h4>
+                            <div class="metric">${data.avg_response_time || 'N/A'}ms</div>
+                        </div>
+                        <div class="performance-item">
+                            <h4>최대 응답 시간</h4>
+                            <div class="metric">${data.max_response_time || 'N/A'}ms</div>
+                        </div>
+                        <div class="performance-item">
+                            <h4>총 요청 수</h4>
+                            <div class="metric">${data.total_requests || 'N/A'}</div>
+                        </div>
+                        <div class="performance-item">
+                            <h4>성공률</h4>
+                            <div class="metric">${data.success_rate || 'N/A'}%</div>
+                        </div>
+                        <div class="performance-item">
+                            <h4>사용자 만족도</h4>
+                            <div class="metric">${data.user_satisfaction || 'N/A'}/5</div>
+                        </div>
+                        <div class="performance-item">
+                            <h4>시스템 안정성</h4>
+                            <div class="metric">${data.system_stability || 'N/A'}%</div>
+                        </div>
+                    </div>
+                </div>
+            `);
+            document.body.appendChild(modal);
+        }
+
+        // 보안 관리 모달 표시
+        function showSecurityModal(data) {
+            const modal = createModal('보안 관리', `
+                <div class="security-management">
+                    <div class="security-grid">
+                        <div class="security-item">
+                            <h4>보안 상태</h4>
+                            <div class="metric ${data.security_status === '안전' ? 'safe' : 'warning'}">${data.security_status || 'N/A'}</div>
+                        </div>
+                        <div class="security-item">
+                            <h4>의심스러운 활동</h4>
+                            <div class="metric">${data.suspicious_activities || 'N/A'}</div>
+                        </div>
+                        <div class="security-item">
+                            <h4>차단된 IP</h4>
+                            <div class="metric">${data.blocked_ips || 'N/A'}</div>
+                        </div>
+                        <div class="security-item">
+                            <h4>마지막 보안 검사</h4>
+                            <div class="metric">${data.last_security_check || 'N/A'}</div>
+                        </div>
+                        <div class="security-item">
+                            <h4>권장사항</h4>
+                            <div class="recommendations">
+                                ${(data.recommendations || []).map(rec => `<div class="recommendation">• ${rec}</div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+            document.body.appendChild(modal);
+        }
+
+        // 모달 생성 함수
+        function createModal(title, content) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>${title}</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        ${content}
+                    </div>
+                </div>
+            `;
+
+            // 모달 스타일 추가
+            if (!document.getElementById('modal-styles')) {
+                const style = document.createElement('style');
+                style.id = 'modal-styles';
+                style.textContent = `
+                    .modal {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.5);
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 1000;
+                    }
+                    .modal-content {
+                        background: white;
+                        border-radius: 15px;
+                        max-width: 800px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                    }
+                    .modal-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 20px;
+                        border-bottom: 1px solid #eee;
+                    }
+                    .modal-header h3 {
+                        margin: 0;
+                        color: #333;
+                    }
+                    .modal-close {
+                        background: none;
+                        border: none;
+                        font-size: 24px;
+                        cursor: pointer;
+                        color: #666;
+                    }
+                    .modal-close:hover {
+                        color: #333;
+                    }
+                    .modal-body {
+                        padding: 20px;
+                    }
+                    .monitoring-grid, .performance-grid, .security-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                        gap: 20px;
+                    }
+                    .monitoring-item, .performance-item, .security-item {
+                        background: #f8f9fa;
+                        padding: 20px;
+                        border-radius: 10px;
+                        text-align: center;
+                    }
+                    .monitoring-item h4, .performance-item h4, .security-item h4 {
+                        margin: 0 0 10px 0;
+                        color: #333;
+                        font-size: 14px;
+                    }
+                    .metric {
+                        font-size: 24px;
+                        font-weight: bold;
+                        color: #667eea;
+                    }
+                    .metric.safe { color: #28a745; }
+                    .metric.warning { color: #ffc107; }
+                    .metric.danger { color: #dc3545; }
+                    .user-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 20px;
+                    }
+                    .user-table th, .user-table td {
+                        padding: 12px;
+                        text-align: left;
+                        border-bottom: 1px solid #eee;
+                    }
+                    .user-table th {
+                        background: #f8f9fa;
+                        font-weight: 600;
+                    }
+                    .stats-summary {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 20px;
+                        margin-bottom: 20px;
+                    }
+                    .stat-item {
+                        text-align: center;
+                        padding: 15px;
+                        background: #f8f9fa;
+                        border-radius: 10px;
+                    }
+                    .stat-number {
+                        display: block;
+                        font-size: 24px;
+                        font-weight: bold;
+                        color: #667eea;
+                    }
+                    .stat-label {
+                        font-size: 12px;
+                        color: #666;
+                        margin-top: 5px;
+                    }
+                    .setting-group {
+                        margin-bottom: 30px;
+                    }
+                    .setting-group h4 {
+                        margin: 0 0 15px 0;
+                        color: #333;
+                        border-bottom: 2px solid #667eea;
+                        padding-bottom: 5px;
+                    }
+                    .setting-item {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 10px 0;
+                        border-bottom: 1px solid #eee;
+                    }
+                    .setting-label {
+                        font-weight: 500;
+                        color: #333;
+                    }
+                    .setting-value {
+                        color: #667eea;
+                        font-weight: 500;
+                    }
+                    .recommendations {
+                        text-align: left;
+                    }
+                    .recommendation {
+                        margin: 5px 0;
+                        color: #666;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            return modal;
+        }
+    </script>
+</body>
+
+</html>

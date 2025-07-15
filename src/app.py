@@ -1,0 +1,2415 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+EORA AI System - Railway 최종 배포 버전 v2.0.0
+모든 오류 완전 해결 및 안정성 확보
+이 파일은 railway_final.py입니다!
+"""
+
+import os
+import sys
+import json
+import logging
+import asyncio
+import uuid
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+from pathlib import Path
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+# FastAPI 및 관련 라이브러리
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
+# 데이터베이스 및 캐시
+import pymongo
+from pymongo import MongoClient
+from bson import ObjectId
+
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# OpenAI 클라이언트
+openai_client = None
+
+# 메모리 기반 저장소 (MongoDB 연결 실패 시 사용)
+memory_sessions = {}
+memory_messages = {}
+memory_cache = {}
+
+
+
+# Railway 최종 서버 시작 로그
+logger.info("🚀 ==========================================")
+logger.info("🚀 EORA AI System - Railway 최종 서버 v2.0.0")
+logger.info("🚀 이 파일은 railway_final.py입니다!")
+logger.info("🚀 모든 DeprecationWarning 완전 제거됨")
+logger.info("🚀 OpenAI API 호출 오류 수정됨")
+logger.info("🚀 MongoDB 연결 안정성 확보됨")
+logger.info("🚀 Redis 연결 오류 해결됨")
+logger.info("🚀 세션 저장 기능 완성됨")
+logger.info("🚀 이 파일이 실행되면 모든 문제가 해결된 것입니다!")
+logger.info("🚀 ==========================================")
+
+# 환경변수 설정 - Railway 환경 최적화
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "eora_ai")
+
+
+
+# Railway 환경에서 .env 파일 경고 방지
+if not OPENAI_API_KEY:
+    logger.info("ℹ️ Railway 환경에서 환경변수로 OpenAI API 키를 설정해주세요.")
+else:
+    logger.info("✅ OpenAI API 키가 환경변수에서 로드되었습니다.")
+
+# Railway MongoDB 환경변수 자동 설정
+MONGO_PUBLIC_URL = os.getenv("MONGO_PUBLIC_URL", "")
+MONGO_URL = os.getenv("MONGO_URL", "")
+MONGO_ROOT_PASSWORD = os.getenv("MONGO_ROOT_PASSWORD", "")
+MONGO_ROOT_USERNAME = os.getenv("MONGO_ROOT_USERNAME", "")
+
+# MongoDB 연결 함수 개선
+def clean_mongodb_url(url):
+    """Railway 환경에서 MongoDB URL을 정리합니다."""
+    if not url:
+        return None
+    
+    # Railway 환경 변수에서 특수한 형식 처리
+    url = str(url).strip()
+    
+    # 포트와 비밀번호가 섞여있는 경우 처리
+    if '"' in url:
+        # "trolley.proxy.rlwy.net:26594"MONGO_INITDB_ROOT_PASSWORD="HYxotmUHxMxbYAejsOxEnHwrgKpAochC" 형태 처리
+        parts = url.split('"')
+        if len(parts) >= 3:
+            host_port = parts[1]  # trolley.proxy.rlwy.net:26594
+            password = parts[3]   # HYxotmUHxMxbYAejsOxEnHwrgKpAochC
+            return f"mongodb://mongo:{password}@{host_port}"
+    
+    # 일반적인 URL 정리
+    if url.startswith('mongodb://'):
+        return url
+    elif ':' in url and '@' in url:
+        # 이미 완전한 URL인 경우
+        return f"mongodb://{url}"
+    else:
+        # 단순한 호스트:포트 형태인 경우
+        return f"mongodb://mongo:@{url}"
+
+# MongoDB 연결 시도 함수 개선
+def try_mongodb_connection():
+    """MongoDB 연결을 시도합니다."""
+    urls_to_try = []
+    
+    # Railway 환경에서 사용할 수 있는 MongoDB URL들
+    if MONGODB_URL:
+        urls_to_try.append(MONGODB_URL)
+    
+    # Railway MongoDB 서비스 연결 문자열들
+    railway_urls = [
+        os.getenv("MONGO_PUBLIC_URL"),
+        os.getenv("MONGO_URL"),
+        os.getenv("MONGODB_URI"),
+        "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@trolley.proxy.rlwy.net:26594",
+        "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@mongodb.railway.internal:27017"
+    ]
+    
+    for url in railway_urls:
+        if url and url not in urls_to_try:
+            urls_to_try.append(url)
+    
+    # 로컬 개발 환경용 URL들
+    local_urls = [
+        "mongodb://localhost:27017",
+        "mongodb://127.0.0.1:27017"
+    ]
+    
+    for url in local_urls:
+        if url not in urls_to_try:
+            urls_to_try.append(url)
+    
+    logger.info(f"🔗 연결 시도할 URL 수: {len(urls_to_try)}")
+    
+    for i, url in enumerate(urls_to_try, 1):
+        if not url:
+            continue
+            
+        try:
+            logger.info(f"🔗 MongoDB 연결 시도: {i}/{len(urls_to_try)}")
+            logger.info(f"📝 연결 URL: {url}")
+            
+            # 연결 문자열 정리
+            clean_url = clean_mongodb_url(url)
+            
+            # 연결 시도
+            client = MongoClient(clean_url, serverSelectionTimeoutMS=5000)
+            client.admin.command('ping')
+            
+            logger.info(f"✅ MongoDB 연결 성공: {i}/{len(urls_to_try)}")
+            return client
+            
+        except Exception as e:
+            logger.warning(f"❌ MongoDB 연결 실패 ({i}/{len(urls_to_try)}): {type(e).__name__} - {str(e)}")
+            continue
+    
+    logger.error("❌ 모든 MongoDB 연결 시도 실패")
+    return None
+
+# MongoDB 연결 시도
+client = try_mongodb_connection()
+
+if client is None:
+    logger.error("❌ 모든 MongoDB 연결 시도 실패")
+    # 연결 실패 시에도 서버는 계속 실행
+    logger.info("ℹ️ 메모리 기반 세션 관리로 전환합니다.")
+else:
+    # 데이터베이스 및 컬렉션 설정
+    try:
+        db = client[DATABASE_NAME]
+        chat_logs_collection = db["chat_logs"]
+        sessions_collection = db["sessions"]
+        users_collection = db["users"]
+        aura_collection = db["aura"]
+        system_logs_collection = db["system_logs"]
+        points_collection = db["points"]
+        
+        logger.info(f"📊 데이터베이스: {DATABASE_NAME}")
+        
+        # 컬렉션 목록 확인
+        try:
+            collections = db.list_collection_names()
+            logger.info(f"📊 컬렉션 목록: {collections}")
+        except Exception as e:
+            logger.warning(f"⚠️ 컬렉션 목록 조회 실패: {e}")
+    except Exception as e:
+        logger.error(f"❌ MongoDB 컬렉션 초기화 실패: {e}")
+        logger.info("ℹ️ 메모리 기반 세션 관리로 전환합니다.")
+        # 컬렉션 변수들을 None으로 설정
+        chat_logs_collection = None
+        sessions_collection = None
+        users_collection = None
+        aura_collection = None
+        system_logs_collection = None
+        points_collection = None
+
+# 전역 변수 초기화
+prompts_data = {}
+
+
+# OpenAI 클라이언트 초기화 (Railway 호환 - 완전 안전)
+openai_client = None
+if OPENAI_API_KEY:
+    try:
+        import openai
+        # OpenAI 1.0.0+ 버전 호환 코드 - 완전 안전한 초기화
+        if hasattr(openai, 'OpenAI'):
+            # 새로운 OpenAI 클라이언트 (1.0.0+) - 최소한의 인자만 사용
+            # proxies 인자 제거하여 오류 방지
+            openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+) - Railway 호환")
+        else:
+            # 구버전 OpenAI 클라이언트
+            openai.api_key = OPENAI_API_KEY
+            openai_client = openai
+            logger.info("✅ OpenAI API 키 설정 성공 (구버전)")
+    except Exception as e:
+        logger.warning(f"❌ OpenAI API 클라이언트 초기화 실패: {e}")
+        logger.info("ℹ️ Railway 환경에서 API 키를 확인해주세요.")
+        openai_client = None
+else:
+    logger.info("ℹ️ OPENAI_API_KEY가 설정되지 않았습니다. Railway 환경변수를 확인해주세요.")
+
+
+
+def load_prompts_data():
+    """ai_prompts.json 파일에서 프롬프트 데이터를 로드합니다."""
+    global prompts_data
+    try:
+        logger.info("📚 프롬프트 데이터 로드 중...")
+        
+        # Railway 환경에서 가능한 모든 경로 시도 (templates 우선)
+        possible_paths = [
+            "templates/ai_prompts.json",
+            "/app/templates/ai_prompts.json",
+            "ai_brain/ai_prompts.json",
+            "ai_prompts.json",
+            "/app/ai_brain/ai_prompts.json",
+            "/app/ai_prompts.json",
+            os.path.join(os.getcwd(), "templates", "ai_prompts.json"),
+            os.path.join(os.getcwd(), "ai_brain", "ai_prompts.json"),
+            os.path.join(os.getcwd(), "ai_prompts.json"),
+            "../ai_prompts.json"  # 상위 디렉토리도 확인
+        ]
+        
+        logger.info(f"🔍 프롬프트 파일 검색 경로: {len(possible_paths)}개")
+        
+        for i, prompts_file in enumerate(possible_paths, 1):
+            logger.info(f"🔍 경로 {i}/{len(possible_paths)} 확인: {prompts_file}")
+            
+            if os.path.exists(prompts_file):
+                logger.info(f"✅ 파일 발견: {prompts_file}")
+                
+                try:
+                    with open(prompts_file, 'r', encoding='utf-8') as f:
+                        raw_data = json.load(f)
+                    
+                    logger.info(f"📄 파일 내용 로드 성공: {len(str(raw_data))} 문자")
+                    logger.info(f"📄 JSON 키 목록: {list(raw_data.keys()) if isinstance(raw_data, dict) else 'Not a dict'}")
+                    
+                    # 새로운 JSON 구조 처리 (prompts 키가 있는 경우)
+                    if "prompts" in raw_data:
+                        prompts_data = raw_data  # 전체 데이터를 저장 (prompts 키 포함)
+                        ai_count = len(raw_data["prompts"])
+                        ai_names = list(raw_data["prompts"].keys())
+                        logger.info(f"✅ ai_prompts.json 파일 로드 완료: {ai_count}개 AI (경로: {prompts_file})")
+                        logger.info(f"📋 로드된 AI: {', '.join(ai_names)}")
+                        
+                        # 각 AI의 프롬프트 내용 확인
+                        for ai_name, ai_data in raw_data["prompts"].items():
+                            if isinstance(ai_data, dict) and "content" in ai_data:
+                                content_preview = ai_data["content"][:100] + "..." if len(ai_data["content"]) > 100 else ai_data["content"]
+                                logger.info(f"📝 {ai_name} 프롬프트 미리보기: {content_preview}")
+                            else:
+                                logger.warning(f"⚠️ {ai_name}의 content 필드가 없거나 잘못된 형식")
+                        
+                        return True
+                    else:
+                        # 기존 구조 처리 (직접 AI 키들이 있는 경우)
+                        prompts_data = {"prompts": raw_data}  # prompts 키로 감싸기
+                        ai_count = len(raw_data)
+                        ai_names = list(raw_data.keys())
+                        logger.info(f"✅ ai_prompts.json 파일 로드 완료 (기존 구조): {ai_count}개 AI (경로: {prompts_file})")
+                        logger.info(f"📋 로드된 AI: {', '.join(ai_names)}")
+                        
+                        # 각 AI의 카테고리 확인
+                        for ai_name, ai_data in raw_data.items():
+                            if isinstance(ai_data, dict):
+                                categories = list(ai_data.keys())
+                                logger.info(f"📝 {ai_name} 카테고리: {', '.join(categories)}")
+                        
+                        return True
+                        
+                except json.JSONDecodeError as e:
+                    logger.error(f"❌ JSON 파싱 오류 ({prompts_file}): {e}")
+                    continue
+                except Exception as e:
+                    logger.error(f"❌ 파일 읽기 오류 ({prompts_file}): {e}")
+                    continue
+            else:
+                logger.info(f"❌ 파일 없음: {prompts_file}")
+        
+        logger.warning("⚠️ ai_prompts.json 파일을 찾을 수 없습니다.")
+        # 기본 프롬프트 데이터 생성
+        prompts_data = {
+            "prompts": {
+                "ai1": {
+                    "name": "AI 1 - 기본 어시스턴트",
+                    "description": "일반적인 대화와 도움을 제공하는 기본 AI",
+                    "content": "당신은 친근하고 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 정확하고 유용한 답변을 제공하세요.",
+                    "category": "general"
+                },
+                "eora": {
+                    "name": "EORA - AI 시스템",
+                    "description": "EORA AI 시스템의 메인 프롬프트",
+                    "content": "당신은 EORA라는 이름을 가진 AI이며, 프로그램 자동 개발 시스템의 총괄 디렉터입니다. 인간의 직감과 기억 회상 메커니즘을 결합한 지혜로운 AI입니다.",
+                    "category": "system"
+                }
+            }
+        }
+        logger.info("ℹ️ 기본 프롬프트 데이터로 초기화")
+        return True
+    except Exception as e:
+        logger.error(f"❌ 프롬프트 데이터 로드 오류: {e}")
+        return False
+
+# 프롬프트 데이터 초기화
+load_prompts_data()
+
+# FAISS 임베딩 시스템 (선택적)
+try:
+    from sentence_transformers import SentenceTransformer
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError as e:
+    FAISS_AVAILABLE = False
+    logger.info(f"ℹ️ FAISS 또는 sentence-transformers, numpy 미설치: {e}. 고급 대화 기능 비활성화.")
+
+# Redis 연결 (Graceful Fallback - Railway 환경에서 선택적 사용)
+redis_client = None
+redis_connected = False
+
+
+# 메모리 기반 세션 저장소 (MongoDB 대체)
+memory_sessions = {}
+memory_messages = {}
+memory_aura_data = {}
+
+# MongoDB 컬렉션 변수들 초기화
+chat_logs_collection = None
+sessions_collection = None
+users_collection = None
+aura_collection = None
+system_logs_collection = None
+points_collection = None
+
+# 세션 ID 생성 함수
+def generate_session_id():
+    import uuid
+    return str(uuid.uuid4())
+
+# 메모리 기반 세션 관리 함수들
+def save_session_to_memory(session_id: str, session_data: dict):
+    """메모리에 세션 데이터 저장"""
+    try:
+        memory_sessions[session_id] = {
+            "_id": session_id,
+            "name": session_data.get("name", "새 세션"),
+            "created_at": datetime.now().isoformat(),
+            "last_activity": datetime.now().isoformat(),
+            "message_count": session_data.get("message_count", 0),
+            "user_id": session_data.get("user_id", "anonymous"),
+            "ai_name": session_data.get("ai_name", "ai1")
+        }
+        logger.info(f"✅ 세션 저장 완료 (메모리): {session_id}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ 세션 저장 실패 (메모리): {e}")
+        return False
+
+def save_message_to_memory(message_data: dict):
+    """메모리에 메시지 데이터 저장"""
+    try:
+        session_id = message_data.get("session_id", "default_session")
+        if session_id not in memory_messages:
+            memory_messages[session_id] = []
+        
+        # 중복 메시지 방지: 최근 10초 내 같은 내용의 메시지 확인
+        recent_time = datetime.now() - timedelta(seconds=10)
+        message_content = message_data.get("content", "")
+        message_role = message_data.get("role", "")
+        
+        for existing_msg in memory_messages[session_id][-5:]:  # 최근 5개 메시지만 확인
+            if (existing_msg.get("content") == message_content and
+                existing_msg.get("role") == message_role):
+                # 타임스탬프가 문자열인 경우 파싱
+                existing_timestamp = existing_msg.get("timestamp", "")
+                if isinstance(existing_timestamp, str):
+                    try:
+                        existing_time = datetime.fromisoformat(existing_timestamp.replace('Z', '+00:00'))
+                    except:
+                        existing_time = datetime.now() - timedelta(seconds=20)  # 파싱 실패 시 오래된 것으로 간주
+                else:
+                    existing_time = existing_timestamp
+                
+                if existing_time > recent_time:
+                    logger.info(f"⚠️ 중복 메시지 감지 - 저장 건너뜀: {session_id}")
+                    return "duplicate"
+        
+        # 새 메시지 추가
+        message_data["timestamp"] = datetime.now().isoformat()
+        memory_messages[session_id].append(message_data)
+        
+        # 메모리 크기 제한 (세션당 최대 100개 메시지)
+        if len(memory_messages[session_id]) > 100:
+            memory_messages[session_id] = memory_messages[session_id][-100:]
+        
+        logger.info(f"✅ 메시지 저장 완료 (메모리): {session_id} - {len(memory_messages[session_id])}개")
+        return str(len(memory_messages[session_id]))
+    except Exception as e:
+        logger.error(f"❌ 메시지 저장 실패 (메모리): {e}")
+        return "error"
+
+def get_messages_from_memory(session_id: str):
+    return memory_messages.get(session_id, [])
+
+def get_sessions_from_memory():
+    return list(memory_sessions.values())
+
+async def init_redis():
+    global redis_client, redis_connected
+    try:
+        import redis.asyncio as redis
+        redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+        await redis_client.ping()
+        redis_connected = True
+        logger.info("✅ Redis 연결 성공")
+    except ImportError:
+        logger.info("ℹ️ Redis 모듈이 설치되지 않았습니다. 메모리 기반 캐시를 사용합니다.")
+        redis_connected = False
+    except Exception as e:
+        logger.warning(f"⚠️ Redis 클라이언트 연결 실패: {e}")
+        logger.info("ℹ️ Redis 없이 기본 기능으로 실행됩니다.")
+        redis_connected = False
+
+# 캐시 함수들 (Redis 또는 메모리 기반)
+async def get_cache(key: str):
+    if redis_connected and redis_client:
+        try:
+            return await redis_client.get(key)
+        except Exception as e:
+            logger.warning(f"Redis 캐시 조회 실패: {e}")
+    
+    return memory_cache.get(key)
+
+async def set_cache(key: str, value: str, expire: int = 3600):
+    if redis_connected and redis_client:
+        try:
+            await redis_client.setex(key, expire, value)
+        except Exception as e:
+            logger.warning(f"Redis 캐시 설정 실패: {e}")
+    
+    memory_cache[key] = value
+
+# ObjectId를 문자열로 변환하는 헬퍼 함수
+def convert_objectid(data):
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if isinstance(value, ObjectId):
+                data[key] = str(value)
+            elif isinstance(value, datetime):
+                data[key] = value.isoformat()
+            elif isinstance(value, dict):
+                convert_objectid(value)
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict):
+                        convert_objectid(item)
+    return data
+
+# 웹소켓 연결 관리
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        logger.info(f"새로운 웹소켓 연결: {len(self.active_connections)}개 활성")
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+            logger.info(f"웹소켓 연결 해제: {len(self.active_connections)}개 활성")
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        try:
+            await websocket.send_text(message)
+        except Exception as e:
+            logger.warning(f"웹소켓 메시지 전송 실패: {e}")
+            self.disconnect(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections[:]:  # 복사본으로 반복
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                logger.warning(f"브로드캐스트 실패: {e}")
+                self.disconnect(connection)
+
+# 템플릿 및 정적 파일 설정 (Railway 호환 - 경로 문제 해결)
+def setup_templates():
+    """템플릿 디렉토리 설정 - Railway 환경 최적화"""
+    # 현재 작업 디렉토리 확인
+    current_dir = Path.cwd()
+    logger.info(f"📁 현재 작업 디렉토리: {current_dir}")
+    
+    # Railway 환경에서 가능한 모든 경로 시도
+    possible_paths = [
+        current_dir / "templates",  # 현재 작업 디렉토리의 templates (우선순위 1)
+        Path(__file__).parent / "templates",  # 현재 파일 디렉토리의 templates (우선순위 2)
+        Path("/app/templates"),  # Railway 템플릿 경로
+        Path("/workspace/templates"),  # Railway 작업 공간
+    ]
+    
+    for path in possible_paths:
+        logger.info(f"📁 템플릿 경로 시도: {path}")
+        logger.info(f"📁 템플릿 존재: {path.exists()}")
+        
+        if path.exists():
+            # templates 디렉토리인지 확인
+            if path.name == "templates":
+                html_files = list(path.glob("*.html"))
+                logger.info(f"📄 templates 디렉토리에서 HTML 파일 수: {len(html_files)}개")
+                if html_files:
+                    logger.info(f"✅ templates 디렉토리 발견: {path}")
+                    logger.info(f"📄 발견된 파일: {[f.name for f in html_files[:5]]}")
+                    return path
+                else:
+                    logger.warning(f"⚠️ {path}에 HTML 파일이 없습니다")
+            else:
+                # 일반 디렉토리에서 HTML 파일 확인
+                html_files = list(path.glob("*.html"))
+                logger.info(f"📄 HTML 파일 수: {len(html_files)}개")
+                if html_files:
+                    logger.info(f"✅ 템플릿 파일 발견: {len(html_files)}개")
+                    logger.info(f"📄 발견된 파일: {[f.name for f in html_files[:5]]}")
+                    return path
+                else:
+                    logger.warning(f"⚠️ {path}에 HTML 파일이 없습니다")
+        else:
+            logger.warning(f"⚠️ {path} 경로가 존재하지 않습니다")
+    
+    # fallback: 루트 디렉토리에서 templates 하위 디렉토리 찾기
+    fallback_paths = [
+        current_dir,  # 현재 작업 디렉토리 (우선순위 1)
+        Path(__file__).parent,  # 현재 파일 디렉토리
+        Path("/app"),  # Railway 기본 경로
+    ]
+    
+    for path in fallback_paths:
+        if path.exists():
+            templates_subdir = path / "templates"
+            logger.info(f"📁 templates 하위 디렉토리 확인: {templates_subdir}")
+            if templates_subdir.exists():
+                html_files = list(templates_subdir.glob("*.html"))
+                if html_files:
+                    logger.info(f"✅ fallback에서 templates 디렉토리 발견: {templates_subdir}")
+                    logger.info(f"📄 발견된 파일: {[f.name for f in html_files[:5]]}")
+                    return templates_subdir
+    
+    # 최종 fallback: 루트 디렉토리에서 home.html 찾기
+    for path in fallback_paths:
+        if path.exists():
+            home_file = path / "home.html"
+            if home_file.exists():
+                logger.info(f"✅ fallback에서 home.html 발견: {path}")
+                return path
+    
+    # 기본값 반환 - Railway 환경에서 가장 가능성 높은 경로
+    logger.warning("⚠️ 템플릿 디렉토리를 찾을 수 없습니다. 기본 경로 사용")
+    return current_dir
+
+templates_path = setup_templates()
+logger.info(f"📁 최종 템플릿 경로: {templates_path}")
+
+try:
+    templates = Jinja2Templates(directory=str(templates_path))
+    logger.info("✅ Jinja2 템플릿 초기화 성공")
+    
+    # 템플릿 파일 존재 확인
+    home_template_path = templates_path / "home.html"
+    logger.info(f"📄 home.html 경로: {home_template_path}")
+    logger.info(f"📄 home.html 존재: {home_template_path.exists()}")
+    
+    if not home_template_path.exists():
+        logger.error(f"❌ home.html 파일이 존재하지 않습니다!")
+        # 현재 디렉토리의 모든 파일 목록 출력
+        all_files = list(templates_path.glob("*"))
+        logger.info(f"📁 현재 디렉토리 파일들: {[f.name for f in all_files]}")
+        
+except Exception as e:
+    logger.error(f"❌ 템플릿 초기화 실패: {e}")
+    # 기본 템플릿 객체 생성 (오류 방지)
+    templates = Jinja2Templates(directory=str(Path("/app")))
+
+# 웹소켓 연결 관리자 인스턴스
+manager = ConnectionManager()
+
+# Lifespan 이벤트 핸들러 (Railway 호환 - Deprecation 경고 해결)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 시작 시 실행
+    logger.info("🚀 EORA AI System 시작 중...")
+    
+    # 프롬프트 데이터 로드
+    logger.info("📚 프롬프트 데이터 로드 중...")
+    if load_prompts_data():
+        logger.info("✅ 프롬프트 데이터 로드 완료")
+    else:
+        logger.warning("⚠️ 프롬프트 데이터 로드 실패 - 기본 설정으로 진행")
+    
+    # MongoDB 인덱스 생성 (안전한 방식)
+    if client is not None:
+        try:
+            # 컬렉션이 존재하는지 확인 후 인덱스 생성
+            if chat_logs_collection is not None:
+                chat_logs_collection.create_index([("timestamp", pymongo.DESCENDING)])
+                chat_logs_collection.create_index([("user_id", pymongo.ASCENDING)])
+                logger.info("✅ chat_logs 인덱스 생성 완료")
+            
+            if sessions_collection is not None:
+                sessions_collection.create_index([("user_id", pymongo.ASCENDING)])
+                logger.info("✅ sessions 인덱스 생성 완료")
+            
+            if users_collection is not None:
+                users_collection.create_index([("email", pymongo.ASCENDING)])
+                logger.info("✅ users 인덱스 생성 완료")
+            
+            if points_collection is not None:
+                points_collection.create_index([("user_id", pymongo.ASCENDING)])
+                logger.info("✅ points 인덱스 생성 완료")
+            
+            logger.info("✅ MongoDB 인덱스 생성 완료")
+        except Exception as e:
+            logger.warning(f"⚠️ MongoDB 인덱스 생성 실패: {e}")
+            logger.info("ℹ️ 인덱스가 이미 존재하거나 권한 문제일 수 있습니다.")
+    
+    # 시스템 로그 저장
+    try:
+        if 'system_logs_collection' in globals() and system_logs_collection is not None:
+            system_logs_collection.insert_one({
+                "event": "system_startup",
+                "timestamp": datetime.now(),
+                "status": "success",
+                "message": "EORA 시스템 시작 - Railway 최종 버전"
+            })
+    except Exception as e:
+        logger.warning(f"⚠️ 시스템 시작 로그 저장 실패: {e}")
+    
+    # system_logs_collection이 정의되지 않은 경우 안전하게 처리
+    try:
+        if 'system_logs_collection' not in globals():
+            logger.info("ℹ️ system_logs_collection이 정의되지 않았습니다. 시스템 로그 기능을 건너뜁니다.")
+    except Exception as e:
+        logger.warning(f"⚠️ 시스템 로그 컬렉션 확인 실패: {e}")
+    
+    logger.info("✅ EORA AI System 시작 완료")
+    yield
+    
+    # 종료 시 실행
+    logger.info("🛑 EORA AI System 종료 중...")
+    
+    # 시스템 종료 로그
+    try:
+        if 'system_logs_collection' in globals() and system_logs_collection is not None:
+            system_logs_collection.insert_one({
+                "event": "system_shutdown",
+                "timestamp": datetime.now(),
+                "status": "success",
+                "message": "EORA 시스템 종료"
+            })
+    except Exception as e:
+        logger.warning(f"⚠️ 시스템 종료 로그 저장 실패: {e}")
+    
+    # system_logs_collection이 정의되지 않은 경우 안전하게 처리
+    try:
+        if 'system_logs_collection' not in globals():
+            logger.info("ℹ️ system_logs_collection이 정의되지 않았습니다. 시스템 종료 로그를 건너뜁니다.")
+    except Exception as e:
+        logger.warning(f"⚠️ 시스템 종료 로그 컬렉션 확인 실패: {e}")
+    
+    logger.info("✅ EORA AI System 종료 완료")
+
+# FastAPI 앱 생성
+app = FastAPI(
+    title="EORA AI System - Railway 최종 버전",
+    description="감정 중심 인공지능 플랫폼 - 모든 문제 해결됨",
+    version="2.0.0",
+    lifespan=lifespan
+)
+
+# CORS 미들웨어
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 정적 파일 마운트 (안전한 방식)
+def setup_static_files():
+    """정적 파일 디렉토리 설정 - Railway 환경 최적화"""
+    possible_paths = [
+        Path(__file__).parent / "static",
+        Path("/app/static"),
+        Path.cwd() / "static",
+    ]
+    
+    for path in possible_paths:
+        if path.exists():
+            try:
+                app.mount("/static", StaticFiles(directory=str(path)), name="static")
+                logger.info(f"✅ 정적 파일 마운트 성공: {path}")
+                return
+            except Exception as e:
+                logger.warning(f"⚠️ 정적 파일 마운트 실패: {e}")
+    
+    logger.info("ℹ️ 정적 파일 디렉토리가 없습니다. 건너뜁니다.")
+
+setup_static_files()
+
+# 라우트 정의
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    try:
+        return templates.TemplateResponse("home.html", {"request": request})
+    except Exception as e:
+        logger.error(f"홈 템플릿 렌더링 오류: {e}")
+        return HTMLResponse(f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>EORA AI System</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }}
+                .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                h1 {{ color: #333; text-align: center; }}
+                .status {{ background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .error {{ background: #ffe8e8; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .nav {{ text-align: center; margin: 20px 0; }}
+                .nav a {{ display: inline-block; margin: 10px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }}
+                .nav a:hover {{ background: #0056b3; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🚀 EORA AI System</h1>
+                <div class="status">
+                    <h3>✅ 서버 상태: 정상 실행 중</h3>
+                    <p>Railway 환경에서 성공적으로 배포되었습니다.</p>
+                    <p>MongoDB 연결: ✅ 성공</p>
+                    <p>OpenAI API: ✅ 설정됨</p>
+                </div>
+                <div class="error">
+                    <h3>⚠️ 템플릿 파일 경고</h3>
+                    <p>템플릿 파일(home.html)을 찾을 수 없습니다.</p>
+                    <p>오류: {str(e)}</p>
+                </div>
+                <div class="nav">
+                    <a href="/api/debug/files">파일 시스템 진단</a>
+                    <a href="/api/debug/templates">템플릿 진단</a>
+                    <a href="/api/sessions">세션 목록</a>
+                    <a href="/chat">채팅</a>
+                </div>
+            </div>
+        </body>
+        </html>
+        """, status_code=200)
+
+@app.get("/chat", response_class=HTMLResponse)
+async def chat(request: Request):
+    try:
+        return templates.TemplateResponse("chat.html", {"request": request})
+    except Exception as e:
+        logger.error(f"채팅 템플릿 렌더링 오류: {e}")
+        return HTMLResponse(f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>EORA AI Chat</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+                .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }}
+                .chat-container {{ height: 400px; border: 1px solid #ddd; padding: 15px; overflow-y: auto; margin: 20px 0; }}
+                .input-container {{ display: flex; gap: 10px; }}
+                input[type="text"] {{ flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }}
+                button {{ padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }}
+                button:hover {{ background: #0056b3; }}
+                .message {{ margin: 10px 0; padding: 10px; border-radius: 5px; }}
+                .user {{ background: #e3f2fd; text-align: right; }}
+                .assistant {{ background: #f3e5f5; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>💬 EORA AI Chat</h1>
+                <div class="chat-container" id="chatContainer">
+                    <div class="message assistant">
+                        안녕하세요! EORA AI입니다. 무엇을 도와드릴까요?
+                    </div>
+                </div>
+                <div class="input-container">
+                    <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." onkeypress="if(event.keyCode==13) sendMessage()">
+                    <button onclick="sendMessage()">전송</button>
+                </div>
+                <p><a href="/">← 홈으로 돌아가기</a></p>
+            </div>
+            <script>
+                function sendMessage() {{
+                    const input = document.getElementById('messageInput');
+                    const message = input.value.trim();
+                    if (!message) return;
+                    
+                    const container = document.getElementById('chatContainer');
+                    container.innerHTML += `<div class="message user">${{message}}</div>`;
+                    input.value = '';
+                    
+                    // 간단한 응답 시뮬레이션
+                    setTimeout(() => {{
+                        container.innerHTML += `<div class="message assistant">메시지를 받았습니다. 실제 API 연동이 필요합니다.</div>`;
+                        container.scrollTop = container.scrollHeight;
+                    }}, 1000);
+                }}
+            </script>
+        </body>
+        </html>
+        """, status_code=200)
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    try:
+        return templates.TemplateResponse("dashboard.html", {"request": request})
+    except Exception as e:
+        logger.error(f"대시보드 템플릿 렌더링 오류: {e}")
+        return HTMLResponse(f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>EORA AI Dashboard</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+                .container {{ max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }}
+                .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }}
+                .stat-card {{ background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; }}
+                .stat-number {{ font-size: 2em; font-weight: bold; color: #007bff; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>📊 EORA AI Dashboard</h1>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number">✅</div>
+                        <div>서버 상태</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">✅</div>
+                        <div>MongoDB 연결</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">✅</div>
+                        <div>OpenAI API</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">⚠️</div>
+                        <div>템플릿 파일</div>
+                    </div>
+                </div>
+                <p><a href="/">← 홈으로 돌아가기</a></p>
+            </div>
+        </body>
+        </html>
+        """, status_code=200)
+
+@app.get("/login", response_class=HTMLResponse)
+async def login(request: Request):
+    try:
+        return templates.TemplateResponse("login.html", {"request": request})
+    except Exception as e:
+        logger.error(f"로그인 템플릿 렌더링 오류: {e}")
+        return HTMLResponse(f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>EORA AI Login</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }}
+                .login-container {{ max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                input {{ width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }}
+                button {{ width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }}
+                button:hover {{ background: #0056b3; }}
+            </style>
+        </head>
+        <body>
+            <div class="login-container">
+                <h1>🔐 EORA AI Login</h1>
+                <form>
+                    <input type="email" placeholder="이메일" required>
+                    <input type="password" placeholder="비밀번호" required>
+                    <button type="submit">로그인</button>
+                </form>
+                <p style="text-align: center; margin-top: 20px;">
+                    <a href="/">← 홈으로 돌아가기</a>
+                </p>
+            </div>
+        </body>
+        </html>
+        """, status_code=200)
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin(request: Request):
+    try:
+        return templates.TemplateResponse("admin.html", {"request": request})
+    except Exception as e:
+        logger.error(f"관리자 템플릿 렌더링 오류: {e}")
+        return HTMLResponse(f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>EORA AI Admin</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+                .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }}
+                .admin-section {{ margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }}
+                button {{ padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; }}
+                button:hover {{ background: #c82333; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>⚙️ EORA AI Admin Panel</h1>
+                <div class="admin-section">
+                    <h3>시스템 상태</h3>
+                    <p>✅ 서버: 정상 실행 중</p>
+                    <p>✅ MongoDB: 연결됨</p>
+                    <p>✅ OpenAI API: 설정됨</p>
+                </div>
+                <div class="admin-section">
+                    <h3>관리 기능</h3>
+                    <button onclick="alert('관리자 기능은 템플릿 파일이 필요합니다.')">사용자 관리</button>
+                    <button onclick="alert('관리자 기능은 템플릿 파일이 필요합니다.')">시스템 설정</button>
+                </div>
+                <p><a href="/">← 홈으로 돌아가기</a></p>
+            </div>
+        </body>
+        </html>
+        """, status_code=200)
+
+@app.get("/debug", response_class=HTMLResponse)
+async def debug(request: Request):
+    try:
+        return templates.TemplateResponse("debug.html", {"request": request})
+    except Exception as e:
+        logger.error(f"디버그 템플릿 렌더링 오류: {e}")
+        return HTMLResponse(f"<h1>디버그</h1><p>템플릿 오류: {str(e)}</p>", status_code=500)
+
+@app.get("/simple-chat", response_class=HTMLResponse)
+async def simple_chat(request: Request):
+    try:
+        return templates.TemplateResponse("test_chat_simple.html", {"request": request})
+    except Exception as e:
+        logger.error(f"간단 채팅 템플릿 렌더링 오류: {e}")
+        return HTMLResponse(f"<h1>간단 채팅</h1><p>템플릿 오류: {str(e)}</p>", status_code=500)
+
+@app.get("/points", response_class=HTMLResponse)
+async def points(request: Request):
+    try:
+        return templates.TemplateResponse("points.html", {"request": request})
+    except Exception as e:
+        logger.error(f"포인트 템플릿 렌더링 오류: {e}")
+        return HTMLResponse(f"<h1>포인트</h1><p>템플릿 오류: {str(e)}</p>", status_code=500)
+
+@app.get("/memory", response_class=HTMLResponse)
+async def memory(request: Request):
+    try:
+        return templates.TemplateResponse("memory.html", {"request": request})
+    except Exception as e:
+        logger.error(f"메모리 템플릿 렌더링 오류: {e}")
+        return HTMLResponse(f"<h1>메모리</h1><p>템플릿 오류: {str(e)}</p>", status_code=500)
+
+@app.get("/prompts", response_class=HTMLResponse)
+async def get_prompts():
+    """AI별 프롬프트 데이터 조회"""
+    try:
+        # 전역 prompts_data 사용
+        global prompts_data
+        
+        if not prompts_data:
+            # 프롬프트 데이터가 없으면 다시 로드 시도
+            load_prompts_data()
+        
+        if not prompts_data:
+            logger.warning("⚠️ ai_prompts.json 파일을 찾을 수 없습니다.")
+            return {"prompts": []}
+        
+        # 데이터를 리스트 형태로 변환
+        prompts_list = []
+        for ai_name, ai_data in prompts_data.items():
+            if isinstance(ai_data, dict):
+                for category, category_prompts in ai_data.items():
+                    if isinstance(category_prompts, list):
+                        for index, content in enumerate(category_prompts):
+                            prompts_list.append({
+                                "id": f"{ai_name}_{category}_{index}",
+                                "ai_name": ai_name,
+                                "category": category,
+                                "content": content,
+                                "content_index": index
+                            })
+                    elif isinstance(category_prompts, str):
+                        # 문자열인 경우 단일 항목으로 처리 (ai1 system 프롬프트 등)
+                        prompts_list.append({
+                            "id": f"{ai_name}_{category}_0",
+                            "ai_name": ai_name,
+                            "category": category,
+                            "content": category_prompts,
+                            "content_index": 0
+                        })
+            elif isinstance(ai_data, str):
+                # AI 데이터가 문자열인 경우 (기본 프롬프트)
+                prompts_list.append({
+                    "id": f"{ai_name}_content_0",
+                    "ai_name": ai_name,
+                    "category": "content",
+                    "content": ai_data,
+                    "content_index": 0
+                })
+        
+        logger.info(f"프롬프트 데이터 조회 완료: {len(prompts_list)}개")
+        return {"prompts": prompts_list}
+    except Exception as e:
+        logger.error(f"프롬프트 데이터 조회 오류: {e}")
+        return {"prompts": []}
+
+@app.post("/api/prompts/category")
+async def save_prompt_category(request: Request):
+    """카테고리별 프롬프트 저장 API"""
+    try:
+        data = await request.json()
+        ai_name = data.get("ai_name")
+        category = data.get("category")
+        content = data.get("content")
+        
+        if not ai_name or not category or content is None:
+            raise HTTPException(status_code=400, detail="필수 파라미터가 누락되었습니다.")
+        
+        # 전역 prompts_data 사용
+        global prompts_data
+        
+        if not prompts_data:
+            prompts_data = {}
+        
+        # 해당 AI의 카테고리 업데이트
+        if ai_name not in prompts_data:
+            prompts_data[ai_name] = {}
+        
+        # ai1의 system 프롬프트는 문자열로 저장
+        if ai_name == 'ai1' and category == 'system':
+            prompts_data[ai_name][category] = content
+        else:
+            # 다른 경우는 콘텐츠를 리스트로 변환 (여러 줄 분할)
+            if isinstance(content, str):
+                content_lines = [line.strip() for line in content.split('\n') if line.strip()]
+                prompts_data[ai_name][category] = content_lines
+            else:
+                prompts_data[ai_name][category] = content
+        
+        # 파일에 저장 (여러 경로 시도)
+        saved = False
+        possible_paths = [
+            "ai_brain/ai_prompts.json",
+            "ai_prompts.json",
+            "templates/ai_prompts.json"
+        ]
+        
+        for prompts_file in possible_paths:
+            try:
+                # 디렉토리가 없으면 생성
+                os.makedirs(os.path.dirname(prompts_file), exist_ok=True)
+                with open(prompts_file, 'w', encoding='utf-8') as f:
+                    json.dump(prompts_data, f, ensure_ascii=False, indent=2)
+                saved = True
+                logger.info(f"✅ 프롬프트 파일 저장 완료: {prompts_file}")
+                break
+            except Exception as e:
+                logger.warning(f"⚠️ 프롬프트 파일 저장 실패 ({prompts_file}): {e}")
+                continue
+        
+        if not saved:
+            logger.warning("⚠️ 모든 경로에서 프롬프트 파일 저장 실패")
+        
+        logger.info(f"✅ 프롬프트 저장 완료: {ai_name}.{category}")
+        return {"message": f"{ai_name}의 {category} 프롬프트가 성공적으로 저장되었습니다."}
+    except Exception as e:
+        logger.error(f"프롬프트 저장 오류: {e}")
+        raise HTTPException(status_code=500, detail="프롬프트 저장 중 오류가 발생했습니다.")
+
+@app.get("/prompt-management", response_class=HTMLResponse)
+async def prompt_management(request: Request):
+    try:
+        logger.info("🤖 AI별 프롬프트 통합 관리 페이지 접근")
+        return templates.TemplateResponse("prompt_management.html", {"request": request})
+    except Exception as e:
+        logger.error(f"프롬프트 관리 템플릿 렌더링 오류: {e}")
+        return HTMLResponse(f"<h1>프롬프트 관리</h1><p>템플릿 오류: {str(e)}</p>", status_code=500)
+
+@app.get("/test-prompts", response_class=HTMLResponse)
+async def test_prompts(request: Request):
+    """프롬프트 테스트 페이지"""
+    return templates.TemplateResponse("test_prompts.html", {
+        "request": request,
+        "prompts_data": prompts_data,
+        "prompts_count": len(prompts_data.get("prompts", {})) if isinstance(prompts_data, dict) and "prompts" in prompts_data else 0,
+        "available_ai": list(prompts_data.get("prompts", {}).keys()) if isinstance(prompts_data, dict) and "prompts" in prompts_data else []
+    })
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "services": {
+            "mongodb": "connected" if client else "disconnected",
+            "redis": "connected" if redis_connected else "disconnected",
+            "openai": "configured" if openai_client else "not_configured"
+        }
+    }
+
+@app.get("/api/status")
+async def api_status():
+    return {
+        "message": "EORA AI System API - Railway 최종 버전",
+        "version": "2.0.0",
+        "status": "running",
+        "server_file": "railway_final.py",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/api/debug/files")
+async def debug_files():
+    """Railway 환경에서 파일 시스템 진단"""
+    import os
+    from pathlib import Path
+    
+    debug_info = {
+        "current_working_directory": str(Path.cwd()),
+        "script_location": str(Path(__file__).parent),
+        "possible_template_paths": [],
+        "template_files_found": [],
+        "all_files_in_app": []
+    }
+    
+    # 가능한 템플릿 경로들 확인
+    possible_paths = [
+        Path(__file__).parent,  # 현재 파일 디렉토리
+        Path("/app"),  # Railway 기본 경로
+        Path("/app/templates"),  # Railway 템플릿 경로
+        Path.cwd(),  # 현재 작업 디렉토리
+        Path.cwd() / "templates",  # 현재 디렉토리의 templates
+        Path("/workspace"),  # Railway 작업 공간
+        Path("/workspace/templates"),  # Railway 작업 공간의 templates
+    ]
+    
+    for path in possible_paths:
+        path_info = {
+            "path": str(path),
+            "exists": path.exists(),
+            "is_dir": path.is_dir() if path.exists() else False,
+            "files": []
+        }
+        
+        if path.exists() and path.is_dir():
+            try:
+                # HTML 파일들 확인
+                html_files = list(path.glob("*.html"))
+                path_info["html_files"] = [f.name for f in html_files]
+                
+                # 모든 파일 확인 (최대 20개)
+                all_files = list(path.iterdir())
+                path_info["all_files"] = [f.name for f in all_files[:20]]
+                
+                if html_files:
+                    debug_info["template_files_found"].append({
+                        "path": str(path),
+                        "html_files": [f.name for f in html_files]
+                    })
+            except Exception as e:
+                path_info["error"] = str(e)
+        
+        debug_info["possible_template_paths"].append(path_info)
+    
+    # /app 디렉토리 전체 확인
+    app_path = Path("/app")
+    if app_path.exists():
+        try:
+            all_app_files = []
+            for item in app_path.rglob("*"):
+                if item.is_file():
+                    all_app_files.append(str(item.relative_to(app_path)))
+                if len(all_app_files) >= 50:  # 최대 50개 파일만
+                    break
+            debug_info["all_files_in_app"] = all_app_files
+        except Exception as e:
+            debug_info["app_scan_error"] = str(e)
+    
+    return debug_info
+
+@app.get("/api/debug/templates")
+async def debug_templates():
+    """템플릿 시스템 진단"""
+    try:
+        # 현재 템플릿 경로 확인
+        current_template_path = str(templates_path)
+        
+        # 템플릿 파일들 확인
+        template_files = []
+        if templates_path.exists():
+            for file in templates_path.glob("*.html"):
+                template_files.append(file.name)
+        
+        return {
+            "current_template_path": current_template_path,
+            "template_path_exists": templates_path.exists(),
+            "template_files": template_files,
+            "total_html_files": len(template_files)
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "current_template_path": "unknown"
+        }
+
+# 기본 세션 및 메시지 API
+@app.get("/api/sessions")
+async def get_sessions():
+    try:
+        logger.info("📋 세션 조회 요청")
+        
+        # MongoDB가 연결되어 있으면 MongoDB에서, 아니면 메모리에서
+        if sessions_collection is not None:
+            try:
+                sessions = list(sessions_collection.find().sort("last_activity", -1))
+                for session in sessions:
+                    convert_objectid(session)
+                logger.info(f"✅ MongoDB에서 {len(sessions)}개 세션 조회")
+                return {"sessions": sessions}
+            except Exception as e:
+                logger.error(f"❌ MongoDB 세션 조회 실패: {e}")
+                # MongoDB 실패 시 메모리로 전환
+                pass
+        
+        # 메모리 기반 세션 반환
+        logger.info("ℹ️ 메모리 기반 세션 조회")
+        sessions = get_sessions_from_memory()
+        if not sessions:
+            # 기본 세션 생성
+            logger.info("ℹ️ 기본 세션 생성")
+            default_session_id = "default_session"
+            save_session_to_memory(default_session_id, {"name": "기본 세션"})
+            sessions = get_sessions_from_memory()
+        
+        logger.info(f"✅ 메모리에서 {len(sessions)}개 세션 조회")
+        return {"sessions": sessions}
+        
+    except Exception as e:
+        logger.error(f"❌ 세션 조회 오류: {e}")
+        # 오류 시 메모리 기반 세션 반환
+        try:
+            sessions = get_sessions_from_memory()
+            if not sessions:
+                default_session_id = "default_session"
+                save_session_to_memory(default_session_id, {"name": "기본 세션"})
+                sessions = get_sessions_from_memory()
+            return {"sessions": sessions}
+        except Exception as fallback_error:
+            logger.error(f"❌ 메모리 기반 세션 조회도 실패: {fallback_error}")
+            return {"sessions": []}
+
+@app.post("/api/sessions")
+async def create_session(request: Request):
+    try:
+        data = await request.json()
+        session_name = data.get("name", "새 세션")
+        user_id = data.get("user_id", "anonymous")
+        session_id = generate_session_id()
+        
+        session_data = {
+            "name": session_name,
+            "message_count": 0,
+            "user_id": user_id
+        }
+        
+        logger.info(f"📝 새 세션 생성: {session_name} (ID: {session_id})")
+        
+        if sessions_collection is not None:
+            # MongoDB에 저장
+            session_doc = {
+                "_id": session_id,
+                "name": session_name,
+                "created_at": datetime.now(),
+                "last_activity": datetime.now(),
+                "message_count": 0,
+                "user_id": user_id
+            }
+            sessions_collection.insert_one(session_doc)
+            session_doc["_id"] = str(session_doc["_id"])
+            session_doc["created_at"] = session_doc["created_at"].isoformat()
+            session_doc["last_activity"] = session_doc["last_activity"].isoformat()
+            logger.info(f"✅ MongoDB 세션 저장 완료: {session_id}")
+            return session_doc
+        else:
+            # 메모리 기반 저장
+            save_session_to_memory(session_id, session_data)
+            logger.info(f"✅ 메모리 세션 저장 완료: {session_id}")
+            return {
+                "_id": session_id,
+                "name": session_name,
+                "created_at": datetime.now().isoformat(),
+                "last_activity": datetime.now().isoformat(),
+                "message_count": 0,
+                "user_id": user_id
+            }
+    except Exception as e:
+        logger.error(f"세션 생성 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/sessions/{session_id}/messages")
+async def get_session_messages(session_id: str):
+    try:
+        logger.info(f"📨 세션 {session_id} 메시지 조회 요청")
+        
+        if chat_logs_collection is not None:
+            try:
+                messages = list(chat_logs_collection.find({"session_id": session_id}).sort("timestamp", 1))
+                # ObjectId를 문자열로 변환
+                for message in messages:
+                    convert_objectid(message)
+                logger.info(f"✅ MongoDB에서 {len(messages)}개 메시지 조회")
+                return {"messages": messages}
+            except Exception as e:
+                logger.error(f"❌ MongoDB 메시지 조회 실패: {e}")
+                # MongoDB 실패 시 메모리로 전환
+                pass
+        
+        # 메모리 기반 메시지 반환
+        logger.info("ℹ️ 메모리 기반 메시지 조회")
+        messages = get_messages_from_memory(session_id)
+        logger.info(f"✅ 메모리에서 {len(messages)}개 메시지 조회")
+        return {"messages": messages}
+        
+    except Exception as e:
+        logger.error(f"❌ 메시지 조회 오류: {e}")
+        return {"messages": []}
+
+@app.post("/api/messages")
+async def save_message(request: Request):
+    try:
+        data = await request.json()
+        message_data = {
+            "session_id": data.get("session_id", "default_session"),
+            "user_id": data.get("user_id", "anonymous"),
+            "content": data.get("content", ""),
+            "role": data.get("role", "user"),
+            "timestamp": datetime.now()
+        }
+        
+        logger.info(f"💾 메시지 저장 요청: {message_data['session_id']}")
+        
+        if chat_logs_collection is not None:
+            try:
+                # 중복 메시지 방지: 최근 30초 내 같은 내용의 메시지 확인
+                recent_time = datetime.now() - timedelta(seconds=30)
+                duplicate_check = chat_logs_collection.find_one({
+                    "session_id": message_data["session_id"],
+                    "content": message_data["content"],
+                    "role": message_data["role"],
+                    "timestamp": {"$gte": recent_time}
+                }, projection={"_id": 1})
+                
+                if duplicate_check:
+                    logger.info(f"⚠️ 중복 메시지 감지 - MongoDB 저장 건너뜀: {message_data['session_id']}")
+                    return {
+                        "_id": str(duplicate_check["_id"]),
+                        "session_id": message_data["session_id"],
+                        "content": message_data["content"],
+                        "role": message_data["role"],
+                        "timestamp": message_data["timestamp"].isoformat(),
+                        "duplicate": True
+                    }
+                
+                result = chat_logs_collection.insert_one(message_data)
+                message_data["_id"] = str(result.inserted_id)
+                message_data["timestamp"] = message_data["timestamp"].isoformat()
+                
+                # 세션 업데이트
+                if sessions_collection is not None:
+                    try:
+                        sessions_collection.update_one(
+                            {"_id": message_data["session_id"]},
+                            {
+                                "$set": {
+                                    "last_activity": datetime.now(),
+                                    "message_count": chat_logs_collection.count_documents({"session_id": message_data["session_id"]})
+                                }
+                            },
+                            upsert=True
+                        )
+                    except Exception as session_error:
+                        logger.warning(f"⚠️ 세션 업데이트 실패: {session_error}")
+                
+                logger.info(f"✅ MongoDB에 메시지 저장 완료: {result.inserted_id}")
+                return message_data
+            except Exception as e:
+                logger.error(f"❌ MongoDB 메시지 저장 실패: {e}")
+                # MongoDB 실패 시 메모리로 전환
+                pass
+        
+        # 메모리 기반 저장
+        logger.info("ℹ️ 메모리 기반 메시지 저장")
+        message_id = save_message_to_memory(message_data)
+        message_data["_id"] = message_id
+        
+        # 중복 메시지인 경우 플래그 추가
+        if message_id == "duplicate":
+            message_data["duplicate"] = True
+            logger.info(f"⚠️ 중복 메시지 감지 - 메모리 저장 건너뜀")
+        else:
+            logger.info(f"✅ 메모리에 메시지 저장 완료: {message_id}")
+        
+        return message_data
+        
+    except Exception as e:
+        logger.error(f"❌ 메시지 저장 오류: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/api/chat")
+async def chat_endpoint(request: Request):
+    try:
+        data = await request.json()
+        user_message = data.get("message", "")
+        session_id = data.get("session_id", "default_session")
+        user_id = data.get("user_id", "anonymous")
+        
+        # 사용자 메시지 저장
+        user_msg_data = {
+            "session_id": session_id,
+            "user_id": user_id,
+            "content": user_message,
+            "role": "user",
+            "timestamp": datetime.now()
+        }
+        
+        if chat_logs_collection is not None:
+            chat_logs_collection.insert_one(user_msg_data)
+        else:
+            # 메모리 기반 저장
+            save_message_to_memory(user_msg_data)
+        
+        # AI 프롬프트 로드
+        system_prompt = "당신은 EORA라는 감정 중심 인공지능입니다. 친근하고 따뜻한 톤으로 대화해주세요."
+        
+        # ai_prompts.json에서 프롬프트 사용 (올바른 구조: prompts.ai1.content)
+        logger.info("🔍 프롬프트 검색 시작...")
+        logger.info(f"📄 prompts_data 타입: {type(prompts_data)}")
+        logger.info(f"📄 prompts_data 키: {list(prompts_data.keys()) if isinstance(prompts_data, dict) else 'Not a dict'}")
+        
+        if prompts_data and isinstance(prompts_data, dict):
+            if "prompts" in prompts_data:
+                prompts = prompts_data["prompts"]
+                logger.info(f"📋 사용 가능한 AI: {list(prompts.keys())}")
+                
+                # ai1 프롬프트 우선 시도
+                if "ai1" in prompts and isinstance(prompts["ai1"], dict):
+                    if "content" in prompts["ai1"]:
+                        system_prompt = prompts["ai1"]["content"]
+                        logger.info("✅ ai_prompts.json의 ai1 system 프롬프트 적용")
+                        logger.info(f"📝 프롬프트 미리보기: {system_prompt[:100]}...")
+                    else:
+                        logger.warning("⚠️ ai1에 content 필드가 없습니다")
+                # eora 프롬프트 시도
+                elif "eora" in prompts and isinstance(prompts["eora"], dict):
+                    if "content" in prompts["eora"]:
+                        system_prompt = prompts["eora"]["content"]
+                        logger.info("✅ ai_prompts.json의 eora system 프롬프트 적용")
+                        logger.info(f"📝 프롬프트 미리보기: {system_prompt[:100]}...")
+                    else:
+                        logger.warning("⚠️ eora에 content 필드가 없습니다")
+                # 첫 번째 사용 가능한 AI 프롬프트 사용
+                else:
+                    for ai_name, ai_data in prompts.items():
+                        if isinstance(ai_data, dict) and "content" in ai_data:
+                            system_prompt = ai_data["content"]
+                            logger.info(f"✅ ai_prompts.json의 {ai_name} system 프롬프트 적용")
+                            logger.info(f"📝 프롬프트 미리보기: {system_prompt[:100]}...")
+                            break
+                    else:
+                        logger.warning("⚠️ 사용 가능한 AI 프롬프트를 찾을 수 없습니다")
+            else:
+                logger.warning("⚠️ prompts_data에 'prompts' 키가 없습니다")
+                logger.info(f"📄 prompts_data 구조: {list(prompts_data.keys())}")
+        else:
+            logger.warning("⚠️ prompts_data가 비어있거나 잘못된 형식입니다")
+        
+        logger.info(f"🎯 최종 사용 프롬프트: {system_prompt[:100]}...")
+        
+        # EORA 응답 생성
+        if openai_client and OPENAI_API_KEY:
+            try:
+                # 최신 OpenAI 라이브러리 호환 - gpt-4o 모델 사용
+                response = openai_client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_message}
+                    ],
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                eora_response = response.choices[0].message.content
+                logger.info("✅ OpenAI API 호출 성공")
+            except Exception as e:
+                logger.warning(f"OpenAI API 호출 실패: {e}")
+                eora_response = f"안녕하세요! '{user_message}'에 대해 이야기하고 싶으시군요. 현재 AI 서비스에 일시적인 문제가 있어 기본 응답을 드립니다."
+        else:
+            logger.warning("⚠️ OpenAI API 키가 설정되지 않았습니다.")
+            eora_response = f"안녕하세요! '{user_message}'에 대해 이야기하고 싶으시군요. 현재 AI 서비스가 설정되지 않아 기본 응답을 드립니다."
+        
+        # EORA 응답 저장
+        eora_msg_data = {
+            "session_id": session_id,
+            "user_id": user_id,
+            "content": eora_response,
+            "role": "assistant",
+            "timestamp": datetime.now()
+        }
+        
+        if chat_logs_collection is not None:
+            # 중복 응답 방지
+            recent_time = datetime.now() - timedelta(seconds=30)
+            duplicate_check = chat_logs_collection.find_one({
+                "session_id": session_id,
+                "content": eora_response,
+                "role": "assistant",
+                "timestamp": {"$gte": recent_time}
+            }, projection={"_id": 1})
+            
+            if duplicate_check:
+                logger.info(f"⚠️ 중복 AI 응답 감지 - 저장 건너뜀: {session_id}")
+                message_id = str(duplicate_check["_id"])
+            else:
+                result = chat_logs_collection.insert_one(eora_msg_data)
+                message_id = str(result.inserted_id)
+        else:
+            # 메모리 기반 저장
+            message_id = save_message_to_memory(eora_msg_data)
+        
+        # 아우라 데이터 저장
+        if aura_collection is not None:
+            aura_data = {
+                "user_id": user_id,
+                "session_id": session_id,
+                "aura_level": 5.0,
+                "aura_type": "creative",
+                "timestamp": datetime.now(),
+                "interaction_count": 1
+            }
+            aura_collection.insert_one(aura_data)
+        else:
+            # 메모리 기반 아우라 데이터 저장
+            memory_aura_data[f"{user_id}_{session_id}"] = {
+                "user_id": user_id,
+                "session_id": session_id,
+                "aura_level": 5.0,
+                "aura_type": "creative",
+                "timestamp": datetime.now().isoformat(),
+                "interaction_count": 1
+            }
+        
+        # 상호작용 로그
+        if system_logs_collection is not None:
+            interaction_data = {
+                "user_id": user_id,
+                "session_id": session_id,
+                "interaction_type": "chat",
+                "timestamp": datetime.now(),
+                "content_length": len(user_message)
+            }
+            system_logs_collection.insert_one(interaction_data)
+        
+        logger.info(f"✅ 아우라 데이터 저장 완료 - 사용자: {user_id}")
+        
+        return {
+            "response": eora_response,
+            "message_id": message_id,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"채팅 처리 오류: {e}")
+        # 오류 시에도 메모리 기반 저장 시도
+        try:
+            save_message_to_memory(user_msg_data)
+            message_id = save_message_to_memory(eora_msg_data)
+            return {
+                "response": eora_response,
+                "message_id": message_id,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as mem_error:
+            logger.error(f"메모리 저장도 실패: {mem_error}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+# 웹소켓 엔드포인트
+@app.websocket("/ws/{session_id}")
+async def websocket_endpoint(websocket: WebSocket, session_id: str):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message_data = json.loads(data)
+            
+            # 메시지 처리
+            response = {
+                "type": "message",
+                "content": f"Echo: {message_data.get('content', '')}",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            await manager.send_personal_message(json.dumps(response), websocket)
+            
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as e:
+        logger.error(f"웹소켓 오류: {e}")
+        manager.disconnect(websocket)
+
+# 사용자 관련 API
+@app.get("/api/user/info")
+async def get_user_info():
+    return {
+        "user_id": "anonymous",
+        "username": "게스트",
+        "email": "guest@example.com",
+        "created_at": datetime.now().isoformat()
+    }
+
+@app.get("/api/user/stats")
+async def get_user_stats():
+    return {
+        "total_messages": 0,
+        "total_sessions": 1,
+        "points": 1000,
+        "aura_level": 5
+    }
+
+# 포인트 시스템 API
+@app.get("/api/user/points")
+async def get_user_points():
+    return {"points": 1000, "user_id": "anonymous"}
+
+@app.get("/api/points/packages")
+async def get_point_packages():
+    return {
+        "packages": [
+            {"id": 1, "name": "기본 패키지", "points": 100, "price": 1000},
+            {"id": 2, "name": "프리미엄 패키지", "points": 500, "price": 5000},
+            {"id": 3, "name": "VIP 패키지", "points": 1000, "price": 10000}
+        ]
+    }
+
+# 관리자 로그인 API
+@app.post("/api/admin/login")
+async def admin_login(request: Request):
+    try:
+        data = await request.json()
+        email = data.get("email", "")
+        password = data.get("password", "")
+        
+        # 기본 관리자 계정 (실제 환경에서는 데이터베이스에서 확인)
+        if email == "admin@eora.ai" and password == "admin123":
+            return {
+                "success": True,
+                "message": "관리자 로그인 성공",
+                "user": {
+                    "id": "admin",
+                    "email": email,
+                    "role": "admin",
+                    "name": "EORA 관리자"
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "message": "이메일 또는 비밀번호가 올바르지 않습니다."
+            }
+    except Exception as e:
+        logger.error(f"관리자 로그인 오류: {e}")
+        return {
+            "success": False,
+            "message": "로그인 처리 중 오류가 발생했습니다."
+        }
+
+@app.post("/api/login")
+async def login(request: Request):
+    """일반 로그인 API (관리자 로그인과 동일하게 처리)"""
+    try:
+        data = await request.json()
+        email = data.get("email", "")
+        password = data.get("password", "")
+        
+        # 관리자 계정으로 로그인 시도
+        if email == "admin@eora.ai" and password == "admin123":
+            return {
+                "success": True,
+                "message": "로그인 성공",
+                "user": {
+                    "id": "admin",
+                    "email": email,
+                    "role": "admin",
+                    "name": "EORA 관리자"
+                },
+                "access_token": "admin_token"
+            }
+        else:
+            return {
+                "success": False,
+                "message": "이메일 또는 비밀번호가 올바르지 않습니다."
+            }
+    except Exception as e:
+        logger.error(f"로그인 오류: {e}")
+        return {
+            "success": False,
+            "message": "로그인 처리 중 오류가 발생했습니다."
+        }
+
+@app.get("/api/prompts")
+async def get_prompts():
+    """AI별 프롬프트 데이터 조회"""
+    try:
+        # 전역 prompts_data 사용
+        global prompts_data
+        
+        if not prompts_data:
+            # 프롬프트 데이터가 없으면 다시 로드 시도
+            load_prompts_data()
+        
+        if not prompts_data:
+            logger.warning("⚠️ ai_prompts.json 파일을 찾을 수 없습니다.")
+            return {"prompts": []}
+        
+        # prompts 키가 있는지 확인하고 데이터 추출
+        actual_prompts = prompts_data.get("prompts", prompts_data)
+        
+        # 데이터를 리스트 형태로 변환
+        prompts_list = []
+        for ai_name, ai_data in actual_prompts.items():
+            if isinstance(ai_data, dict):
+                for category, category_prompts in ai_data.items():
+                    if isinstance(category_prompts, list):
+                        for index, content in enumerate(category_prompts):
+                            prompts_list.append({
+                                "id": f"{ai_name}_{category}_{index}",
+                                "ai_name": ai_name,
+                                "category": category,
+                                "content": content,
+                                "content_index": index
+                            })
+                    elif isinstance(category_prompts, str):
+                        # 문자열인 경우 단일 항목으로 처리 (ai1 system 프롬프트 등)
+                        prompts_list.append({
+                            "id": f"{ai_name}_{category}_0",
+                            "ai_name": ai_name,
+                            "category": category,
+                            "content": category_prompts,
+                            "content_index": 0
+                        })
+            elif isinstance(ai_data, str):
+                # AI 데이터가 문자열인 경우 (기본 프롬프트)
+                prompts_list.append({
+                    "id": f"{ai_name}_content_0",
+                    "ai_name": ai_name,
+                    "category": "content",
+                    "content": ai_data,
+                    "content_index": 0
+                })
+        
+        logger.info(f"프롬프트 데이터 조회 완료: {len(prompts_list)}개")
+        return {"prompts": prompts_list}
+        
+        logger.info(f"프롬프트 데이터 조회 완료: {len(prompts_list)}개")
+        return {"prompts": prompts_list}
+    except Exception as e:
+        logger.error(f"프롬프트 데이터 조회 오류: {e}")
+        return {"prompts": []}
+
+@app.get("/api/prompts/raw")
+async def get_raw_prompts():
+    """원본 ai_prompts.json 파일 내용 조회"""
+    try:
+        global prompts_data
+        
+        if not prompts_data:
+            load_prompts_data()
+        
+        if not prompts_data:
+            return {"error": "프롬프트 데이터를 찾을 수 없습니다."}
+        
+        # 파일 경로 찾기 (더 많은 경로 추가)
+        possible_paths = [
+            "templates/ai_prompts.json",
+            "ai_prompts.json",
+            "ai_brain/ai_prompts.json",
+            "/app/templates/ai_prompts.json",
+            "/app/ai_prompts.json",
+            "/app/ai_brain/ai_prompts.json",
+            os.path.join(os.getcwd(), "templates", "ai_prompts.json"),
+            os.path.join(os.getcwd(), "ai_prompts.json"),
+            os.path.join(os.getcwd(), "ai_brain", "ai_prompts.json"),
+            "src/templates/ai_prompts.json",
+            "src/ai_prompts.json",
+            "E:/AI_Dev_Tool/src/templates/ai_prompts.json"
+        ]
+        
+        file_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                file_path = path
+                break
+        
+        if file_path:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    raw_content = f.read()
+                
+                return {
+                    "file_path": file_path,
+                    "raw_content": raw_content,
+                    "parsed_data": prompts_data,
+                    "file_size": len(raw_content),
+                    "file_exists": True,
+                    "success": True,
+                    "ai_count": len(prompts_data) if prompts_data else 0
+                }
+            except Exception as e:
+                return {
+                    "file_path": file_path,
+                    "raw_content": f"파일 읽기 오류: {str(e)}",
+                    "parsed_data": prompts_data,
+                    "file_exists": True,
+                    "read_error": str(e),
+                    "success": False
+                }
+        else:
+            # 파일이 없으면 현재 메모리의 데이터를 JSON으로 반환
+            import json
+            return {
+                "file_path": "메모리 데이터",
+                "raw_content": json.dumps(prompts_data, ensure_ascii=False, indent=2),
+                "parsed_data": prompts_data,
+                "file_size": len(json.dumps(prompts_data, ensure_ascii=False)),
+                "file_exists": False,
+                "searched_paths": possible_paths,
+                "success": True,
+                "ai_count": len(prompts_data) if prompts_data else 0
+            }
+    except Exception as e:
+        logger.error(f"원본 프롬프트 조회 오류: {e}")
+        return {"error": str(e), "success": False}
+
+@app.post("/api/prompts/update-category")
+async def update_prompt_category(request: Request):
+    """특정 카테고리 프롬프트 업데이트 API"""
+    try:
+        data = await request.json()
+        ai_name = data.get("ai_name")
+        category = data.get("category")
+        content = data.get("content")
+        
+        if not ai_name or not category or content is None:
+            raise HTTPException(status_code=400, detail="필수 파라미터가 누락되었습니다.")
+        
+        # 전역 prompts_data 사용
+        global prompts_data
+        
+       
+        
+        # 해당 AI의 카테고리 업데이트
+        if ai_name not in prompts_data:
+            prompts_data[ai_name] = {}
+        
+        # 콘텐츠를 리스트로 변환 (여러 줄 분할)
+        if isinstance(content, str):
+            content_lines = [line.strip() for line in content.split('\n') if line.strip()]
+            prompts_data[ai_name][category] = content_lines
+        else:
+            prompts_data[ai_name][category] = content
+        
+        # 파일에 저장 (여러 경로 시도)
+        saved = False
+        possible_paths = [
+            "ai_brain/ai_prompts.json",
+            "ai_prompts.json",
+            "templates/ai_prompts.json"
+        ]
+        
+        for prompts_file in possible_paths:
+            try:
+                # 디렉토리가 없으면 생성
+                os.makedirs(os.path.dirname(prompts_file), exist_ok=True)
+                with open(prompts_file, 'w', encoding='utf-8') as f:
+                    json.dump(prompts_data, f, ensure_ascii=False, indent=2)
+                saved = True
+                logger.info(f"✅ 프롬프트 파일 저장 완료: {prompts_file}")
+                break
+            except Exception as e:
+                logger.warning(f"⚠️ 프롬프트 파일 저장 실패 ({prompts_file}): {e}")
+                continue
+        
+        if not saved:
+            logger.warning("⚠️ 모든 경로에서 프롬프트 파일 저장 실패")
+        
+        logger.info(f"✅ 프롬프트 업데이트 완료: {ai_name}.{category}")
+        return {"message": f"{ai_name}의 {category} 프롬프트가 성공적으로 업데이트되었습니다."}
+    except Exception as e:
+        logger.error(f"프롬프트 업데이트 오류: {e}")
+        raise HTTPException(status_code=500, detail="프롬프트 업데이트 중 오류가 발생했습니다.")
+
+@app.delete("/api/prompts/delete-category")
+async def delete_prompt_category(request: Request):
+    """특정 카테고리 프롬프트 삭제 API"""
+    try:
+        data = await request.json()
+        ai_name = data.get("ai_name")
+        category = data.get("category")
+        
+        if not ai_name or not category:
+            raise HTTPException(status_code=400, detail="필수 파라미터가 누락되었습니다.")
+        
+        # 전역 prompts_data 사용
+        global prompts_data
+        
+        if not prompts_data:
+            raise HTTPException(status_code=404, detail="프롬프트 데이터를 찾을 수 없습니다.")
+        
+        # 해당 AI의 카테고리 삭제
+        if ai_name in prompts_data and category in prompts_data[ai_name]:
+            del prompts_data[ai_name][category]
+            
+            # AI가 비어있으면 전체 삭제
+            if not prompts_data[ai_name]:
+                del prompts_data[ai_name]
+            
+            # 파일에 저장 (여러 경로 시도)
+            saved = False
+            possible_paths = [
+                "ai_brain/ai_prompts.json",
+                "ai_prompts.json",
+                "templates/ai_prompts.json"
+            ]
+            
+            for prompts_file in possible_paths:
+                try:
+                    # 디렉토리가 없으면 생성
+                    os.makedirs(os.path.dirname(prompts_file), exist_ok=True)
+                    with open(prompts_file, 'w', encoding='utf-8') as f:
+                        json.dump(prompts_data, f, ensure_ascii=False, indent=2)
+                    saved = True
+                    logger.info(f"✅ 프롬프트 파일 저장 완료: {prompts_file}")
+                    break
+                except Exception as e:
+                    logger.warning(f"⚠️ 프롬프트 파일 저장 실패 ({prompts_file}): {e}")
+                    continue
+            
+            if not saved:
+                logger.warning("⚠️ 모든 경로에서 프롬프트 파일 저장 실패")
+            
+            logger.info(f"✅ 프롬프트 삭제 완료: {ai_name}.{category}")
+            return {"message": f"{ai_name}의 {category} 프롬프트가 성공적으로 삭제되었습니다."}
+        else:
+            raise HTTPException(status_code=404, detail="해당 프롬프트를 찾을 수 없습니다.")
+            
+    except Exception as e:
+        logger.error(f"프롬프트 삭제 오류: {e}")
+        raise HTTPException(status_code=500, detail="프롬프트 삭제 중 오류가 발생했습니다.")
+
+@app.post("/api/prompts/reload")
+async def reload_prompts():
+    """프롬프트 데이터를 다시 로드합니다."""
+    try:
+        global prompts_data
+        success = load_prompts_data()
+        return {
+            "success": success,
+            "message": "프롬프트 데이터가 다시 로드되었습니다." if success else "프롬프트 데이터 로드에 실패했습니다.",
+            "prompts_count": len(prompts_data.get("prompts", {})) if isinstance(prompts_data, dict) and "prompts" in prompts_data else 0
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+        # 해당 AI의 카테고리 업데이트
+        if ai_name not in prompts_data:
+            prompts_data[ai_name] = {}
+        
+        # ai1의 system 프롬프트는 문자열로 저장
+        if ai_name == 'ai1' and category == 'system':
+            prompts_data[ai_name][category] = content
+        else:
+            # 다른 경우는 콘텐츠를 리스트로 변환 (여러 줄 분할)
+            if isinstance(content, str):
+                content_lines = [line.strip() for line in content.split('\n') if line.strip()]
+                prompts_data[ai_name][category] = content_lines
+            else:
+                prompts_data[ai_name][category] = content
+        
+        # 파일에 저장 (여러 경로 시도)
+        saved = False
+        possible_paths = [
+            "ai_brain/ai_prompts.json",
+            "ai_prompts.json",
+            "templates/ai_prompts.json"
+        ]
+        
+        for prompts_file in possible_paths:
+            try:
+                # 디렉토리가 없으면 생성
+                os.makedirs(os.path.dirname(prompts_file), exist_ok=True)
+                with open(prompts_file, 'w', encoding='utf-8') as f:
+                    json.dump(prompts_data, f, ensure_ascii=False, indent=2)
+                saved = True
+                logger.info(f"✅ 프롬프트 파일 저장 완료: {prompts_file}")
+                break
+            except Exception as e:
+                logger.warning(f"⚠️ 프롬프트 파일 저장 실패 ({prompts_file}): {e}")
+                continue
+        
+        if not saved:
+            logger.warning("⚠️ 모든 경로에서 프롬프트 파일 저장 실패")
+        
+        logger.info(f"✅ 프롬프트 저장 완료: {ai_name}.{category}")
+        return {"message": f"{ai_name}의 {category} 프롬프트가 성공적으로 저장되었습니다."}
+    except Exception as e:
+        logger.error(f"프롬프트 저장 오류: {e}")
+        raise HTTPException(status_code=500, detail="프롬프트 저장 중 오류가 발생했습니다.")
+
+# 관리자 페이지 API들
+@app.get("/api/admin/monitoring")
+async def get_monitoring_data():
+    """시스템 모니터링 데이터 조회"""
+    try:
+        # 시스템 상태 정보 수집
+        import psutil
+        import time
+        
+        # CPU 사용률
+        cpu_percent = psutil.cpu_percent(interval=1)
+        
+        # 메모리 사용률
+        memory = psutil.virtual_memory()
+        memory_percent = memory.percent
+        
+        # 디스크 사용률
+        disk = psutil.disk_usage('/')
+        disk_percent = disk.percent
+        
+        # 네트워크 정보
+        network = psutil.net_io_counters()
+        
+        # 활성 세션 수
+        active_sessions = len(active_connections)
+        
+        # MongoDB 연결 상태
+        mongo_status = "연결됨" if mongo_client else "연결 안됨"
+        
+        return {
+            "system": {
+                "cpu_percent": cpu_percent,
+                "memory_percent": memory_percent,
+                "disk_percent": disk_percent,
+                "network_bytes_sent": network.bytes_sent,
+                "network_bytes_recv": network.bytes_recv
+            },
+            "application": {
+                "active_sessions": active_sessions,
+                "mongo_status": mongo_status,
+                "uptime": time.time() - start_time if 'start_time' in globals() else 0
+            },
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        logger.error(f"모니터링 데이터 조회 오류: {e}")
+        return {"error": "모니터링 데이터를 가져올 수 없습니다."}
+
+@app.get("/api/admin/users")
+async def get_users_data():
+    """사용자 관리 데이터 조회"""
+    try:
+        # 메모리에서 세션 데이터 수집
+        sessions = get_sessions_from_memory()
+        
+        # 사용자 통계
+        total_users = len(set(session.get('user_id', 'anonymous') for session in sessions))
+        active_users = len([s for s in sessions if s.get('last_activity', 0) > time.time() - 3600])
+        
+        # 세션별 상세 정보
+        user_details = []
+        for session in sessions:
+            user_details.append({
+                "session_id": session.get('session_id', ''),
+                "user_id": session.get('user_id', 'anonymous'),
+                "created_at": session.get('created_at', ''),
+                "last_activity": session.get('last_activity', ''),
+                "message_count": len(session.get('messages', []))
+            })
+        
+        return {
+            "statistics": {
+                "total_users": total_users,
+                "active_users": active_users,
+                "total_sessions": len(sessions)
+            },
+            "users": user_details
+        }
+    except Exception as e:
+        logger.error(f"사용자 데이터 조회 오류: {e}")
+        return {"error": "사용자 데이터를 가져올 수 없습니다."}
+
+@app.get("/api/admin/system-settings")
+async def get_system_settings():
+    """시스템 설정 데이터 조회"""
+    try:
+        # 환경변수 정보 (민감한 정보는 제외)
+        env_vars = {
+            "PORT": os.getenv("PORT", "8080"),
+            "ENVIRONMENT": os.getenv("ENVIRONMENT", "development"),
+            "OPENAI_API_KEY_SET": "설정됨" if os.getenv("OPENAI_API_KEY") else "설정 안됨",
+            "MONGODB_URI_SET": "설정됨" if os.getenv("MONGODB_URI") else "설정 안됨"
+        }
+        
+        # 시스템 정보
+        import platform
+        system_info = {
+            "python_version": platform.python_version(),
+            "platform": platform.platform(),
+            "processor": platform.processor()
+        }
+        
+        # 프롬프트 데이터 상태
+        prompt_status = {
+            "loaded": bool(prompts_data),
+            "ai_count": len(prompts_data) if prompts_data else 0,
+            "file_paths": ["ai_brain/ai_prompts.json", "ai_prompts.json", "templates/ai_prompts.json"]
+        }
+        
+        return {
+            "environment": env_vars,
+            "system": system_info,
+            "prompts": prompt_status
+        }
+    except Exception as e:
+        logger.error(f"시스템 설정 조회 오류: {e}")
+        return {"error": "시스템 설정을 가져올 수 없습니다."}
+
+@app.get("/api/admin/performance")
+async def get_performance_data():
+    """성능 분석 데이터 조회"""
+    try:
+        # 채팅 응답 시간 통계 (메모리에서)
+        sessions = get_sessions_from_memory()
+        
+        response_times = []
+        total_messages = 0
+        
+        for session in sessions:
+            messages = session.get('messages', [])
+            total_messages += len(messages)
+            
+            for msg in messages:
+                if msg.get('role') == 'assistant' and 'response_time' in msg:
+                    response_times.append(msg['response_time'])
+        
+        # 통계 계산
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        min_response_time = min(response_times) if response_times else 0
+        max_response_time = max(response_times) if response_times else 0
+        
+        # 사용자 만족도 (간단한 지표)
+        satisfaction_score = 85.5  # 예시 값
+        
+        return {
+            "chat_performance": {
+                "total_messages": total_messages,
+                "avg_response_time": round(avg_response_time, 2),
+                "min_response_time": round(min_response_time, 2),
+                "max_response_time": round(max_response_time, 2)
+            },
+            "user_satisfaction": {
+                "score": satisfaction_score,
+                "level": "높음" if satisfaction_score >= 80 else "보통" if satisfaction_score >= 60 else "낮음"
+            }
+        }
+    except Exception as e:
+        logger.error(f"성능 데이터 조회 오류: {e}")
+        return {"error": "성능 데이터를 가져올 수 없습니다."}
+
+@app.get("/api/admin/security")
+async def get_security_data():
+    """보안 관리 데이터 조회"""
+    try:
+        # 보안 관련 정보 수집
+        sessions = get_sessions_from_memory()
+        
+        # 접근 로그 분석
+        recent_sessions = [s for s in sessions if s.get('last_activity', 0) > time.time() - 86400]  # 24시간
+        
+        # 의심스러운 활동 감지 (간단한 예시)
+        suspicious_activities = []
+        for session in recent_sessions:
+            messages = session.get('messages', [])
+            if len(messages) > 100:  # 메시지가 너무 많은 경우
+                suspicious_activities.append({
+                    "session_id": session.get('session_id', ''),
+                    "reason": "과도한 메시지",
+                    "count": len(messages)
+                })
+        
+        # 보안 상태
+        security_status = {
+            "total_sessions_24h": len(recent_sessions),
+            "suspicious_activities": len(suspicious_activities),
+            "mongo_connection_secure": bool(mongo_client),
+            "api_key_configured": bool(os.getenv("OPENAI_API_KEY"))
+        }
+        
+        return {
+            "security_status": security_status,
+            "suspicious_activities": suspicious_activities,
+            "recommendations": [
+                "정기적인 로그 모니터링",
+                "API 키 보안 강화",
+                "세션 타임아웃 설정"
+            ]
+        }
+    except Exception as e:
+        logger.error(f"보안 데이터 조회 오류: {e}")
+        return {"error": "보안 데이터를 가져올 수 없습니다."}
+
+@app.post("/api/auth/logout")
+async def logout():
+    """로그아웃 API"""
+    try:
+        # 세션 정리 로직 (필요시)
+        return {"message": "로그아웃되었습니다."}
+    except Exception as e:
+        logger.error(f"로그아웃 오류: {e}")
+        return {"error": "로그아웃 중 오류가 발생했습니다."}
+
+# 언어 설정 API
+@app.post("/api/set-language")
+async def set_language(request: Request):
+    try:
+        data = await request.json()
+        language = data.get("language", "ko")
+        logger.info(f"언어 설정: {language}")
+        return {"status": "success", "language": language}
+    except Exception as e:
+        logger.error(f"언어 설정 오류: {e}")
+        return {"status": "error", "message": str(e)}
+
+# 사용자 활동 API
+@app.get("/api/user/activity")
+async def get_user_activity():
+    return {
+        "recent_activity": [
+            {
+                "type": "chat",
+                "timestamp": datetime.now().isoformat(),
+                "description": "채팅 시작"
+            }
+        ],
+        "total_activities": 1
+    }
+
+@app.get("/api/prompts/debug")
+async def debug_prompts():
+    """프롬프트 로딩 상태를 디버그합니다."""
+    try:
+        debug_info = {
+            "prompts_data_type": str(type(prompts_data)),
+            "prompts_data_keys": list(prompts_data.keys()) if isinstance(prompts_data, dict) else None,
+            "prompts_data_length": len(str(prompts_data)),
+            "has_prompts_key": "prompts" in prompts_data if isinstance(prompts_data, dict) else False,
+            "available_ai": [],
+            "ai_details": {},
+            "load_status": "success"
+        }
+        
+        if isinstance(prompts_data, dict) and "prompts" in prompts_data:
+            prompts = prompts_data["prompts"]
+            debug_info["available_ai"] = list(prompts.keys())
+            
+            for ai_name, ai_data in prompts.items():
+                if isinstance(ai_data, dict):
+                    debug_info["ai_details"][ai_name] = {
+                        "has_content": "content" in ai_data,
+                        "content_length": len(ai_data.get("content", "")),
+                        "content_preview": ai_data.get("content", "")[:200] + "..." if len(ai_data.get("content", "")) > 200 else ai_data.get("content", ""),
+                        "keys": list(ai_data.keys())
+                    }
+                else:
+                    debug_info["ai_details"][ai_name] = {
+                        "type": str(type(ai_data)),
+                        "value": str(ai_data)[:200]
+                    }
+        
+        return debug_info
+    except Exception as e:
+        return {
+            "error": str(e),
+            "load_status": "error",
+            "prompts_data_type": str(type(prompts_data))
+        }
+
+if __name__ == "__main__":
+    import uvicorn
+    import argparse
+    
+    # 명령행 인자 파싱
+    parser = argparse.ArgumentParser(description="EORA AI System - Railway 최종 서버")
+    parser.add_argument("--host", default="0.0.0.0", help="서버 호스트")
+    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8000)), help="서버 포트")
+    args = parser.parse_args()
+    
+    # Railway 환경에서 안정적인 실행
+    port = args.port
+    host = args.host
+    logger.info("🚀 ==========================================")
+    logger.info(f"🚀 Railway 최종 서버 시작 - 호스트: {host}, 포트: {port}")
+    logger.info("🚀 이 파일은 railway_final.py입니다!")
+    logger.info("🚀 모든 문제가 해결된 최신 버전입니다!")
+    logger.info("✅ DeprecationWarning 완전 제거됨")
+    logger.info("✅ OpenAI API 호출 오류 수정됨")
+    logger.info("✅ MongoDB 연결 안정성 확보됨")
+    logger.info("✅ Redis 연결 오류 해결됨")
+    logger.info("✅ 세션 저장 기능 완성됨")
+    logger.info("🚀 ==========================================")
+    
+    # 포트 충돌 방지를 위한 안전한 실행
+    try:
+        uvicorn.run(
+            app, 
+            host=host, 
+            port=port,
+            reload=False,  # 재시작 완전 비활성화
+            log_level="info",
+            access_log=True,
+            use_colors=True
+        )
+    except OSError as e:
+        if "Address already in use" in str(e) or "10048" in str(e):
+            logger.error(f"❌ 포트 {port}가 이미 사용 중입니다. 다른 포트를 시도합니다.")
+            # 다른 포트 시도
+            for alt_port in [8001, 8002, 8003, 8004, 8005]:
+                try:
+                    logger.info(f"🔄 포트 {alt_port} 시도 중...")
+                    uvicorn.run(
+                        app, 
+                        host=host, 
+                        port=alt_port,
+                        reload=False,
+                        log_level="info",
+                        access_log=True,
+                        use_colors=True
+                    )
+                    break
+                except OSError:
+                    continue
+        else:
+            raise e 

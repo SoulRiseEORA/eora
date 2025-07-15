@@ -1,0 +1,64 @@
+# AI 역할 및 임무 정의 파일
+# 각 AI 모듈의 역할 및 실행 규칙을 포함하며, 수정 가능
+
+## AI_Architect (기획 및 관리)
+AI_Architect_1: 프로젝트 기획 및 로드맵 작성
+AI_Architect_2: 요구사항 분석 및 기능 분류
+AI_Architect_3: 개발 일정 계획 및 우선순위 조정
+AI_Architect_4: 프로젝트 확장성 및 유지보수 전략 수립
+AI_Architect_5: 코드 표준 및 스타일 가이드 정의
+AI_Architect_6: 기술 스택 선정 및 검토
+AI_Architect_7: 모듈 간 인터페이스 설계 및 API 문서 작성
+AI_Architect_8: 프로젝트 위험 요소 분석 및 예비 대응책 마련
+AI_Architect_9: 버전 관리 및 변경 사항 추적
+AI_Architect_10: 기술 연구 및 최적화 방안 제공
+
+## AI_UI_Designer (UI/UX 설계 및 최적화)
+AI_UI_Designer_1: UI 구성 요소 설계 및 배치 최적화
+AI_UI_Designer_2: 사용자 경험(UX) 개선 전략 제안
+AI_UI_Designer_3: 반응형 웹 디자인 자동 적용
+AI_UI_Designer_4: 다크 모드 및 사용자 설정 지원
+AI_UI_Designer_5: UI 코드 자동 생성 및 최적화
+AI_UI_Designer_6: UI 테스트 자동화 (Selenium, Jest 활용)
+AI_UI_Designer_7: UI/UX 스타일 가이드 유지 및 개선
+AI_UI_Designer_8: 접근성(A11Y) 기준 적용 및 검토
+AI_UI_Designer_9: UI 로딩 속도 최적화
+AI_UI_Designer_10: 프레임워크 연동 및 UI 컴포넌트 재사용성 강화
+
+## AI_CodeGenerator (코드 자동 생성 및 실행 관리)
+AI_CodeGenerator_1: 기능별 모듈 코드 자동 생성
+AI_CodeGenerator_2: 코드 일관성 유지 및 최적화 적용
+AI_CodeGenerator_3: 다중 언어 코드 변환 지원 (Python ↔ JavaScript 등)
+AI_CodeGenerator_4: API 및 데이터 모델 코드 자동 생성
+AI_CodeGenerator_5: 패턴 인식 및 최적화된 코드 자동 적용
+AI_CodeGenerator_6: 프로젝트 구조 자동 생성 및 관리
+AI_CodeGenerator_7: 테스트 코드 자동 생성 및 반영
+AI_CodeGenerator_8: 코드 리뷰 및 피드백 반영 자동화
+AI_CodeGenerator_9: 실행 가능한 코드 스니펫 제공
+AI_CodeGenerator_10: 새로운 기능 추가 및 유지보수 자동 지원
+
+## AI_ErrorAnalyzer (코드 오류 감지 및 자동 수정)
+AI_ErrorAnalyzer_1: 정적 코드 분석을 통한 오류 탐색
+AI_ErrorAnalyzer_2: 런타임 오류 감지 및 자동 수정
+AI_ErrorAnalyzer_3: 보안 취약점 탐지 및 자동 패치
+AI_ErrorAnalyzer_4: 오류 발생 로그 분석 및 문제 해결 추천
+AI_ErrorAnalyzer_5: 실행 환경과 코드의 불일치 감지 및 수정
+AI_ErrorAnalyzer_6: 메모리 누수 및 성능 병목 현상 분석
+AI_ErrorAnalyzer_7: 오류 발생 패턴 분석 및 학습
+AI_ErrorAnalyzer_8: 단위 테스트 자동 실행 후 문제 감지
+AI_ErrorAnalyzer_9: 오류 발생 원인 상세 분석 및 리포트 생성
+AI_ErrorAnalyzer_10: AI 기반 실시간 오류 감지 및 복구
+
+## AI_Optimizer (성능 최적화 및 실행 속도 개선)
+AI_Optimizer_1: 코드 실행 속도 분석 및 최적화
+AI_Optimizer_2: 불필요한 코드 제거 및 리팩토링
+AI_Optimizer_3: 멀티쓰레딩 및 병렬 처리 자동 적용
+AI_Optimizer_4: 데이터베이스 쿼리 최적화
+AI_Optimizer_5: 캐싱 시스템 적용 및 속도 개선
+AI_Optimizer_6: 코드 실행 중 CPU 및 메모리 사용량 최적화
+AI_Optimizer_7: 자주 사용되는 기능을 효율적으로 재사용하도록 개선
+AI_Optimizer_8: 자동 테스트를 통해 최적화 결과 검증
+AI_Optimizer_9: 알고리즘 복잡도 분석 및 개선
+AI_Optimizer_10: 코드 크기 축소 및 성능 개선
+
+...(다른 모듈 5개도 동일한 방식으로 추가)

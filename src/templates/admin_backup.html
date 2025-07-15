@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .admin-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: white;
+        }
+
+        .admin-section h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .admin-section p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .admin-section a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .admin-section a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>⚙️ EORA AI Admin Panel</h1>
+
+    <div class="admin-section">
+        <h2>🔧 시스템 관리</h2>
+        <p>EORA AI 시스템의 전반적인 관리 기능입니다.</p>
+        <a href="/api/status">시스템 상태 확인</a>
+    </div>
+
+    <div class="admin-section">
+        <h2>📊 데이터 관리</h2>
+        <p>데이터베이스 및 저장소 관리 기능입니다.</p>
+        <a href="/api/sessions">세션 목록</a> |
+        <a href="/api/prompts">프롬프트 목록</a>
+    </div>
+</body>
+
+</html>
