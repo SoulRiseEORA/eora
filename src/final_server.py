@@ -2302,27 +2302,22 @@ async def recall_by_intuition(user_id: str = None, limit: int = 10):
 
 @app.post("/api/chat")
 async def chat_endpoint(request: Request):
-    """채팅 API 엔드포인트 - 고급 대화 시스템 우선 사용"""
+    """채팅 API 엔드포인트 - GPT API 실패 시 반드시 에러 반환 (자동응답 금지)"""
     print("🔍 /api/chat 엔드포인트 호출됨")
-    
     try:
         # 요청 데이터 파싱
         print("📥 요청 데이터 파싱 시작")
         data = await request.json()
         print(f"📥 파싱된 데이터: {data}")
-        
         message = data.get("message", "")
         session_id = data.get("session_id", "default")
-        
         print(f"💬 사용자 메시지: {message}")
         print(f"🆔 세션 ID: {session_id}")
-        
         # 사용자 인증 확인
         print("🔐 사용자 인증 확인 시작")
         token = request.cookies.get("token") or request.headers.get("Authorization", "").replace("Bearer ", "")
         print(f"🍪 쿠키에서 토큰: {token[:20] + '...' if token else 'None'}")
         print(f"📋 Authorization 헤더: {request.headers.get('Authorization', 'None')}")
-        
         user_id = "anonymous"
         if token:
             try:
@@ -2336,133 +2331,28 @@ async def chat_endpoint(request: Request):
                 user_id = "anonymous"
         else:
             print("⚠️ 토큰 없음 - 익명 사용자로 처리")
-        
-        # 병렬 처리: 캐시 확인과 API 호출을 동시에 처리
-        print("🚀 병렬 처리 시작")
-        response_text = ""
-        advanced_analysis = {}
-        
-        # 다층 캐싱 시스템 (메모리 + Redis)
-        cache_key = f"chat:{user_id}:{hash(message.lower().strip())}"
-        
-        # 1단계: 메모리 캐시 확인 (즉시)
-        if hasattr(chat_endpoint, '_response_cache'):
-            if cache_key in chat_endpoint._response_cache:
-                cached_response = chat_endpoint._response_cache[cache_key]
-                print(f"⚡ 메모리 캐시 사용: {cached_response[:50]}...")
-                response_text = cached_response
-            else:
-                if len(chat_endpoint._response_cache) > 100:
-                    chat_endpoint._response_cache.clear()
-        else:
-            chat_endpoint._response_cache = {}
-        
-        # 2단계: Redis 캐시 확인 (병렬) - 타임아웃 증가
-        redis_cache_task = None
-        if not response_text and redis_cache:
-            redis_cache_task = asyncio.create_task(check_redis_cache(cache_key))
-        
-        # 3단계: 아우라 시스템 회상 시도 (병렬) - 타임아웃 증가
-        recall_task = None
-        if not response_text:
-            recall_task = asyncio.create_task(recall_from_aura_system(message, user_id, 2))
-        
-        # 4단계: API 호출 준비 (병렬)
-        api_task = None
-        if not response_text:
-            api_task = asyncio.create_task(call_gpt4o_api_optimized(message, request))
-        
-        # Redis 캐시 결과 확인 (타임아웃 증가)
-        if redis_cache_task:
-            try:
-                cached_response = await asyncio.wait_for(redis_cache_task, timeout=1.0)  # 타임아웃 증가
-                if cached_response:
-                    print(f"⚡ Redis 캐시 사용: {cached_response[:50]}...")
-                    response_text = cached_response
-                    chat_endpoint._response_cache[cache_key] = cached_response
-            except asyncio.TimeoutError:
-                print("⚠️ Redis 캐시 타임아웃")
-            except Exception as e:
-                print(f"⚠️ Redis 캐시 확인 실패: {e}")
-        
-        # 아우라 시스템 회상 결과 확인 (타임아웃 증가)
-        recalled_memories = []
-        if recall_task:
-            try:
-                recalled_memories = await asyncio.wait_for(recall_task, timeout=1.5)  # 타임아웃 증가
-                if recalled_memories:
-                    print(f"✅ 아우라 시스템 회상 완료: {len(recalled_memories)}개 고품질 메모리")
-                else:
-                    print("⚠️ 아우라 시스템 회상 결과 없음")
-            except asyncio.TimeoutError:
-                print("⚠️ 아우라 시스템 회상 타임아웃 - 원본 응답 사용")
-            except Exception as e:
-                print(f"❌ 아우라 시스템 회상 실패: {e}")
-        
-        # API 호출 결과 확인
-        if not response_text and api_task:
-            try:
-                response_text = await asyncio.wait_for(api_task, timeout=4.0)  # 타임아웃 단축
-                print("✅ GPT-4o API 응답 완료")
-                
-                # 회상된 메모리를 활용한 응답 개선 (비동기)
-                if recalled_memories:
-                    enhancement_task = asyncio.create_task(enhance_response_with_memories(response_text, recalled_memories, message))
-                    try:
-                        enhanced_response = await asyncio.wait_for(enhancement_task, timeout=0.5)  # 빠른 개선
-                        if enhanced_response and enhanced_response != response_text:
-                            response_text = enhanced_response
-                            print("✅ 회상 메모리를 활용한 응답 개선 완료")
-                    except asyncio.TimeoutError:
-                        print("⚠️ 응답 개선 타임아웃 - 원본 응답 사용")
-                    except Exception as e:
-                        print(f"⚠️ 응답 개선 실패: {e}")
-                
-                # 캐시에 저장 (비동기)
-                asyncio.create_task(save_to_cache(cache_key, response_text))
-                
-            except asyncio.TimeoutError:
-                print("⚠️ API 타임아웃 - 폴백 시스템 사용")
-                response_text = await generate_eora_response(message, user_id, request)
-            except Exception as e:
-                print(f"❌ API 호출 실패: {e}")
-                response_text = await generate_eora_response(message, user_id, request)
-        
-        # 병렬 처리: 응답과 저장을 동시에 처리
-        print("💾 대화 내용 저장 시작 (병렬 처리)")
-        save_task = asyncio.create_task(save_chat_message(user_id, message, response_text, session_id))
-        
-        # 응답 데이터 구성 (저장 완료를 기다리지 않음)
+        # GPT 호출
+        try:
+            response_text = await call_gpt4o_api_optimized(message, request)
+        except Exception as gpt_error:
+            print(f"❌ GPT API 호출 실패: {gpt_error}")
+            return JSONResponse(status_code=503, content={
+                "error": "GPT API 호출 실패",
+                "detail": str(gpt_error)
+            })
+        # 정상 응답
         response_data = {
             "response": response_text,
             "session_id": session_id,
             "user_id": user_id,
             "timestamp": datetime.now().isoformat(),
-            "advanced_analysis": advanced_analysis if advanced_analysis else None,
-            "save_status": "processing"  # 저장 중 상태
         }
-        
-        # 저장 완료 확인 (비동기)
-        try:
-            save_success = await save_task
-            if save_success:
-                print(f"✅ 대화 저장 완료: {user_id}")
-                response_data["save_status"] = "success"
-            else:
-                print(f"❌ 대화 저장 실패: {user_id}")
-                response_data["save_status"] = "failed"
-        except Exception as e:
-            print(f"❌ 대화 저장 실패: {e}")
-            response_data["save_status"] = "failed"
-        
         print(f"📤 응답 데이터: {response_data}")
-        
         print("✅ /api/chat 엔드포인트 처리 완료")
         return response_data
-        
     except Exception as e:
         print(f"❌ /api/chat 엔드포인트 오류: {e}")
-        return {"error": str(e)}, 500
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # 병렬 처리 최적화 함수들
 async def check_redis_cache(cache_key: str) -> str:
@@ -2482,58 +2372,41 @@ async def check_redis_cache(cache_key: str) -> str:
         return None
 
 async def call_gpt4o_api_optimized(message: str, request: Request) -> str:
-    """최적화된 GPT-4o API 호출 (전체 프롬프트 유지)"""
+    """최적화된 GPT-4o API 호출 (실패 시 반드시 예외 발생)"""
+    if not openai_available or client is None:
+        raise RuntimeError("OpenAI API를 사용할 수 없습니다. (API 키 미설정 또는 클라이언트 초기화 실패)")
     try:
-        if openai_available and client is not None:
-            print("✅ OpenAI API 사용 가능 - GPT-4o 직접 호출")
-            
-            # 전체 시스템 프롬프트 유지 (프롬프트 단축하지 않음)
-            system_prompt = """EORA AI입니다. 친근하고 유용한 답변을 한국어로 제공하세요. 이모지와 함께 간결하게 답변하세요."""
-            
-            # 언어별 지시사항 추가
-            language = request.cookies.get("user_language", "ko")
-            lang_map = {
-                "ko": "모든 답변은 한국어로 해주세요.",
-                "en": "Please answer in English.",
-                "ja": "すべての回答は日本語でお願いします。",
-                "zh": "请用中文回答所有问题。"
-            }
-            lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
-            system_prompt = f"{system_prompt}\n\n{lang_instruction}"
-            
-            # 고속 API 호출 (병목 구간 최소화)
-            start_time = datetime.now()
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": message}
-                ],
-                max_tokens=400,  # 응답 길이 최적화
-                temperature=0.6,  # 일관성 향상
-                timeout=2.5,  # 타임아웃 최적화
-                stream=False,  # 스트리밍 비활성화로 속도 향상
-                presence_penalty=0.0,  # 페널티 제거
-                frequency_penalty=0.0,  # 페널티 제거
-                top_p=0.8,  # 일관성 향상
-                n=1  # 단일 응답
-            )
-            
-            response_text = response.choices[0].message.content
-            end_time = datetime.now()
-            response_time = (end_time - start_time).total_seconds()
-            
-            print(f"✅ GPT-4o API 응답 완료 - 응답시간: {response_time:.2f}초")
-            print(f"📝 응답 내용: {response_text[:100]}...")
-            
-            return response_text
-        else:
-            print("⚠️ OpenAI API를 사용할 수 없습니다.")
-            return None
-            
-    except Exception as e:
-        print(f"❌ GPT-4o API 호출 실패: {e}")
-        return None
+        print("✅ OpenAI API 사용 가능 - GPT-4o 직접 호출")
+        system_prompt = """EORA AI입니다. 친근하고 유용한 답변을 한국어로 제공하세요. 이모지와 함께 간결하게 답변하세요."""
+        language = request.cookies.get("user_language", "ko")
+        lang_map = {
+            "ko": "모든 답변은 한국어로 해주세요.",
+            "en": "Please answer in English.",
+            "ja": "すべての回答は日本語でお願いします。",
+            "zh": "请用中文回答所有问题。"
+        }
+        lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
+        system_prompt = f"{system_prompt}\n\n{lang_instruction}"
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message}
+            ],
+            max_tokens=400,
+            temperature=0.6,
+            timeout=5,
+            stream=False,
+            presence_penalty=0.0,
+            frequency_penalty=0.0,
+            top_p=0.8,
+            n=1
+        )
+        print(f"✅ GPT-4o API 응답 생성 완료")
+        return response.choices[0].message.content
+    except Exception as api_error:
+        print(f"❌ GPT-4o API 호출 실패: {api_error}")
+        raise RuntimeError(f"GPT-4o API 호출 실패: {api_error}")
 
 async def save_to_cache(cache_key: str, response_text: str):
     """캐시에 저장 (비동기)"""
