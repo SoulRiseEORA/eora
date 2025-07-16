@@ -19,7 +19,7 @@ from bson import ObjectId
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()  # .env 파일에서 환경변수 로드
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))  # .env 파일에서 환경변수 로드
     print("✅ .env 파일에서 환경변수를 로드했습니다.")
 except ImportError:
     print("⚠️ python-dotenv가 설치되지 않았습니다. .env 파일을 로드할 수 없습니다.")

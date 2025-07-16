@@ -48,7 +48,10 @@ memory_sessions = {}
 memory_messages = {}
 memory_cache = {}
 
-
+# Dotenv 로드
+from dotenv import load_dotenv
+import os
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
 
 # Railway 최종 서버 시작 로그
 logger.info("🚀 ==========================================")
