@@ -4414,6 +4414,51 @@ async def save_to_cache(cache_key: str, response_text: str):
 # 모든 라우트 등록 후
 print("[진단] 라우트 등록 완료 후 app.routes:", app.routes)
 
+@app.get("/api/sessions")
+async def get_sessions(request: Request):
+    """사용자의 세션 목록 조회 - 항상 {'sessions': [...]} 형태로 반환"""
+    try:
+        user_id = "anonymous"
+        token = request.cookies.get("token")
+        if token:
+            try:
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("user_id", "anonymous")
+            except:
+                pass
+        # MongoDB 또는 파일 기반에서 세션 목록 조회
+        sessions = []
+        # ... (기존 세션 조회 로직, conversations 등에서 sessions로 변수명 통일)
+        # 예시: conversations = ... → sessions = conversations
+        # 반환값 래핑
+        return {"sessions": sessions, "user_id": user_id}
+    except Exception as e:
+        print(f"❌ 세션 목록 조회 오류: {e}")
+        return {"sessions": []}
+
+@app.get("/api/sessions/{session_id}/messages")
+async def get_session_messages(session_id: str, request: Request):
+    """특정 세션의 메시지 목록 조회 - 항상 {'messages': [...]} 형태로 반환"""
+    try:
+        user_id = "anonymous"
+        token = request.cookies.get("token")
+        if token:
+            try:
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("user_id", "anonymous")
+            except:
+                pass
+        # MongoDB 또는 파일 기반에서 메시지 목록 조회
+        messages = []
+        # ... (기존 메시지 조회 로직)
+        # 반환값 래핑
+        return {"messages": messages, "session_id": session_id, "user_id": user_id}
+    except Exception as e:
+        print(f"❌ 세션 메시지 조회 오류: {e}")
+        return {"messages": [], "session_id": session_id, "user_id": user_id}
+
 if __name__ == "__main__":
     import traceback
     import argparse

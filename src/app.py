@@ -1234,49 +1234,26 @@ async def debug_templates():
 
 # 기본 세션 및 메시지 API
 @app.get("/api/sessions")
-async def get_sessions():
+async def get_sessions(request: Request):
+    """사용자의 세션 목록 조회 - 항상 {'sessions': [...]} 형태로 반환"""
     try:
-        logger.info("📋 세션 조회 요청")
-        
-        # MongoDB가 연결되어 있으면 MongoDB에서, 아니면 메모리에서
-        if sessions_collection is not None:
-            try:
-                sessions = list(sessions_collection.find().sort("last_activity", -1))
-                for session in sessions:
-                    convert_objectid(session)
-                logger.info(f"✅ MongoDB에서 {len(sessions)}개 세션 조회")
-                return {"sessions": sessions}
-            except Exception as e:
-                logger.error(f"❌ MongoDB 세션 조회 실패: {e}")
-                # MongoDB 실패 시 메모리로 전환
-                pass
-        
-        # 메모리 기반 세션 반환
-        logger.info("ℹ️ 메모리 기반 세션 조회")
-        sessions = get_sessions_from_memory()
-        if not sessions:
-            # 기본 세션 생성
-            logger.info("ℹ️ 기본 세션 생성")
-            default_session_id = "default_session"
-            save_session_to_memory(default_session_id, {"name": "기본 세션"})
-            sessions = get_sessions_from_memory()
-        
-        logger.info(f"✅ 메모리에서 {len(sessions)}개 세션 조회")
-        return {"sessions": sessions}
-        
+        user = get_current_user(request)
+        user_id = user.get("user_id") if user else "anonymous"
+        user_sessions = []
+        for session_id, session_data in sessions_db.items():
+            if session_data.get("user_id") == user_id:
+                user_sessions.append({
+                    "id": session_id,
+                    "name": session_data.get("name", "새 세션"),
+                    "created_at": session_data.get("created_at"),
+                    "last_message": session_data.get("last_message"),
+                    "message_count": len(chat_history.get(session_id, []))
+                })
+        user_sessions.sort(key=lambda x: x["created_at"], reverse=True)
+        return {"sessions": user_sessions}
     except Exception as e:
-        logger.error(f"❌ 세션 조회 오류: {e}")
-        # 오류 시 메모리 기반 세션 반환
-        try:
-            sessions = get_sessions_from_memory()
-            if not sessions:
-                default_session_id = "default_session"
-                save_session_to_memory(default_session_id, {"name": "기본 세션"})
-                sessions = get_sessions_from_memory()
-            return {"sessions": sessions}
-        except Exception as fallback_error:
-            logger.error(f"❌ 메모리 기반 세션 조회도 실패: {fallback_error}")
-            return {"sessions": []}
+        logger.error(f"세션 목록 조회 오류: {e}")
+        return {"sessions": []}
 
 @app.post("/api/sessions")
 async def create_session(request: Request):
@@ -1327,31 +1304,24 @@ async def create_session(request: Request):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/sessions/{session_id}/messages")
-async def get_session_messages(session_id: str):
+async def get_session_messages(session_id: str, request: Request):
+    """특정 세션의 메시지 목록 조회 - 항상 {'messages': [...]} 형태로 반환"""
     try:
-        logger.info(f"📨 세션 {session_id} 메시지 조회 요청")
-        
-        if chat_logs_collection is not None:
-            try:
-                messages = list(chat_logs_collection.find({"session_id": session_id}).sort("timestamp", 1))
-                # ObjectId를 문자열로 변환
-                for message in messages:
-                    convert_objectid(message)
-                logger.info(f"✅ MongoDB에서 {len(messages)}개 메시지 조회")
-                return {"messages": messages}
-            except Exception as e:
-                logger.error(f"❌ MongoDB 메시지 조회 실패: {e}")
-                # MongoDB 실패 시 메모리로 전환
-                pass
-        
-        # 메모리 기반 메시지 반환
-        logger.info("ℹ️ 메모리 기반 메시지 조회")
-        messages = get_messages_from_memory(session_id)
-        logger.info(f"✅ 메모리에서 {len(messages)}개 메시지 조회")
-        return {"messages": messages}
-        
+        user = get_current_user(request)
+        user_id = user.get("user_id") if user else "anonymous"
+        messages = chat_history.get(session_id, [])
+        # 필요한 필드만 추출
+        formatted_messages = [
+            {
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", msg.get("message", "")),
+                "timestamp": msg.get("timestamp", msg.get("created_at", ""))
+            }
+            for msg in messages if msg.get("user_id", user_id) == user_id
+        ]
+        return {"messages": formatted_messages}
     except Exception as e:
-        logger.error(f"❌ 메시지 조회 오류: {e}")
+        logger.error(f"세션 메시지 조회 오류: {e}")
         return {"messages": []}
 
 @app.post("/api/messages")
