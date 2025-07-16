@@ -1,0 +1,6 @@
+<nav>
+    <!-- 기존 메뉴 -->
+    {% if user and user.role == 'admin' %}
+    <a href="/admin" class="nav-link">⚙️ 관리자</a>
+    {% endif %}
+</nav>
