@@ -12,6 +12,7 @@ import json
 import logging
 import asyncio
 import uuid
+import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from pathlib import Path
@@ -235,6 +236,35 @@ else:
 
 
 
+def normalize_prompts_data(data):
+    """프롬프트 데이터를 정규화하여 일관된 구조로 만듭니다."""
+    normalized_data = {"prompts": {}}
+    
+    # prompts 키가 있는 경우와 없는 경우 모두 처리
+    actual_prompts = data.get("prompts", data)
+    
+    for ai_name, ai_data in actual_prompts.items():
+        if isinstance(ai_data, dict):
+            normalized_data["prompts"][ai_name] = {}
+            for category, category_prompts in ai_data.items():
+                if isinstance(category_prompts, list):
+                    # 리스트인 경우 그대로 유지
+                    normalized_data["prompts"][ai_name][category] = category_prompts
+                elif isinstance(category_prompts, str):
+                    # 문자열인 경우 리스트로 변환
+                    normalized_data["prompts"][ai_name][category] = [category_prompts]
+                else:
+                    # 기타 타입인 경우 문자열로 변환 후 리스트로
+                    normalized_data["prompts"][ai_name][category] = [str(category_prompts)]
+        elif isinstance(ai_data, str):
+            # AI 데이터가 문자열인 경우 content 카테고리로 변환
+            normalized_data["prompts"][ai_name] = {"content": [ai_data]}
+        else:
+            # 기타 타입인 경우 문자열로 변환
+            normalized_data["prompts"][ai_name] = {"content": [str(ai_data)]}
+    
+    return normalized_data
+
 def load_prompts_data():
     """ai_prompts.json 파일에서 프롬프트 데이터를 로드합니다."""
     global prompts_data
@@ -270,38 +300,21 @@ def load_prompts_data():
                     logger.info(f"📄 파일 내용 로드 성공: {len(str(raw_data))} 문자")
                     logger.info(f"📄 JSON 키 목록: {list(raw_data.keys()) if isinstance(raw_data, dict) else 'Not a dict'}")
                     
-                    # 새로운 JSON 구조 처리 (prompts 키가 있는 경우)
-                    if "prompts" in raw_data:
-                        prompts_data = raw_data  # 전체 데이터를 저장 (prompts 키 포함)
-                        ai_count = len(raw_data["prompts"])
-                        ai_names = list(raw_data["prompts"].keys())
-                        logger.info(f"✅ ai_prompts.json 파일 로드 완료: {ai_count}개 AI (경로: {prompts_file})")
-                        logger.info(f"📋 로드된 AI: {', '.join(ai_names)}")
-                        
-                        # 각 AI의 프롬프트 내용 확인
-                        for ai_name, ai_data in raw_data["prompts"].items():
-                            if isinstance(ai_data, dict) and "content" in ai_data:
-                                content_preview = ai_data["content"][:100] + "..." if len(ai_data["content"]) > 100 else ai_data["content"]
-                                logger.info(f"📝 {ai_name} 프롬프트 미리보기: {content_preview}")
-                            else:
-                                logger.warning(f"⚠️ {ai_name}의 content 필드가 없거나 잘못된 형식")
-                        
-                        return True
-                    else:
-                        # 기존 구조 처리 (직접 AI 키들이 있는 경우)
-                        prompts_data = {"prompts": raw_data}  # prompts 키로 감싸기
-                        ai_count = len(raw_data)
-                        ai_names = list(raw_data.keys())
-                        logger.info(f"✅ ai_prompts.json 파일 로드 완료 (기존 구조): {ai_count}개 AI (경로: {prompts_file})")
-                        logger.info(f"📋 로드된 AI: {', '.join(ai_names)}")
-                        
-                        # 각 AI의 카테고리 확인
-                        for ai_name, ai_data in raw_data.items():
-                            if isinstance(ai_data, dict):
-                                categories = list(ai_data.keys())
-                                logger.info(f"📝 {ai_name} 카테고리: {', '.join(categories)}")
-                        
-                        return True
+                    # 프롬프트 데이터 정규화
+                    prompts_data = normalize_prompts_data(raw_data)
+                    
+                    ai_count = len(prompts_data["prompts"])
+                    ai_names = list(prompts_data["prompts"].keys())
+                    logger.info(f"✅ ai_prompts.json 파일 로드 완료: {ai_count}개 AI (경로: {prompts_file})")
+                    logger.info(f"📋 로드된 AI: {', '.join(ai_names)}")
+                    
+                    # 각 AI의 카테고리 확인
+                    for ai_name, ai_data in prompts_data["prompts"].items():
+                        if isinstance(ai_data, dict):
+                            categories = list(ai_data.keys())
+                            logger.info(f"📝 {ai_name} 카테고리: {', '.join(categories)}")
+                    
+                    return True
                         
                 except json.JSONDecodeError as e:
                     logger.error(f"❌ JSON 파싱 오류 ({prompts_file}): {e}")
@@ -317,16 +330,10 @@ def load_prompts_data():
         prompts_data = {
             "prompts": {
                 "ai1": {
-                    "name": "AI 1 - 기본 어시스턴트",
-                    "description": "일반적인 대화와 도움을 제공하는 기본 AI",
-                    "content": "당신은 친근하고 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 정확하고 유용한 답변을 제공하세요.",
-                    "category": "general"
+                    "content": ["당신은 친근하고 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 정확하고 유용한 답변을 제공하세요."]
                 },
                 "eora": {
-                    "name": "EORA - AI 시스템",
-                    "description": "EORA AI 시스템의 메인 프롬프트",
-                    "content": "당신은 EORA라는 이름을 가진 AI이며, 프로그램 자동 개발 시스템의 총괄 디렉터입니다. 인간의 직감과 기억 회상 메커니즘을 결합한 지혜로운 AI입니다.",
-                    "category": "system"
+                    "content": ["당신은 EORA라는 이름을 가진 AI이며, 프로그램 자동 개발 시스템의 총괄 디렉터입니다. 인간의 직감과 기억 회상 메커니즘을 결합한 지혜로운 AI입니다."]
                 }
             }
         }
@@ -1014,57 +1021,18 @@ async def memory(request: Request):
 
 @app.get("/prompts", response_class=HTMLResponse)
 async def get_prompts():
-    """AI별 프롬프트 데이터 조회"""
+    """AI별/카테고리별 딕셔너리 구조로 프롬프트 반환"""
     try:
-        # 전역 prompts_data 사용
         global prompts_data
-        
         if not prompts_data:
-            # 프롬프트 데이터가 없으면 다시 로드 시도
             load_prompts_data()
-        
         if not prompts_data:
-            logger.warning("⚠️ ai_prompts.json 파일을 찾을 수 없습니다.")
-            return {"prompts": []}
-        
-        # 데이터를 리스트 형태로 변환
-        prompts_list = []
-        for ai_name, ai_data in prompts_data.items():
-            if isinstance(ai_data, dict):
-                for category, category_prompts in ai_data.items():
-                    if isinstance(category_prompts, list):
-                        for index, content in enumerate(category_prompts):
-                            prompts_list.append({
-                                "id": f"{ai_name}_{category}_{index}",
-                                "ai_name": ai_name,
-                                "category": category,
-                                "content": content,
-                                "content_index": index
-                            })
-                    elif isinstance(category_prompts, str):
-                        # 문자열인 경우 단일 항목으로 처리 (ai1 system 프롬프트 등)
-                        prompts_list.append({
-                            "id": f"{ai_name}_{category}_0",
-                            "ai_name": ai_name,
-                            "category": category,
-                            "content": category_prompts,
-                            "content_index": 0
-                        })
-            elif isinstance(ai_data, str):
-                # AI 데이터가 문자열인 경우 (기본 프롬프트)
-                prompts_list.append({
-                    "id": f"{ai_name}_content_0",
-                    "ai_name": ai_name,
-                    "category": "content",
-                    "content": ai_data,
-                    "content_index": 0
-                })
-        
-        logger.info(f"프롬프트 데이터 조회 완료: {len(prompts_list)}개")
-        return {"prompts": prompts_list}
+            return {"prompts": {}}
+        # prompts_data는 이미 정규화된 상태
+        return {"prompts": prompts_data["prompts"]}
     except Exception as e:
-        logger.error(f"프롬프트 데이터 조회 오류: {e}")
-        return {"prompts": []}
+        logger.error(f"프롬프트 딕셔너리 조회 오류: {e}")
+        return {"prompts": {}}
 
 @app.post("/api/prompts/category")
 async def save_prompt_category(request: Request):
@@ -1768,63 +1736,18 @@ async def login(request: Request):
 
 @app.get("/api/prompts")
 async def get_prompts():
-    """AI별 프롬프트 데이터 조회"""
+    """AI별/카테고리별 딕셔너리 구조로 프롬프트 반환"""
     try:
-        # 전역 prompts_data 사용
         global prompts_data
-        
         if not prompts_data:
-            # 프롬프트 데이터가 없으면 다시 로드 시도
             load_prompts_data()
-        
         if not prompts_data:
-            logger.warning("⚠️ ai_prompts.json 파일을 찾을 수 없습니다.")
-            return {"prompts": []}
-        
-        # prompts 키가 있는지 확인하고 데이터 추출
-        actual_prompts = prompts_data.get("prompts", prompts_data)
-        
-        # 데이터를 리스트 형태로 변환
-        prompts_list = []
-        for ai_name, ai_data in actual_prompts.items():
-            if isinstance(ai_data, dict):
-                for category, category_prompts in ai_data.items():
-                    if isinstance(category_prompts, list):
-                        for index, content in enumerate(category_prompts):
-                            prompts_list.append({
-                                "id": f"{ai_name}_{category}_{index}",
-                                "ai_name": ai_name,
-                                "category": category,
-                                "content": content,
-                                "content_index": index
-                            })
-                    elif isinstance(category_prompts, str):
-                        # 문자열인 경우 단일 항목으로 처리 (ai1 system 프롬프트 등)
-                        prompts_list.append({
-                            "id": f"{ai_name}_{category}_0",
-                            "ai_name": ai_name,
-                            "category": category,
-                            "content": category_prompts,
-                            "content_index": 0
-                        })
-            elif isinstance(ai_data, str):
-                # AI 데이터가 문자열인 경우 (기본 프롬프트)
-                prompts_list.append({
-                    "id": f"{ai_name}_content_0",
-                    "ai_name": ai_name,
-                    "category": "content",
-                    "content": ai_data,
-                    "content_index": 0
-                })
-        
-        logger.info(f"프롬프트 데이터 조회 완료: {len(prompts_list)}개")
-        return {"prompts": prompts_list}
-        
-        logger.info(f"프롬프트 데이터 조회 완료: {len(prompts_list)}개")
-        return {"prompts": prompts_list}
+            return {"prompts": {}}
+        # prompts_data는 이미 정규화된 상태
+        return {"prompts": prompts_data["prompts"]}
     except Exception as e:
-        logger.error(f"프롬프트 데이터 조회 오류: {e}")
-        return {"prompts": []}
+        logger.error(f"프롬프트 딕셔너리 조회 오류: {e}")
+        return {"prompts": {}}
 
 @app.get("/api/prompts/raw")
 async def get_raw_prompts():

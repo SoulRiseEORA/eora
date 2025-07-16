@@ -528,125 +528,104 @@
         }
 
         // 프롬프트 데이터 로드
-        async function loadPrompts() {
-            try {
-                const response = await fetch('/api/prompts');
-                const data = await response.json();
-                const prompts = data.prompts || [];
+async function loadPrompts() {
+    try {
+        const response = await fetch('/api/prompts');
+        const data = await response.json();
+        const prompts = data.prompts || {};
 
-                console.log('[프론트] 로드된 프롬프트 데이터:', prompts);
+        promptsData = {};
+        originalData = {};
 
-                // AI별로 데이터 정리
-                promptsData = {};
-                originalData = {};
-
-                prompts.forEach(prompt => {
-                    const ai = prompt.ai_name;
-                    const category = prompt.category;
-
-                    if (!promptsData[ai]) {
-                        promptsData[ai] = { system: [], role: [], guide: [], format: [] };
-                        originalData[ai] = { system: [], role: [], guide: [], format: [] };
-                    }
-
-                    // ai1의 system 프롬프트는 문자열로 처리
-                    if (ai === 'ai1' && category === 'system') {
-                        // ai1 system은 하나의 문자열로 통합
-                        if (promptsData[ai][category].length === 0) {
-                            promptsData[ai][category].push({
-                                id: prompt.id,
-                                content: prompt.content,
-                                index: 0
-                            });
-                        } else {
-                            // 기존 내용에 추가 (여러 항목이 있을 경우)
-                            promptsData[ai][category][0].content += '\n\n' + prompt.content;
-                        }
-                    } else {
-                        // 다른 프롬프트는 기존 방식대로 처리
-                        promptsData[ai][category].push({
-                            id: prompt.id,
-                            content: prompt.content,
-                            index: prompt.content_index || 0
-                        });
-                    }
-                });
-
-                // originalData도 동일하게 복사
-                for (const ai in promptsData) {
-                    for (const category in promptsData[ai]) {
-                        originalData[ai][category] = JSON.parse(JSON.stringify(promptsData[ai][category]));
-                    }
-                }
-
-                console.log('[프론트] 정리된 프롬프트 데이터:', promptsData);
-                renderPrompts();
-
-            } catch (error) {
-                console.error('프롬프트 로드 오류:', error);
-                showSaveStatus('프롬프트 로드 중 오류가 발생했습니다.', 'error');
+        Object.entries(prompts).forEach(([ai, categories]) => {
+            if (!promptsData[ai]) {
+                promptsData[ai] = { system: [], role: [], guide: [], format: [] };
+                originalData[ai] = { system: [], role: [], guide: [], format: [] };
             }
-        }
+            ['system', 'role', 'guide', 'format'].forEach(category => {
+                const items = categories[category] || [];
+                // ai1의 system 프롬프트는 반드시 문자열로만 처리
+                if (ai === 'ai1' && category === 'system') {
+                    let content = '';
+                    if (typeof items === 'string') {
+                        content = items;
+                    } else if (Array.isArray(items)) {
+                        content = items.join('\n\n');
+                    }
+                    promptsData[ai][category] = [{
+                        id: 'ai1_system_0',
+                        content: content,
+                        index: 0
+                    }];
+                } else {
+                    promptsData[ai][category] = (Array.isArray(items) ? items : []).map((content, idx) => ({
+                        id: `${ai}_${category}_${idx}`,
+                        content: content,
+                        index: idx
+                    }));
+                }
+                originalData[ai][category] = JSON.parse(JSON.stringify(promptsData[ai][category]));
+            });
+        });
+
+        renderPrompts();
+    } catch (error) {
+        showSaveStatus('프롬프트 로드 중 오류가 발생했습니다.', 'error');
+    }
+}
 
         // 프롬프트 렌더링
         function renderPrompts() {
-            const categories = ['system', 'role', 'guide', 'format'];
+    const categories = ['system', 'role', 'guide', 'format'];
 
-            categories.forEach(category => {
-                const container = document.getElementById(`${category}-prompts`);
-                const prompts = promptsData[currentAI]?.[category] || [];
+    categories.forEach(category => {
+        const container = document.getElementById(`${category}-prompts`);
+        const prompts = promptsData[currentAI]?.[category] || [];
 
-                container.innerHTML = '';
+        container.innerHTML = '';
 
-                // ai1의 system 프롬프트는 textarea 하나로 통합 관리
-                if (currentAI === 'ai1' && category === 'system') {
-                    // ai1 system은 하나의 문자열로 표시
-                    const value = prompts.length > 0 ? prompts[0].content : '';
-                    const textarea = document.createElement('textarea');
-                    textarea.style.width = '100%';
-                    textarea.style.minHeight = '400px';
-                    textarea.style.fontFamily = 'Courier New, monospace';
-                    textarea.style.fontSize = '1em';
-                    textarea.style.lineHeight = '1.5';
-                    textarea.style.padding = '10px';
-                    textarea.style.border = '1px solid #ddd';
-                    textarea.style.borderRadius = '5px';
-                    textarea.value = value;
-                    textarea.id = 'ai1-system-textarea';
-
-                    // textarea 변경 이벤트 리스너 추가
-                    textarea.addEventListener('input', function () {
-                        if (!promptsData[currentAI]) {
-                            promptsData[currentAI] = { system: [], role: [], guide: [], format: [] };
-                        }
-                        // textarea 내용을 promptsData에 업데이트
-                        promptsData[currentAI][category] = [{
-                            id: 'ai1_system_0',
-                            content: this.value,
-                            index: 0
-                        }];
-                    });
-
-                    container.appendChild(textarea);
-                } else {
-                    // 다른 프롬프트는 기존 방식대로 처리
-                    prompts.forEach((prompt, index) => {
-                        const promptElement = createPromptElement(category, prompt, index);
-                        container.appendChild(promptElement);
-                    });
-
-                    // 새 프롬프트 추가 섹션 (ai1/system 제외)
-                    const addSection = document.createElement('div');
-                    addSection.className = 'add-prompt-section';
-                    addSection.innerHTML = `
-                        <div class="add-prompt-icon">➕</div>
-                        <div>새 ${getCategoryName(category)} 프롬프트 추가</div>
-                    `;
-                    addSection.onclick = () => addPromptItem(category);
-                    container.appendChild(addSection);
+        // ai1의 system 프롬프트는 textarea 하나로만 관리
+        if (currentAI === 'ai1' && category === 'system') {
+            const value = prompts.length > 0 ? prompts[0].content : '';
+            const textarea = document.createElement('textarea');
+            textarea.style.width = '100%';
+            textarea.style.minHeight = '400px';
+            textarea.style.fontFamily = 'Courier New, monospace';
+            textarea.style.fontSize = '1em';
+            textarea.style.lineHeight = '1.5';
+            textarea.style.padding = '10px';
+            textarea.style.border = '1px solid #ddd';
+            textarea.style.borderRadius = '5px';
+            textarea.value = value;
+            textarea.id = 'ai1-system-textarea';
+            textarea.addEventListener('input', function () {
+                if (!promptsData[currentAI]) {
+                    promptsData[currentAI] = { system: [], role: [], guide: [], format: [] };
                 }
+                promptsData[currentAI][category] = [{
+                    id: 'ai1_system_0',
+                    content: this.value,
+                    index: 0
+                }];
             });
+            container.appendChild(textarea);
+        } else {
+            prompts.forEach((prompt, index) => {
+                const promptElement = createPromptElement(category, prompt, index);
+                container.appendChild(promptElement);
+            });
+            // 새 프롬프트 추가 섹션 (ai1/system 제외)
+            const addSection = document.createElement('div');
+            addSection.className = 'add-prompt-section';
+            addSection.innerHTML = `
+                <div class="add-prompt-icon">➕</div>
+                <div>새 ${getCategoryName(category)} 프롬프트 추가</div>
+            `;
+            addSection.onclick = () => addPromptItem(category);
+            container.appendChild(addSection);
         }
+    });
+}
 
         // 프롬프트 요소 생성
         function createPromptElement(category, prompt, index) {
@@ -721,7 +700,7 @@
 
         // 새 프롬프트 추가 (ai1 system은 비활성)
         function addPromptItem(category) {
-            if (currentAI === 'ai1' && category === 'system') return;
+    if (currentAI === 'ai1' && category === 'system') return;
             const container = document.getElementById(`${category}-prompts`);
             const addSection = container.querySelector('.add-prompt-section');
 
@@ -758,57 +737,56 @@
         }
 
         // 카테고리 저장
-        async function saveCategory(category) {
-            try {
-                let content;
-
-                // ai1의 system 프롬프트는 textarea 값을 그대로 사용
-                if (currentAI === 'ai1' && category === 'system') {
-                    const textarea = document.getElementById('ai1-system-textarea');
-                    content = textarea.value.trim();
-                } else {
-                    // 다른 경우는 promptsData에서 해당 카테고리의 프롬프트 내용을 합쳐서 사용
-                    const prompts = promptsData[currentAI]?.[category] || [];
-                    content = prompts.map(p => p.content).join('\n\n');
-                }
-
-                const categoryData = {
-                    ai_name: currentAI,
-                    category: category,
-                    content: content
-                };
-
-                console.log('[프론트] 저장할 데이터:', categoryData);
-
-                const response = await fetch(`/api/prompts/category`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(categoryData)
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showSaveStatus(`${getCategoryName(category)} 프롬프트가 성공적으로 저장되었습니다.`, 'success');
-
-                    // originalData 업데이트
-                    if (!originalData[currentAI]) {
-                        originalData[currentAI] = { system: [], role: [], guide: [], format: [] };
-                    }
-                    originalData[currentAI][category] = JSON.parse(JSON.stringify(promptsData[currentAI][category]));
-
-                    console.log('[프론트] 저장 성공:', result);
-                } else {
-                    showSaveStatus(`저장 실패: ${result.detail || result.message || '알 수 없는 오류'}`, 'error');
-                    console.error('[프론트] 저장 실패:', result);
-                }
-            } catch (error) {
-                console.error('[프론트] 저장 오류:', error);
-                showSaveStatus('저장 중 오류가 발생했습니다.', 'error');
-            }
+       async function saveCategory(category) {
+    try {
+        let content;
+        // ai1의 system 프롬프트는 textarea 값을 그대로 사용
+        if (currentAI === 'ai1' && category === 'system') {
+            const textarea = document.getElementById('ai1-system-textarea');
+            content = textarea.value.trim();
+        } else {
+            // 다른 경우는 promptsData에서 해당 카테고리의 프롬프트 내용을 합쳐서 사용
+            const prompts = promptsData[currentAI]?.[category] || [];
+            content = prompts.map(p => p.content).join('\n\n');
         }
+
+        const categoryData = {
+            ai_name: currentAI,
+            category: category,
+            content: content
+        };
+
+        console.log('[프론트] 저장할 데이터:', categoryData);
+
+        const response = await fetch(`/api/prompts/category`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(categoryData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showSaveStatus(`${getCategoryName(category)} 프롬프트가 성공적으로 저장되었습니다.`, 'success');
+
+            // originalData 업데이트
+            if (!originalData[currentAI]) {
+                originalData[currentAI] = { system: [], role: [], guide: [], format: [] };
+            }
+            originalData[currentAI][category] = JSON.parse(JSON.stringify(promptsData[currentAI][category]));
+
+            console.log('[프론트] 저장 성공:', result);
+        } else {
+            showSaveStatus(`저장 실패: ${result.detail || result.message || '알 수 없는 오류'}`, 'error');
+            console.error('[프론트] 저장 실패:', result);
+        }
+    } catch (error) {
+        console.error('[프론트] 저장 오류:', error);
+        showSaveStatus('저장 중 오류가 발생했습니다.', 'error');
+    }
+}
 
         // 변경사항 확인
         function hasUnsavedChanges() {
