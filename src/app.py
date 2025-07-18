@@ -48,10 +48,21 @@ memory_sessions = {}
 memory_messages = {}
 memory_cache = {}
 
-# Dotenv 로드
+# Dotenv 로드 - b43dd7c 커밋의 성공적인 방식 적용
 from dotenv import load_dotenv
 import os
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
+
+# 프로젝트 루트 디렉토리 찾기
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+env_path = os.path.join(project_root, ".env")
+
+# 환경변수 로드
+load_dotenv(dotenv_path=env_path)
+
+# 로드 확인
+logger.info(f"🔧 환경변수 로드 경로: {env_path}")
+logger.info(f"🔧 .env 파일 존재: {os.path.exists(env_path)}")
 
 # Railway 최종 서버 시작 로그
 logger.info("🚀 ==========================================")
@@ -65,12 +76,24 @@ logger.info("🚀 세션 저장 기능 완성됨")
 logger.info("🚀 이 파일이 실행되면 모든 문제가 해결된 것입니다!")
 logger.info("🚀 ==========================================")
 
-# 환경변수 설정 - Railway 환경 최적화
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+# 환경변수 설정 - b43dd7c 커밋의 성공적인 방식 적용
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+OPENAI_PROJECT_ID = os.getenv("OPENAI_PROJECT_ID", "").strip()
+GPT_MODEL = os.getenv("GPT_MODEL", "gpt-4o")
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2048"))
+TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
+
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "eora_ai")
+
+# 환경변수 로드 확인 로그
+logger.info(f"🔧 OpenAI API Key 설정: {'✅ 설정됨' if OPENAI_API_KEY else '❌ 설정 안됨'}")
+logger.info(f"🔧 OpenAI Project ID 설정: {'✅ 설정됨' if OPENAI_PROJECT_ID else '❌ 설정 안됨'}")
+logger.info(f"🔧 GPT Model: {GPT_MODEL}")
+logger.info(f"🔧 Max Tokens: {MAX_TOKENS}")
+logger.info(f"🔧 Temperature: {TEMPERATURE}")
 
 
 
@@ -214,28 +237,34 @@ else:
 prompts_data = {}
 
 
-# OpenAI 클라이언트 초기화 (Railway 호환 - 완전 안전)
+# OpenAI 클라이언트 초기화 - b43dd7c 커밋의 성공적인 방식 적용
 openai_client = None
 if OPENAI_API_KEY:
     try:
         import openai
-        # OpenAI 1.0.0+ 버전 호환 코드 - 완전 안전한 초기화
+        # OpenAI 1.0.0+ 버전 호환 코드 - b43dd7c 커밋 방식
         if hasattr(openai, 'OpenAI'):
-            # 새로운 OpenAI 클라이언트 (1.0.0+) - 최소한의 인자만 사용
-            # proxies 인자 제거하여 오류 방지
-            openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
-            logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+) - Railway 호환")
+            # 새로운 OpenAI 클라이언트 (1.0.0+) - project_id 포함
+            if OPENAI_PROJECT_ID:
+                openai_client = openai.OpenAI(
+                    api_key=OPENAI_API_KEY,
+                    project=OPENAI_PROJECT_ID
+                )
+                logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+ with project) - b43dd7c 방식")
+            else:
+                openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+                logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+) - b43dd7c 방식")
         else:
             # 구버전 OpenAI 클라이언트
             openai.api_key = OPENAI_API_KEY
             openai_client = openai
-            logger.info("✅ OpenAI API 키 설정 성공 (구버전)")
+            logger.info("✅ OpenAI API 키 설정 성공 (구버전) - b43dd7c 방식")
     except Exception as e:
-        logger.warning(f"❌ OpenAI API 클라이언트 초기화 실패: {e}")
-        logger.info("ℹ️ Railway 환경에서 API 키를 확인해주세요.")
+        logger.error(f"❌ OpenAI API 클라이언트 초기화 실패: {e}")
+        logger.info("ℹ️ b43dd7c 커밋의 환경변수 설정을 확인해주세요.")
         openai_client = None
 else:
-    logger.info("ℹ️ OPENAI_API_KEY가 설정되지 않았습니다. Railway 환경변수를 확인해주세요.")
+    logger.error("❌ OPENAI_API_KEY가 설정되지 않았습니다. b43dd7c 커밋의 .env 파일을 확인해주세요.")
 
 
 
