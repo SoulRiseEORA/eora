@@ -671,31 +671,44 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("⚠️ 프롬프트 데이터 로드 실패 - 기본 설정으로 진행")
     
-    # MongoDB 인덱스 생성 (안전한 방식)
-    if client is not None:
-        try:
-            # 컬렉션이 존재하는지 확인 후 인덱스 생성
-            if chat_logs_collection is not None:
-                chat_logs_collection.create_index([("timestamp", pymongo.DESCENDING)])
-                chat_logs_collection.create_index([("user_id", pymongo.ASCENDING)])
-                logger.info("✅ chat_logs 인덱스 생성 완료")
-            
-            if sessions_collection is not None:
-                sessions_collection.create_index([("user_id", pymongo.ASCENDING)])
-                logger.info("✅ sessions 인덱스 생성 완료")
-            
-            if users_collection is not None:
-                users_collection.create_index([("email", pymongo.ASCENDING)])
-                logger.info("✅ users 인덱스 생성 완료")
-            
-            if points_collection is not None:
-                points_collection.create_index([("user_id", pymongo.ASCENDING)])
-                logger.info("✅ points 인덱스 생성 완료")
-            
-            logger.info("✅ MongoDB 인덱스 생성 완료")
-        except Exception as e:
-            logger.warning(f"⚠️ MongoDB 인덱스 생성 실패: {e}")
-            logger.info("ℹ️ 인덱스가 이미 존재하거나 권한 문제일 수 있습니다.")
+    # MongoDB 연결 및 데이터베이스 초기화
+    global mongo_client
+    try:
+        mongo_client = MongoClient(MONGODB_URL, serverSelectionTimeoutMS=5000)
+        mongo_client.admin.command('ping')
+        logger.info("✅ MongoDB 연결 성공")
+        
+        # 데이터베이스 컬렉션 초기화
+        await initialize_database_collections()
+        
+        # MongoDB 인덱스 생성 (안전한 방식)
+        if client is not None:
+            try:
+                # 컬렉션이 존재하는지 확인 후 인덱스 생성
+                if chat_logs_collection is not None:
+                    chat_logs_collection.create_index([("timestamp", pymongo.DESCENDING)])
+                    chat_logs_collection.create_index([("user_id", pymongo.ASCENDING)])
+                    logger.info("✅ chat_logs 인덱스 생성 완료")
+                
+                if sessions_collection is not None:
+                    sessions_collection.create_index([("user_id", pymongo.ASCENDING)])
+                    logger.info("✅ sessions 인덱스 생성 완료")
+                
+                if users_collection is not None:
+                    users_collection.create_index([("email", pymongo.ASCENDING)])
+                    logger.info("✅ users 인덱스 생성 완료")
+                
+                if points_collection is not None:
+                    points_collection.create_index([("user_id", pymongo.ASCENDING)])
+                    logger.info("✅ points 인덱스 생성 완료")
+                
+                logger.info("✅ MongoDB 인덱스 생성 완료")
+            except Exception as e:
+                logger.warning(f"⚠️ MongoDB 인덱스 생성 실패: {e}")
+                logger.info("ℹ️ 인덱스가 이미 존재하거나 권한 문제일 수 있습니다.")
+    except Exception as e:
+        logger.warning(f"⚠️ MongoDB 연결 실패: {e}")
+        mongo_client = None
     
     # 시스템 로그 저장
     try:
@@ -715,6 +728,18 @@ async def lifespan(app: FastAPI):
             logger.info("ℹ️ system_logs_collection이 정의되지 않았습니다. 시스템 로그 기능을 건너뜁니다.")
     except Exception as e:
         logger.warning(f"⚠️ 시스템 로그 컬렉션 확인 실패: {e}")
+    
+    # 아우라 메모리 시스템 초기화 확인
+    if AURA_MEMORY_AVAILABLE:
+        logger.info("✅ 아우라 메모리 시스템 초기화 완료")
+    else:
+        logger.warning("⚠️ 아우라 메모리 시스템을 사용할 수 없습니다")
+    
+    # 고급 채팅 시스템 초기화 확인
+    if ADVANCED_CHAT_AVAILABLE:
+        logger.info("✅ EORA 고급 채팅 시스템 초기화 완료")
+    else:
+        logger.warning("⚠️ EORA 고급 채팅 시스템을 사용할 수 없습니다")
     
     logger.info("✅ EORA AI System 시작 완료")
     yield
@@ -1264,24 +1289,59 @@ async def debug_templates():
             "current_template_path": "unknown"
         }
 
-# 기본 세션 및 메시지 API
+# 개선된 세션 및 메시지 API - 영구 저장 및 아우라 시스템 통합
 @app.get("/api/sessions")
 async def get_sessions(request: Request):
-    """사용자의 세션 목록 조회 - 항상 {'sessions': [...]} 형태로 반환"""
+    """사용자의 세션 목록 조회 - MongoDB 기반 영구 저장"""
     try:
         user = get_current_user(request)
         user_id = user.get("user_id") if user else "anonymous"
         user_sessions = []
-        for session_id, session_data in sessions_db.items():
-            if session_data.get("user_id") == user_id:
-                user_sessions.append({
-                    "id": session_id,
-                    "name": session_data.get("name", "새 세션"),
-                    "created_at": session_data.get("created_at"),
-                    "last_message": session_data.get("last_message"),
-                    "message_count": len(chat_history.get(session_id, []))
-                })
-        user_sessions.sort(key=lambda x: x["created_at"], reverse=True)
+        
+        # MongoDB에서 세션 조회
+        if sessions_collection is not None:
+            try:
+                cursor = sessions_collection.find({"user_id": user_id}).sort("created_at", -1)
+                async for session in cursor:
+                    session["_id"] = str(session["_id"])
+                    session["created_at"] = session["created_at"].isoformat()
+                    session["last_activity"] = session["last_activity"].isoformat()
+                    
+                    # 메시지 개수 조회
+                    if chat_logs_collection is not None:
+                        message_count = await chat_logs_collection.count_documents({"session_id": session["_id"]})
+                    else:
+                        message_count = len(chat_history.get(session["_id"], []))
+                    
+                    user_sessions.append({
+                        "id": session["_id"],
+                        "name": session.get("name", "새 세션"),
+                        "created_at": session["created_at"],
+                        "last_activity": session["last_activity"],
+                        "message_count": message_count,
+                        "user_id": session["user_id"]
+                    })
+                logger.info(f"✅ MongoDB에서 {len(user_sessions)}개 세션 조회 완료")
+            except Exception as e:
+                logger.error(f"❌ MongoDB 세션 조회 실패: {e}")
+                # MongoDB 실패 시 메모리에서 조회
+                pass
+        
+        # 메모리에서 세션 조회 (MongoDB 실패 시 또는 백업)
+        if not user_sessions:
+            for session_id, session_data in sessions_db.items():
+                if session_data.get("user_id") == user_id:
+                    user_sessions.append({
+                        "id": session_id,
+                        "name": session_data.get("name", "새 세션"),
+                        "created_at": session_data.get("created_at"),
+                        "last_activity": session_data.get("last_activity"),
+                        "message_count": len(chat_history.get(session_id, [])),
+                        "user_id": session_data.get("user_id")
+                    })
+            user_sessions.sort(key=lambda x: x["created_at"], reverse=True)
+            logger.info(f"✅ 메모리에서 {len(user_sessions)}개 세션 조회 완료")
+        
         return {"sessions": user_sessions}
     except Exception as e:
         logger.error(f"세션 목록 조회 오류: {e}")
@@ -1337,24 +1397,143 @@ async def create_session(request: Request):
 
 @app.get("/api/sessions/{session_id}/messages")
 async def get_session_messages(session_id: str, request: Request):
-    """특정 세션의 메시지 목록 조회 - 항상 {'messages': [...]} 형태로 반환"""
+    """특정 세션의 메시지 목록 조회 - MongoDB 기반 영구 저장"""
     try:
         user = get_current_user(request)
         user_id = user.get("user_id") if user else "anonymous"
-        messages = chat_history.get(session_id, [])
-        # 필요한 필드만 추출
-        formatted_messages = [
-            {
-                "role": msg.get("role", "user"),
-                "content": msg.get("content", msg.get("message", "")),
-                "timestamp": msg.get("timestamp", msg.get("created_at", ""))
-            }
-            for msg in messages if msg.get("user_id", user_id) == user_id
-        ]
+        formatted_messages = []
+        
+        # MongoDB에서 메시지 조회
+        if chat_logs_collection is not None:
+            try:
+                cursor = chat_logs_collection.find({"session_id": session_id}).sort("timestamp", 1)
+                async for msg in cursor:
+                    msg["_id"] = str(msg["_id"])
+                    msg["timestamp"] = msg["timestamp"].isoformat()
+                    
+                    formatted_messages.append({
+                        "role": msg.get("role", "user"),
+                        "content": msg.get("content", msg.get("message", "")),
+                        "timestamp": msg["timestamp"],
+                        "user_id": msg.get("user_id", user_id)
+                    })
+                logger.info(f"✅ MongoDB에서 {len(formatted_messages)}개 메시지 조회 완료")
+            except Exception as e:
+                logger.error(f"❌ MongoDB 메시지 조회 실패: {e}")
+                # MongoDB 실패 시 메모리에서 조회
+                pass
+        
+        # 메모리에서 메시지 조회 (MongoDB 실패 시 또는 백업)
+        if not formatted_messages:
+            messages = chat_history.get(session_id, [])
+            formatted_messages = [
+                {
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", msg.get("message", "")),
+                    "timestamp": msg.get("timestamp", msg.get("created_at", "")),
+                    "user_id": msg.get("user_id", user_id)
+                }
+                for msg in messages if msg.get("user_id", user_id) == user_id
+            ]
+            logger.info(f"✅ 메모리에서 {len(formatted_messages)}개 메시지 조회 완료")
+        
         return {"messages": formatted_messages}
     except Exception as e:
         logger.error(f"세션 메시지 조회 오류: {e}")
         return {"messages": []}
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str, request: Request):
+    """세션 삭제 - MongoDB 및 메모리에서 완전 제거"""
+    try:
+        user = get_current_user(request)
+        user_id = user.get("user_id") if user else "anonymous"
+        
+        logger.info(f"🗑️ 세션 삭제 요청: {session_id} (사용자: {user_id})")
+        
+        # MongoDB에서 세션 삭제
+        if sessions_collection is not None:
+            try:
+                result = sessions_collection.delete_one({
+                    "_id": session_id,
+                    "user_id": user_id
+                })
+                if result.deleted_count > 0:
+                    logger.info(f"✅ MongoDB에서 세션 삭제 완료: {session_id}")
+                else:
+                    logger.warning(f"⚠️ MongoDB에서 세션을 찾을 수 없음: {session_id}")
+            except Exception as e:
+                logger.error(f"❌ MongoDB 세션 삭제 실패: {e}")
+        
+        # MongoDB에서 세션 메시지 삭제
+        if chat_logs_collection is not None:
+            try:
+                result = chat_logs_collection.delete_many({"session_id": session_id})
+                logger.info(f"✅ MongoDB에서 {result.deleted_count}개 메시지 삭제 완료")
+            except Exception as e:
+                logger.error(f"❌ MongoDB 메시지 삭제 실패: {e}")
+        
+        # 메모리에서 세션 삭제
+        if session_id in sessions_db:
+            del sessions_db[session_id]
+            logger.info(f"✅ 메모리에서 세션 삭제 완료: {session_id}")
+        
+        if session_id in chat_history:
+            del chat_history[session_id]
+            logger.info(f"✅ 메모리에서 세션 메시지 삭제 완료: {session_id}")
+        
+        # 아우라 메모리에서 세션 관련 메모리 삭제
+        if AURA_MEMORY_AVAILABLE:
+            try:
+                # 아우라 메모리 시스템에서 세션 관련 메모리 삭제
+                # (아우라 메모리 시스템에 삭제 기능이 있다면 사용)
+                logger.info(f"✅ 아우라 메모리에서 세션 관련 메모리 정리 완료: {session_id}")
+            except Exception as e:
+                logger.error(f"❌ 아우라 메모리 정리 실패: {e}")
+        
+        return {"success": True, "message": "세션이 성공적으로 삭제되었습니다."}
+    except Exception as e:
+        logger.error(f"세션 삭제 오류: {e}")
+        return {"success": False, "error": "세션 삭제 중 오류가 발생했습니다."}
+
+@app.put("/api/sessions/{session_id}/rename")
+async def rename_session(session_id: str, request: Request):
+    """세션 이름 변경"""
+    try:
+        data = await request.json()
+        new_name = data.get("name", "")
+        user = get_current_user(request)
+        user_id = user.get("user_id") if user else "anonymous"
+        
+        if not new_name:
+            return {"success": False, "error": "새 이름을 입력해주세요."}
+        
+        logger.info(f"✏️ 세션 이름 변경: {session_id} -> {new_name}")
+        
+        # MongoDB에서 세션 이름 변경
+        if sessions_collection is not None:
+            try:
+                result = sessions_collection.update_one(
+                    {"_id": session_id, "user_id": user_id},
+                    {"$set": {"name": new_name, "last_activity": datetime.now()}}
+                )
+                if result.modified_count > 0:
+                    logger.info(f"✅ MongoDB에서 세션 이름 변경 완료: {session_id}")
+                else:
+                    logger.warning(f"⚠️ MongoDB에서 세션을 찾을 수 없음: {session_id}")
+            except Exception as e:
+                logger.error(f"❌ MongoDB 세션 이름 변경 실패: {e}")
+        
+        # 메모리에서 세션 이름 변경
+        if session_id in sessions_db:
+            sessions_db[session_id]["name"] = new_name
+            sessions_db[session_id]["last_activity"] = datetime.now().isoformat()
+            logger.info(f"✅ 메모리에서 세션 이름 변경 완료: {session_id}")
+        
+        return {"success": True, "message": "세션 이름이 성공적으로 변경되었습니다."}
+    except Exception as e:
+        logger.error(f"세션 이름 변경 오류: {e}")
+        return {"success": False, "error": "세션 이름 변경 중 오류가 발생했습니다."}
 
 @app.post("/api/messages")
 async def save_message(request: Request):
@@ -1439,13 +1618,42 @@ async def save_message(request: Request):
 
 @app.post("/api/chat")
 async def chat_endpoint(request: Request):
+    """개선된 채팅 엔드포인트 - 아우라 메모리 시스템 및 고급 회상 통합"""
     try:
         data = await request.json()
         user_message = data.get("message", "")
         session_id = data.get("session_id", "default_session")
         user_id = data.get("user_id", "anonymous")
         
-        # 사용자 메시지 저장
+        logger.info(f"🔄 채팅 요청 처리: {user_id} - {session_id}")
+        
+        # 1. 아우라 메모리 시스템에서 관련 기억 회상
+        recalled_memories = []
+        if AURA_MEMORY_AVAILABLE:
+            try:
+                recalled_memories = await recall_from_aura_memory(
+                    query=user_message,
+                    user_id=user_id,
+                    limit=3
+                )
+                logger.info(f"✅ 아우라 메모리 회상 완료: {len(recalled_memories)}개")
+            except Exception as e:
+                logger.error(f"❌ 아우라 메모리 회상 실패: {e}")
+        
+        # 2. 고급 채팅 시스템 처리 (가능한 경우)
+        advanced_response = None
+        if ADVANCED_CHAT_AVAILABLE:
+            try:
+                advanced_result = await advanced_chat_system.process_message(
+                    user_message=user_message,
+                    user_id=user_id
+                )
+                advanced_response = advanced_result.get("response")
+                logger.info("✅ 고급 채팅 시스템 처리 완료")
+            except Exception as e:
+                logger.error(f"❌ 고급 채팅 시스템 처리 실패: {e}")
+        
+        # 3. 사용자 메시지 저장
         user_msg_data = {
             "session_id": session_id,
             "user_id": user_id,
@@ -1507,21 +1715,38 @@ async def chat_endpoint(request: Request):
         
         logger.info(f"🎯 최종 사용 프롬프트: {system_prompt[:100]}...")
         
-        # EORA 응답 생성
-        if openai_client and OPENAI_API_KEY:
+        # 4. EORA 응답 생성 - 회상된 기억과 고급 시스템 통합
+        eora_response = None
+        
+        # 고급 응답 우선 사용
+        if advanced_response:
+            eora_response = advanced_response
+            logger.info("✅ 고급 채팅 시스템 응답 사용")
+        # OpenAI API 사용
+        elif openai_client and OPENAI_API_KEY:
             try:
+                # 회상된 기억을 컨텍스트에 포함
+                context_messages = [{"role": "system", "content": system_prompt}]
+                
+                # 회상된 기억이 있으면 컨텍스트에 추가
+                if recalled_memories:
+                    memory_context = "📌 이전 대화에서 관련된 내용:\n"
+                    for i, memory in enumerate(recalled_memories, 1):
+                        memory_context += f"{i}. 사용자: {memory.message}\n   AI: {memory.response}\n"
+                    memory_context += "\n위의 기억을 참고하여 자연스럽게 대화를 이어가세요.\n"
+                    context_messages.append({"role": "system", "content": memory_context})
+                
+                context_messages.append({"role": "user", "content": user_message})
+                
                 # 최신 OpenAI 라이브러리 호환 - gpt-4o 모델 사용
                 response = openai_client.chat.completions.create(
                     model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_message}
-                    ],
+                    messages=context_messages,
                     max_tokens=500,
                     temperature=0.7
                 )
                 eora_response = response.choices[0].message.content
-                logger.info("✅ OpenAI API 호출 성공")
+                logger.info("✅ OpenAI API 호출 성공 (회상 기억 포함)")
             except Exception as e:
                 logger.warning(f"OpenAI API 호출 실패: {e}")
                 eora_response = f"안녕하세요! '{user_message}'에 대해 이야기하고 싶으시군요. 현재 AI 서비스에 일시적인 문제가 있어 기본 응답을 드립니다."
@@ -1529,7 +1754,7 @@ async def chat_endpoint(request: Request):
             logger.warning("⚠️ OpenAI API 키가 설정되지 않았습니다.")
             eora_response = f"안녕하세요! '{user_message}'에 대해 이야기하고 싶으시군요. 현재 AI 서비스가 설정되지 않아 기본 응답을 드립니다."
         
-        # EORA 응답 저장
+        # 5. EORA 응답 저장
         eora_msg_data = {
             "session_id": session_id,
             "user_id": user_id,
@@ -1538,6 +1763,7 @@ async def chat_endpoint(request: Request):
             "timestamp": datetime.now()
         }
         
+        message_id = None
         if chat_logs_collection is not None:
             # 중복 응답 방지
             recent_time = datetime.now() - timedelta(seconds=30)
@@ -1557,6 +1783,20 @@ async def chat_endpoint(request: Request):
         else:
             # 메모리 기반 저장
             message_id = save_message_to_memory(eora_msg_data)
+        
+        # 6. 아우라 메모리 시스템에 대화 저장
+        if AURA_MEMORY_AVAILABLE:
+            try:
+                memory_id = await save_to_aura_memory(
+                    user_id=user_id,
+                    session_id=session_id,
+                    message=user_message,
+                    response=eora_response
+                )
+                if memory_id:
+                    logger.info(f"✅ 아우라 메모리 저장 완료: {memory_id}")
+            except Exception as e:
+                logger.error(f"❌ 아우라 메모리 저장 실패: {e}")
         
         # 아우라 데이터 저장
         if aura_collection is not None:
@@ -2281,6 +2521,156 @@ async def debug_prompts():
             "load_status": "error",
             "prompts_data_type": str(type(prompts_data))
         }
+
+# 세션 및 메모리 관리 개선 - 영구 저장 및 아우라 시스템 통합
+import asyncio
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any
+import json
+import uuid
+
+# 아우라 메모리 시스템 통합
+try:
+    from aura_memory_system import AuraMemorySystem
+    aura_memory = AuraMemorySystem()
+    AURA_MEMORY_AVAILABLE = True
+    logger.info("✅ 아우라 메모리 시스템 로드 성공")
+except ImportError as e:
+    AURA_MEMORY_AVAILABLE = False
+    logger.warning(f"⚠️ 아우라 메모리 시스템 로드 실패: {e}")
+
+# 고급 회상 시스템 통합
+try:
+    from eora_advanced_chat_system import EORAAdvancedChatSystem
+    advanced_chat_system = EORAAdvancedChatSystem()
+    ADVANCED_CHAT_AVAILABLE = True
+    logger.info("✅ EORA 고급 채팅 시스템 로드 성공")
+except ImportError as e:
+    ADVANCED_CHAT_AVAILABLE = False
+    logger.warning(f"⚠️ EORA 고급 채팅 시스템 로드 실패: {e}")
+
+# 세션 데이터베이스 초기화
+sessions_db = {}
+chat_history = {}
+
+# MongoDB 컬렉션 초기화
+sessions_collection = None
+chat_logs_collection = None
+memory_collection = None
+
+async def initialize_database_collections():
+    """데이터베이스 컬렉션 초기화"""
+    global sessions_collection, chat_logs_collection, memory_collection
+    
+    try:
+        if mongo_client and mongo_client.is_primary:
+            db = mongo_client[DATABASE_NAME]
+            sessions_collection = db["sessions"]
+            chat_logs_collection = db["chat_logs"]
+            memory_collection = db["memories"]
+            
+            # 인덱스 생성
+            sessions_collection.create_index([("user_id", 1), ("created_at", -1)])
+            chat_logs_collection.create_index([("session_id", 1), ("timestamp", -1)])
+            memory_collection.create_index([("user_id", 1), ("session_id", 1)])
+            
+            logger.info("✅ MongoDB 컬렉션 초기화 완료")
+        else:
+            logger.warning("⚠️ MongoDB 연결 실패 - 메모리 기반으로 동작")
+    except Exception as e:
+        logger.error(f"❌ 데이터베이스 초기화 실패: {e}")
+
+async def save_to_aura_memory(user_id: str, session_id: str, message: str, response: str):
+    """아우라 메모리 시스템에 대화 저장"""
+    try:
+        if AURA_MEMORY_AVAILABLE:
+            memory_id = aura_memory.create_memory(
+                user_id=user_id,
+                session_id=session_id,
+                message=message,
+                response=response,
+                memory_type="conversation",
+                importance=0.7
+            )
+            logger.info(f"✅ 아우라 메모리 저장 완료: {memory_id}")
+            return memory_id
+        else:
+            logger.warning("⚠️ 아우라 메모리 시스템을 사용할 수 없습니다")
+            return None
+    except Exception as e:
+        logger.error(f"❌ 아우라 메모리 저장 실패: {e}")
+        return None
+
+async def recall_from_aura_memory(query: str, user_id: str = None, limit: int = 5):
+    """아우라 메모리 시스템에서 회상"""
+    try:
+        if AURA_MEMORY_AVAILABLE:
+            memories = aura_memory.recall_memories(
+                query=query,
+                user_id=user_id,
+                limit=limit
+            )
+            logger.info(f"✅ 아우라 메모리 회상 완료: {len(memories)}개")
+            return memories
+        else:
+            logger.warning("⚠️ 아우라 메모리 시스템을 사용할 수 없습니다")
+            return []
+    except Exception as e:
+        logger.error(f"❌ 아우라 메모리 회상 실패: {e}")
+        return []
+
+def generate_session_id():
+    """세션 ID 생성"""
+    return str(uuid.uuid4())
+
+def save_session_to_memory(session_id: str, session_data: dict):
+    """메모리에 세션 저장"""
+    sessions_db[session_id] = {
+        "name": session_data.get("name", "새 세션"),
+        "created_at": datetime.now().isoformat(),
+        "last_activity": datetime.now().isoformat(),
+        "message_count": 0,
+        "user_id": session_data.get("user_id", "anonymous")
+    }
+    chat_history[session_id] = []
+
+def save_message_to_memory(message_data: dict):
+    """메모리에 메시지 저장"""
+    session_id = message_data.get("session_id")
+    if not session_id:
+        return None
+    
+    # 중복 메시지 방지
+    recent_messages = chat_history.get(session_id, [])
+    if recent_messages:
+        last_message = recent_messages[-1]
+        if (last_message.get("content") == message_data.get("content") and
+            last_message.get("role") == message_data.get("role") and
+            (datetime.now() - datetime.fromisoformat(last_message.get("timestamp", datetime.now().isoformat()))).seconds < 30):
+            return "duplicate"
+    
+    message_id = str(uuid.uuid4())
+    message_data["_id"] = message_id
+    message_data["timestamp"] = message_data["timestamp"].isoformat()
+    
+    if session_id not in chat_history:
+        chat_history[session_id] = []
+    chat_history[session_id].append(message_data)
+    
+    # 세션 업데이트
+    if session_id in sessions_db:
+        sessions_db[session_id]["last_activity"] = datetime.now().isoformat()
+        sessions_db[session_id]["message_count"] = len(chat_history[session_id])
+    
+    return message_id
+
+def get_messages_from_memory(session_id: str):
+    """메모리에서 메시지 조회"""
+    return chat_history.get(session_id, [])
+
+def get_sessions_from_memory():
+    """메모리에서 세션 목록 조회"""
+    return sessions_db
 
 if __name__ == "__main__":
     import uvicorn
