@@ -951,6 +951,11 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
         }
+
+        .login-section.highlight {
+            box-shadow: 0 0 0 4px #ffb300;
+            transition: box-shadow 0.3s;
+        }
     </style>
 </head>
 
@@ -987,7 +992,7 @@
                 <span class="logo-text">EORA</span>
             </a>
             <div class="translate-container">
-                <button class="header-chat-btn" onclick="startGuestChat()">
+                <button class="header-chat-btn" onclick="goChat()">
                     <span>💬</span>
                     채팅 시작하기
                 </button>
@@ -1024,7 +1029,7 @@
             </p>
 
             <div class="cta-buttons fade-in-up">
-                <button class="cta-btn cta-primary" onclick="startGuestChat()">
+                <button class="cta-btn cta-primary" onclick="goChat()">
                     <span>🚀</span>
                     채팅 시작하기
                 </button>
@@ -1054,7 +1059,6 @@
                         </label>
                     </div>
                     <button type="submit" class="login-btn">로그인</button>
-                    <button type="button" class="guest-btn" onclick="startGuestChat()">게스트로 시작하기</button>
                 </form>
                 <div class="social-login">
                     <div class="divider">
@@ -1512,7 +1516,6 @@
                         </label>
                     </div>
                     <button type="submit" class="login-btn">회원가입</button>
-                    <button type="button" class="guest-btn" onclick="startGuestChat()">게스트로 시작하기</button>
                 </form>
                 <div class="social-login">
                     <div class="divider">
@@ -1557,7 +1560,6 @@
                         </label>
                     </div>
                     <button type="submit" class="login-btn">로그인</button>
-                    <button type="button" class="guest-btn" onclick="startGuestChat()">게스트로 시작하기</button>
                 </form>
                 <div class="social-login">
                     <div class="divider">
@@ -1577,88 +1579,20 @@
             registerForm.remove();
         }
 
-        // 스크롤 애니메이션
-        function handleScrollAnimation() {
-            const elements = document.querySelectorAll('.scroll-reveal');
-            elements.forEach(element => {
-                const elementTop = element.getBoundingClientRect().top;
-                const elementVisible = 150;
-
-                if (elementTop < window.innerHeight - elementVisible) {
-                    element.classList.add('revealed');
+        function goChat() {
+            const userEmail = localStorage.getItem('user_email');
+            if (userEmail) {
+                window.location.href = '/chat';
+            } else {
+                // 로그인 폼 위치로 스크롤
+                const loginSection = document.querySelector('.login-section');
+                if (loginSection) {
+                    loginSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    loginSection.classList.add('highlight');
+                    setTimeout(() => loginSection.classList.remove('highlight'), 1500);
                 }
-            });
-        }
-
-        // 스무스 스크롤
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // 언어 선택기 클릭 이벤트
-        document.querySelector('.language-selector').addEventListener('click', function () {
-            const translateElement = document.querySelector('#google_translate_element');
-            if (translateElement) {
-                const select = translateElement.querySelector('select');
-                if (select) {
-                    select.click();
-                }
+                // 안내 메시지
+                alert('로그인이 필요합니다. 먼저 로그인 해주세요.');
             }
-        });
-
-        // Google Translate 완료 후 언어 감지
-        function checkTranslationComplete() {
-            const iframe = document.querySelector('.goog-te-banner-frame');
-            if (iframe) {
-                const currentLang = document.documentElement.lang;
-                const observer = new MutationObserver(function (mutations) {
-                    mutations.forEach(function (mutation) {
-                        if (mutation.type === 'attributes' && mutation.attributeName === 'lang') {
-                            const newLang = document.documentElement.lang;
-                            const chatLinks = document.querySelectorAll('a[href="/chat"]');
-                            chatLinks.forEach(link => {
-                                link.href = `/chat?lang=${newLang}`;
-                            });
-                        }
-                    });
-                });
-                observer.observe(document.documentElement, {
-                    attributes: true,
-                    attributeFilter: ['lang']
-                });
-            }
-        }
-
-        // 이벤트 리스너
-        window.addEventListener('load', function () {
-            setTimeout(checkTranslationComplete, 2000);
-            handleScrollAnimation();
-        });
-
-        window.addEventListener('scroll', handleScrollAnimation);
-
-        // 언어 선택 드롭다운 연동
-        const langSelect = document.getElementById('langSelect');
-        if (langSelect) {
-            langSelect.addEventListener('change', function () {
-                const val = langSelect.value;
-                const select = document.querySelector('#google_translate_element select');
-                if (select) {
-                    select.value = val;
-                    select.dispatchEvent(new Event('change'));
-                }
-            });
         }
     </script>
-</body>
-
-</html>
