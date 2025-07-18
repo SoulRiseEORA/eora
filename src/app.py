@@ -48,6 +48,25 @@ memory_sessions = {}
 memory_messages = {}
 memory_cache = {}
 
+# 사용자 인증 함수
+def get_current_user(request: Request):
+    """현재 사용자 정보를 반환합니다."""
+    try:
+        # 실제 환경에서는 JWT 토큰 등을 사용하여 사용자 인증
+        # 현재는 기본 사용자 정보 반환
+        return {
+            "user_id": "anonymous",
+            "username": "게스트",
+            "email": "guest@example.com"
+        }
+    except Exception as e:
+        logger.error(f"사용자 인증 오류: {e}")
+        return {
+            "user_id": "anonymous",
+            "username": "게스트",
+            "email": "guest@example.com"
+        }
+
 # Dotenv 로드 - b43dd7c 커밋의 성공적인 방식 적용
 from dotenv import load_dotenv
 import os
@@ -1624,7 +1643,7 @@ async def chat_endpoint(request: Request):
         
         # 1. 아우라 메모리 시스템에서 관련 기억 회상
         recalled_memories = []
-        if AURA_MEMORY_AVAILABLE:
+        if AURA_MEMORY_AVAILABLE and aura_memory:
             try:
                 recalled_memories = await recall_from_aura_memory(
                     query=user_message,
@@ -1634,10 +1653,12 @@ async def chat_endpoint(request: Request):
                 logger.info(f"✅ 아우라 메모리 회상 완료: {len(recalled_memories)}개")
             except Exception as e:
                 logger.error(f"❌ 아우라 메모리 회상 실패: {e}")
+        else:
+            logger.info("ℹ️ 아우라 메모리 시스템을 사용할 수 없어 기본 회상으로 동작합니다.")
         
         # 2. 고급 채팅 시스템 처리 (가능한 경우)
         advanced_response = None
-        if ADVANCED_CHAT_AVAILABLE:
+        if ADVANCED_CHAT_AVAILABLE and advanced_chat_system:
             try:
                 advanced_result = await advanced_chat_system.process_message(
                     user_message=user_message,
@@ -1783,7 +1804,7 @@ async def chat_endpoint(request: Request):
             message_id = save_message_to_memory(eora_msg_data)
         
         # 6. 아우라 메모리 시스템에 대화 저장
-        if AURA_MEMORY_AVAILABLE:
+        if AURA_MEMORY_AVAILABLE and aura_memory:
             try:
                 memory_id = await save_to_aura_memory(
                     user_id=user_id,
@@ -1795,6 +1816,8 @@ async def chat_endpoint(request: Request):
                     logger.info(f"✅ 아우라 메모리 저장 완료: {memory_id}")
             except Exception as e:
                 logger.error(f"❌ 아우라 메모리 저장 실패: {e}")
+        else:
+            logger.info("ℹ️ 아우라 메모리 시스템을 사용할 수 없어 기본 저장으로 동작합니다.")
         
         # 아우라 데이터 저장
         if aura_collection is not None:
@@ -2528,24 +2551,33 @@ import json
 import uuid
 
 # 아우라 메모리 시스템 통합
+AURA_MEMORY_AVAILABLE = False
+aura_memory = None
 try:
     from aura_memory_system import AuraMemorySystem
     aura_memory = AuraMemorySystem()
     AURA_MEMORY_AVAILABLE = True
     logger.info("✅ 아우라 메모리 시스템 로드 성공")
 except ImportError as e:
-    AURA_MEMORY_AVAILABLE = False
     logger.warning(f"⚠️ 아우라 메모리 시스템 로드 실패: {e}")
+    logger.info("ℹ️ 기본 메모리 시스템으로 동작합니다.")
+except Exception as e:
+    logger.warning(f"⚠️ 아우라 메모리 시스템 초기화 실패: {e}")
+    logger.info("ℹ️ 기본 메모리 시스템으로 동작합니다.")
 
 # 고급 회상 시스템 통합 (선택적)
+ADVANCED_CHAT_AVAILABLE = False
+advanced_chat_system = None
 try:
     from eora_advanced_chat_system import EORAAdvancedChatSystem
     advanced_chat_system = EORAAdvancedChatSystem()
     ADVANCED_CHAT_AVAILABLE = True
     logger.info("✅ EORA 고급 채팅 시스템 로드 성공")
 except ImportError as e:
-    ADVANCED_CHAT_AVAILABLE = False
     logger.info(f"ℹ️ EORA 고급 채팅 시스템을 사용할 수 없습니다: {e}")
+    logger.info("ℹ️ 기본 채팅 시스템으로 동작합니다.")
+except Exception as e:
+    logger.warning(f"⚠️ EORA 고급 채팅 시스템 초기화 실패: {e}")
     logger.info("ℹ️ 기본 채팅 시스템으로 동작합니다.")
 
 # 세션 데이터베이스 초기화
@@ -2582,7 +2614,7 @@ async def initialize_database_collections():
 async def save_to_aura_memory(user_id: str, session_id: str, message: str, response: str):
     """아우라 메모리 시스템에 대화 저장"""
     try:
-        if AURA_MEMORY_AVAILABLE:
+        if AURA_MEMORY_AVAILABLE and aura_memory:
             memory_id = aura_memory.create_memory(
                 user_id=user_id,
                 session_id=session_id,
@@ -2603,7 +2635,7 @@ async def save_to_aura_memory(user_id: str, session_id: str, message: str, respo
 async def recall_from_aura_memory(query: str, user_id: str = None, limit: int = 5):
     """아우라 메모리 시스템에서 회상"""
     try:
-        if AURA_MEMORY_AVAILABLE:
+        if AURA_MEMORY_AVAILABLE and aura_memory:
             memories = aura_memory.recall_memories(
                 query=query,
                 user_id=user_id,
