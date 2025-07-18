@@ -244,27 +244,20 @@ if OPENAI_API_KEY:
         import openai
         # OpenAI 1.0.0+ 버전 호환 코드 - b43dd7c 커밋 방식
         if hasattr(openai, 'OpenAI'):
-            # 새로운 OpenAI 클라이언트 (1.0.0+) - project_id 포함
-            if OPENAI_PROJECT_ID:
-                openai_client = openai.OpenAI(
-                    api_key=OPENAI_API_KEY,
-                    project=OPENAI_PROJECT_ID
-                )
-                logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+ with project) - b43dd7c 방식")
-            else:
-                openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
-                logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+) - b43dd7c 방식")
+            # 새로운 OpenAI 클라이언트 (1.0.0+) - project 인자 제거
+            openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            logger.info("✅ OpenAI API 키 설정 성공 (v1.0.0+) - 수정된 방식")
         else:
             # 구버전 OpenAI 클라이언트
             openai.api_key = OPENAI_API_KEY
             openai_client = openai
-            logger.info("✅ OpenAI API 키 설정 성공 (구버전) - b43dd7c 방식")
+            logger.info("✅ OpenAI API 키 설정 성공 (구버전)")
     except Exception as e:
         logger.error(f"❌ OpenAI API 클라이언트 초기화 실패: {e}")
-        logger.info("ℹ️ b43dd7c 커밋의 환경변수 설정을 확인해주세요.")
+        logger.info("ℹ️ OpenAI API 키 설정을 확인해주세요.")
         openai_client = None
 else:
-    logger.error("❌ OPENAI_API_KEY가 설정되지 않았습니다. b43dd7c 커밋의 .env 파일을 확인해주세요.")
+    logger.warning("⚠️ OPENAI_API_KEY가 설정되지 않았습니다. Railway 환경변수를 확인해주세요.")
 
 
 
@@ -383,9 +376,11 @@ try:
     from sentence_transformers import SentenceTransformer
     import faiss
     FAISS_AVAILABLE = True
+    logger.info("✅ FAISS 임베딩 시스템 로드 성공")
 except ImportError as e:
     FAISS_AVAILABLE = False
-    logger.info(f"ℹ️ FAISS 또는 sentence-transformers, numpy 미설치: {e}. 고급 대화 기능 비활성화.")
+    logger.info(f"ℹ️ FAISS 또는 sentence-transformers 미설치: {e}")
+    logger.info("ℹ️ 기본 키워드 기반 회상으로 동작합니다.")
 
 # Redis 연결 (Graceful Fallback - Railway 환경에서 선택적 사용)
 redis_client = None
@@ -1652,6 +1647,9 @@ async def chat_endpoint(request: Request):
                 logger.info("✅ 고급 채팅 시스템 처리 완료")
             except Exception as e:
                 logger.error(f"❌ 고급 채팅 시스템 처리 실패: {e}")
+                logger.info("ℹ️ 기본 채팅 시스템으로 전환합니다.")
+        else:
+            logger.info("ℹ️ 고급 채팅 시스템을 사용할 수 없어 기본 시스템으로 동작합니다.")
         
         # 3. 사용자 메시지 저장
         user_msg_data = {
@@ -2539,7 +2537,7 @@ except ImportError as e:
     AURA_MEMORY_AVAILABLE = False
     logger.warning(f"⚠️ 아우라 메모리 시스템 로드 실패: {e}")
 
-# 고급 회상 시스템 통합
+# 고급 회상 시스템 통합 (선택적)
 try:
     from eora_advanced_chat_system import EORAAdvancedChatSystem
     advanced_chat_system = EORAAdvancedChatSystem()
@@ -2547,7 +2545,8 @@ try:
     logger.info("✅ EORA 고급 채팅 시스템 로드 성공")
 except ImportError as e:
     ADVANCED_CHAT_AVAILABLE = False
-    logger.warning(f"⚠️ EORA 고급 채팅 시스템 로드 실패: {e}")
+    logger.info(f"ℹ️ EORA 고급 채팅 시스템을 사용할 수 없습니다: {e}")
+    logger.info("ℹ️ 기본 채팅 시스템으로 동작합니다.")
 
 # 세션 데이터베이스 초기화
 sessions_db = {}
