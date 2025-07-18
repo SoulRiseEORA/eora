@@ -642,6 +642,11 @@
             <div class="chat-header">
                 <div class="chat-title" data-i18n="chat.title">💬 EORA AI 채팅</div>
                 <div class="header-actions">
+                    <div id="pointStatus"
+                        style="font-size:13px; color:#fff; background:rgba(0,0,0,0.12); border-radius:12px; padding:4px 12px; margin-right:10px; display:flex; align-items:center; gap:8px;">
+                        <span>포인트: <b id="currentPoints">-</b></span>
+                        <span id="pointChange" style="color:#2196f3;"></span>
+                    </div>
                     <a href="/?from=chat" class="header-btn" data-i18n="chat.home">🏠 홈</a>
                     <a href="/dashboard" class="header-btn" data-i18n="chat.dashboard">대시보드</a>
                     <a href="/memory" class="header-btn" data-i18n="chat.memory">기억관리</a>
@@ -2332,6 +2337,25 @@
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 150) + 'px';
         });
+
+        // 포인트 상태 표시
+        async function updatePointStatus(change) {
+            try {
+                const res = await fetch('/api/user/points');
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('currentPoints').textContent = data.points || 0;
+                    if (change) {
+                        const el = document.getElementById('pointChange');
+                        el.textContent = (change > 0 ? '+' : '') + change;
+                        el.style.color = '#2196f3';
+                        setTimeout(() => { el.textContent = ''; }, 2000);
+                    }
+                }
+            } catch (e) { }
+        }
+        updatePointStatus();
+        // sendMessage 등 토큰 소모 후 updatePointStatus(-차감값) 호출 필요
     </script>
 </body>
 

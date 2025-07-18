@@ -32,7 +32,7 @@ class StorageType(Enum):
 class StorageQuota:
     """사용자별 저장공간 할당량"""
     user_id: str
-    total_quota_mb: int = 500  # 기본 500MB
+    total_quota_mb: int = 100  # 기본 100MB로 변경
     used_mb: int = 0
     chat_used_mb: int = 0
     memory_used_mb: int = 0
@@ -63,6 +63,11 @@ class StorageQuota:
     def is_full(self) -> bool:
         """저장공간이 가득 찼는지 확인"""
         return self.used_mb >= self.total_quota_mb
+    
+    @property
+    def is_warning(self) -> bool:
+        """95MB 이상 경고 구간 진입 여부"""
+        return self.used_mb >= (self.total_quota_mb * 0.95)
 
 class StorageManager:
     """사용자별 저장공간 관리 시스템"""
@@ -163,7 +168,7 @@ class StorageManager:
             if quota_data:
                 quota = StorageQuota(
                     user_id=quota_data["user_id"],
-                    total_quota_mb=quota_data.get("total_quota_mb", 500),
+                    total_quota_mb=quota_data.get("total_quota_mb", 100),
                     used_mb=quota_data.get("used_mb", 0),
                     chat_used_mb=quota_data.get("chat_used_mb", 0),
                     memory_used_mb=quota_data.get("memory_used_mb", 0),
@@ -273,19 +278,21 @@ class StorageManager:
             print(f"❌ 저장공간 사용량 업데이트 실패: {e}")
             return False
     
-    async def check_storage_available(self, user_id: str, required_mb: float) -> Tuple[bool, str]:
-        """저장공간 사용 가능 여부 확인"""
+    async def check_storage_available(self, user_id: str, required_mb: float) -> Tuple[bool, str, bool]:
+        """저장공간 사용 가능 여부 확인 (경고 상태 포함)"""
         try:
             quota = await self.get_user_storage_quota(user_id)
-            
+            warning = quota.is_warning
             if quota.available_mb >= required_mb:
-                return True, f"사용 가능: {quota.available_mb:.1f}MB"
+                if warning:
+                    return True, f"경고: 저장공간이 95% 이상 사용 중입니다. (남은 용량: {quota.available_mb:.1f}MB)", True
+                else:
+                    return True, f"사용 가능: {quota.available_mb:.1f}MB", False
             else:
-                return False, f"저장공간 부족: 필요 {required_mb}MB, 사용가능 {quota.available_mb:.1f}MB"
-                
+                return False, f"저장공간 부족: 필요 {required_mb}MB, 사용가능 {quota.available_mb:.1f}MB", warning
         except Exception as e:
             print(f"❌ 저장공간 확인 실패: {e}")
-            return False, "저장공간 확인 실패"
+            return False, "저장공간 확인 실패", False
     
     async def expand_storage_quota(self, user_id: str, additional_mb: int) -> bool:
         """저장공간 확장"""
@@ -317,22 +324,16 @@ class StorageManager:
             print(f"❌ 저장공간 확장 실패: {e}")
             return False
     
-    async def save_chat_message(self, user_id: str, message: str, response: str, session_id: str = "default") -> bool:
-        """채팅 메시지 저장 (저장공간 관리 포함)"""
+    async def save_chat_message(self, user_id: str, message: str, response: str, session_id: str = "default") -> Tuple[bool, str, bool]:
+        """채팅 메시지 저장 (저장공간 관리 포함, 경고 반환)"""
         try:
             if self.chat_collection is None:
-                return False
-            
-            # 메시지 크기 계산 (대략적)
+                return False, "DB 연결 오류", False
             message_size_mb = (len(message.encode('utf-8')) + len(response.encode('utf-8'))) / (1024 * 1024)
-            
-            # 저장공간 확인
-            available, message = await self.check_storage_available(user_id, message_size_mb)
+            available, msg, warning = await self.check_storage_available(user_id, message_size_mb)
             if not available:
                 print(f"⚠️ 저장공간 부족으로 채팅 저장 실패: {user_id}")
-                return False
-            
-            # 채팅 데이터 저장
+                return False, msg, warning
             chat_data = {
                 "user_id": user_id,
                 "session_id": session_id,
@@ -341,35 +342,24 @@ class StorageManager:
                 "timestamp": datetime.now(),
                 "size_mb": message_size_mb
             }
-            
             self.chat_collection.insert_one(chat_data)
-            
-            # 저장공간 사용량 업데이트
             await self.update_storage_usage(user_id, StorageType.CHAT, message_size_mb)
-            
             print(f"✅ 채팅 메시지 저장 완료: {user_id} - {session_id}")
-            return True
-            
+            return True, msg, warning
         except Exception as e:
             print(f"❌ 채팅 메시지 저장 실패: {e}")
-            return False
+            return False, "저장 실패", False
     
-    async def save_memory(self, user_id: str, memory_data: dict, memory_type: str = "general") -> bool:
-        """메모리 저장 (저장공간 관리 포함)"""
+    async def save_memory(self, user_id: str, memory_data: dict, memory_type: str = "general") -> Tuple[bool, str, bool]:
+        """메모리 저장 (저장공간 관리 포함, 경고 반환)"""
         try:
             if self.memory_collection is None:
-                return False
-            
-            # 메모리 크기 계산
+                return False, "DB 연결 오류", False
             memory_size_mb = len(json.dumps(memory_data, ensure_ascii=False).encode('utf-8')) / (1024 * 1024)
-            
-            # 저장공간 확인
-            available, message = await self.check_storage_available(user_id, memory_size_mb)
+            available, msg, warning = await self.check_storage_available(user_id, memory_size_mb)
             if not available:
                 print(f"⚠️ 저장공간 부족으로 메모리 저장 실패: {user_id}")
-                return False
-            
-            # 메모리 데이터 저장
+                return False, msg, warning
             memory_record = {
                 "user_id": user_id,
                 "memory_type": memory_type,
@@ -377,18 +367,13 @@ class StorageManager:
                 "created_at": datetime.now(),
                 "size_mb": memory_size_mb
             }
-            
             self.memory_collection.insert_one(memory_record)
-            
-            # 저장공간 사용량 업데이트
             await self.update_storage_usage(user_id, StorageType.MEMORY, memory_size_mb)
-            
             print(f"✅ 메모리 저장 완료: {user_id} - {memory_type}")
-            return True
-            
+            return True, msg, warning
         except Exception as e:
             print(f"❌ 메모리 저장 실패: {e}")
-            return False
+            return False, "저장 실패", False
     
     async def get_user_chats(self, user_id: str, session_id: str = None, limit: int = 100) -> List[Dict]:
         """사용자 채팅 내역 조회"""
@@ -439,12 +424,10 @@ class StorageManager:
             return []
     
     async def get_system_storage_stats(self) -> Dict:
-        """시스템 전체 저장공간 통계"""
+        """시스템 전체 저장공간 통계 (관리자용)"""
         try:
             if self.storage_quota_collection is None:
                 return {}
-            
-            # 전체 통계 계산
             pipeline = [
                 {
                     "$group": {
@@ -459,27 +442,34 @@ class StorageManager:
                     }
                 }
             ]
-            
             result = list(self.storage_quota_collection.aggregate(pipeline))
-            
             if result:
                 stats = result[0]
                 stats["usage_percentage"] = (stats["total_used_mb"] / stats["total_quota_mb"] * 100) if stats["total_quota_mb"] > 0 else 0
                 stats["available_mb"] = stats["total_quota_mb"] - stats["total_used_mb"]
-                return stats
+                return {
+                    "total_users": stats["total_users"],
+                    "total_quota_mb": stats["total_quota_mb"],
+                    "total_used_mb": stats["total_used_mb"],
+                    "available_mb": stats["available_mb"],
+                    "usage_percentage": stats["usage_percentage"],
+                    "total_chat_mb": stats["total_chat_mb"],
+                    "total_memory_mb": stats["total_memory_mb"],
+                    "total_file_mb": stats["total_file_mb"],
+                    "total_cache_mb": stats["total_cache_mb"]
+                }
             else:
                 return {
                     "total_users": 0,
                     "total_quota_mb": 0,
                     "total_used_mb": 0,
+                    "available_mb": 0,
+                    "usage_percentage": 0,
                     "total_chat_mb": 0,
                     "total_memory_mb": 0,
                     "total_file_mb": 0,
-                    "total_cache_mb": 0,
-                    "usage_percentage": 0,
-                    "available_mb": 0
+                    "total_cache_mb": 0
                 }
-                
         except Exception as e:
             print(f"❌ 시스템 저장공간 통계 조회 실패: {e}")
             return {}

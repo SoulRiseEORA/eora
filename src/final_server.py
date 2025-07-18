@@ -454,6 +454,78 @@ async def debug_mongodb():
     
     return debug_info
 
+# MongoDB 디버깅용 엔드포인트 추가
+@app.get("/debug/mongodb")
+async def debug_mongodb():
+    """MongoDB 연결 상태 및 저장 로직 디버깅"""
+    debug_info = {
+        "mongo_available": MONGO_AVAILABLE,
+        "mongo_client_status": mongo_client is not None,
+        "collections_status": {
+            "users_collection": users_collection is not None,
+            "points_collection": points_collection is not None,
+            "sessions_collection": sessions_collection is not None,
+            "chat_logs_collection": chat_logs_collection is not None
+        },
+        "storage_manager_status": {
+            "available": STORAGE_MANAGER_AVAILABLE,
+            "instance": storage_manager_instance is not None
+        },
+        "aura_systems_status": {
+            "memory_available": AURA_MEMORY_AVAILABLE,
+            "integration_available": AURA_INTEGRATION_AVAILABLE
+        },
+        "environment_variables": {
+            "mongo_public_url": bool(os.getenv("MONGO_PUBLIC_URL")),
+            "mongo_url": bool(os.getenv("MONGO_URL")),
+            "mongo_root_password": bool(os.getenv("MONGO_INITDB_ROOT_PASSWORD")),
+            "mongo_root_username": bool(os.getenv("MONGO_INITDB_ROOT_USERNAME"))
+        }
+    }
+    
+    # MongoDB 연결 테스트
+    if mongo_client:
+        try:
+            # ping 테스트
+            mongo_client.admin.command('ping')
+            debug_info["mongo_connection_test"] = "✅ 연결 성공"
+            
+            # 데이터베이스 목록 확인
+            db_list = mongo_client.list_database_names()
+            debug_info["databases"] = db_list
+            
+            # eora_ai 데이터베이스 확인
+            if "eora_ai" in db_list:
+                db = mongo_client.eora_ai
+                collections = db.list_collection_names()
+                debug_info["eora_ai_collections"] = collections
+                
+                # chat_logs 컬렉션 문서 수 확인
+                if "chat_logs" in collections:
+                    chat_count = db.chat_logs.count_documents({})
+                    debug_info["chat_logs_count"] = chat_count
+                    
+                    # 최근 채팅 로그 샘플
+                    recent_chats = list(db.chat_logs.find().sort("created_at", -1).limit(5))
+                    debug_info["recent_chats"] = [
+                        {
+                            "user_id": chat.get("user_id"),
+                            "session_id": chat.get("session_id"),
+                            "timestamp": str(chat.get("timestamp")),
+                            "message_preview": chat.get("message", "")[:50] + "..." if chat.get("message") else ""
+                        }
+                        for chat in recent_chats
+                    ]
+            else:
+                debug_info["eora_ai_database"] = "❌ 데이터베이스 없음"
+                
+        except Exception as e:
+            debug_info["mongo_connection_test"] = f"❌ 연결 실패: {str(e)}"
+    else:
+        debug_info["mongo_connection_test"] = "❌ 클라이언트 없음"
+    
+    return debug_info
+
 # JWT 설정
 JWT_SECRET = "eora_ai_secret_key_2024"
 JWT_ALGORITHM = "HS256"
@@ -1108,12 +1180,12 @@ async def save_chat_message(user_id: str, message: str, response: str, session_i
         try:
             if STORAGE_MANAGER_AVAILABLE:
                 storage_manager = get_storage_manager()
-                success = await storage_manager.save_chat_message(user_id, message, response, session_id)
-                if success:
-                    print(f"✅ 저장공간 관리 시스템을 통한 대화 저장 완료: {user_id}")
-                    return True
-                else:
-                    print(f"⚠️ 저장공간 관리 시스템 저장 실패: {user_id}")
+                success, msg, warning = await storage_manager.save_chat_message(user_id, message, response, session_id)
+                if not success:
+                    return {"success": False, "error": msg, "storage_warning": warning}
+                if warning:
+                    return {"success": True, "warning": msg}
+                return {"success": True}
             else:
                 print("⚠️ 저장공간 관리자가 초기화되지 않음")
         except Exception as e:
@@ -1202,9 +1274,10 @@ async def save_to_file(user_id: str, session_id: str, chat_data: dict):
 
 # 페이지 라우트
 @app.get("/", response_class=HTMLResponse)
-async def home_page(request: Request):
+async def home_page(request: Request, current_user: dict = Depends(get_current_user)):
     """홈 페이지"""
-    return templates.TemplateResponse("home.html", {"request": request})
+    is_admin = current_user.get("is_admin", False) if current_user else False
+    return templates.TemplateResponse("home.html", {"request": request, "is_admin": is_admin, "user": current_user})
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -1212,11 +1285,9 @@ async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_page(request: Request):
-    """대시보드 페이지 - 토큰 검증 완화 (프론트엔드에서 처리)"""
-    # 대시보드는 프론트엔드에서 토큰 검증을 처리하도록 함
-    # 서버에서는 기본 페이지만 제공
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+async def dashboard_page(request: Request, current_user: dict = Depends(get_current_user)):
+    is_admin = current_user.get("is_admin", False) if current_user else False
+    return templates.TemplateResponse("dashboard.html", {"request": request, "is_admin": is_admin, "user": current_user})
 
 @app.get("/chat", response_class=HTMLResponse)
 async def chat_page(request: Request):
@@ -1261,15 +1332,27 @@ async def prompts_page(request: Request):
     return templates.TemplateResponse("prompts.html", {"request": request})
 
 @app.get("/admin", response_class=HTMLResponse)
-async def admin_page(request: Request):
-    """관리자 페이지 - 프론트엔드에서 권한 검증"""
-    # 관리자 페이지는 프론트엔드에서 권한 검증을 처리하도록 함
-    return templates.TemplateResponse("admin.html", {"request": request})
+async def admin_page(request: Request, current_user: dict = Depends(get_current_user)):
+    if not current_user or not current_user.get("is_admin", False):
+        # 비관리자 접근 시 로그인 페이지로 리다이렉트
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/login")
+    return templates.TemplateResponse("admin.html", {"request": request, "user": current_user})
+
+# 새로운 시스템 모듈 import
+from token_calculator import get_token_calculator
+from user_database_manager import get_user_database_manager
+from point_revenue_manager import get_revenue_manager
+
+# 전역 인스턴스
+token_calculator = get_token_calculator()
+user_db_manager = get_user_database_manager()
+revenue_manager = get_revenue_manager()
 
 # API 엔드포인트
 @app.post("/api/auth/register")
 async def register_user(user_data: UserCreate):
-    """회원가입 API - GitHub 스타일"""
+    """회원가입 API - 개별 데이터베이스 생성 및 10만 포인트 지급"""
     try:
         # 이메일 중복 확인
         for user in users_db.values():
@@ -1282,8 +1365,8 @@ async def register_user(user_data: UserCreate):
         # 비밀번호 해시화
         hashed_password = hashlib.sha256(user_data.password.encode()).hexdigest()
         
-        # 사용자 정보 저장
-        users_db[user_id] = {
+        # 사용자 정보 구성
+        user_info = {
             "user_id": user_id,
             "name": user_data.name,
             "email": user_data.email,
@@ -1303,33 +1386,54 @@ async def register_user(user_data: UserCreate):
             }
         }
         
-        # 포인트 초기화
+        # 1. 메모리 DB에 사용자 정보 저장
+        users_db[user_id] = user_info
+        
+        # 2. 개별 사용자 데이터베이스 생성 (10만 포인트 자동 지급)
+        db_result = user_db_manager.create_user_database(user_id, user_info)
+        
+        if not db_result['success']:
+            # 데이터베이스 생성 실패 시 메모리 DB에서도 제거
+            if user_id in users_db:
+                del users_db[user_id]
+            raise HTTPException(status_code=500, detail=f"사용자 데이터베이스 생성 실패: {db_result.get('error', '알 수 없는 오류')}")
+        
+        # 3. 메모리 DB 포인트 정보도 업데이트 (동기화)
         points_db[user_id] = {
             "user_id": user_id,
-            "current_points": 100,
-            "total_earned": 100,
+            "current_points": 100000,  # 10만 포인트
+            "total_earned": 100000,
             "total_spent": 0,
             "last_updated": datetime.now().isoformat(),
             "history": [{
                 "type": "signup_bonus",
-                "amount": 100,
-                "description": "회원가입 보너스",
+                "amount": 100000,
+                "description": "신규 회원가입 보너스 (10만 포인트)",
                 "timestamp": datetime.now().isoformat()
             }]
         }
         
-        print(f"✅ 새 사용자 등록: {user_data.email} (ID: {user_id})")
+        print(f"✅ 새 사용자 등록 완료: {user_data.email} (ID: {user_id})")
+        print(f"✅ 개별 데이터베이스 생성: {db_result['user_db_name']}")
+        print(f"✅ 초기 포인트 지급: 100,000포인트")
         
         return {
             "success": True,
-            "message": "회원가입이 완료되었습니다.",
-            "user_id": user_id
+            "message": "회원가입이 완료되었습니다. 10만 포인트가 지급되었습니다.",
+            "user_id": user_id,
+            "database_name": db_result['user_db_name'],
+            "initial_points": 100000
         }
         
     except HTTPException:
         raise
     except Exception as e:
         print(f"❌ 회원가입 오류: {str(e)}")
+        # 오류 발생 시 정리
+        if 'user_id' in locals() and user_id in users_db:
+            del users_db[user_id]
+        if 'user_id' in locals() and user_id in points_db:
+            del points_db[user_id]
         raise HTTPException(status_code=500, detail="회원가입 중 오류가 발생했습니다.")
 
 @app.post("/api/auth/login")
@@ -1827,60 +1931,46 @@ async def get_user_points(current_user: dict = Depends(get_current_user)):
 
 @app.get("/api/points/packages")
 async def get_point_packages():
-    """포인트 패키지 목록 API"""
-    packages = [
-        {
-            "id": "basic",
-            "name": "기본 패키지",
-            "points": 1000,
-            "price": 10000,
-            "description": "기본적인 대화를 위한 포인트",
-            "popular": False
-        },
-        {
-            "id": "premium",
-            "name": "프리미엄 패키지",
-            "points": 5000,
-            "price": 45000,
-            "description": "많은 대화를 위한 포인트",
-            "popular": True
-        },
-        {
-            "id": "unlimited",
-            "name": "무제한 패키지",
-            "points": 10000,
-            "price": 80000,
-            "description": "무제한 대화를 위한 포인트",
-            "popular": False
+    """포인트 패키지 목록 API - 수익 관리 시스템 통합"""
+    try:
+        # 수익 관리 시스템에서 패키지 정보 가져오기
+        packages = revenue_manager.get_point_packages()
+        
+        return {
+            "success": True,
+            "packages": packages
         }
-    ]
-    
-    return {"packages": packages}
+        
+    except Exception as e:
+        print(f"포인트 패키지 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail="포인트 패키지 조회 중 오류가 발생했습니다.")
 
 @app.post("/api/points/purchase")
 async def purchase_points(request: Request, current_user: dict = Depends(get_current_user)):
-    """포인트 구매 API"""
+    """포인트 구매 API - 수익 관리 시스템 통합"""
     try:
         body = await request.json()
         package_id = body.get("package_id")
+        payment_method = body.get("payment_method", "card")
+        payment_details = body.get("payment_details", {})
         
         if not package_id:
             raise HTTPException(status_code=400, detail="패키지 ID가 필요합니다.")
         
-        # 패키지 정보 확인
-        packages = {
-            "basic": {"points": 1000, "price": 10000},
-            "premium": {"points": 5000, "price": 45000},
-            "unlimited": {"points": 10000, "price": 80000}
-        }
-        
-        if package_id not in packages:
-            raise HTTPException(status_code=400, detail="유효하지 않은 패키지입니다.")
-        
-        package = packages[package_id]
         user_id = current_user.get("user_id")
         
-        # 포인트 추가
+        # 1. 수익 관리 시스템을 통한 구매 처리
+        purchase_result = revenue_manager.process_point_purchase(
+            user_id=user_id,
+            package_id=package_id,
+            payment_method=payment_method,
+            payment_details=payment_details
+        )
+        
+        if not purchase_result['success']:
+            raise HTTPException(status_code=400, detail=purchase_result.get('error', '구매 처리 실패'))
+        
+        # 2. 사용자 포인트 업데이트 (메모리 DB)
         if user_id not in points_db:
             points_db[user_id] = {
                 "user_id": user_id,
@@ -1891,22 +1981,60 @@ async def purchase_points(request: Request, current_user: dict = Depends(get_cur
                 "history": []
             }
         
-        points_db[user_id]["current_points"] += package["points"]
-        points_db[user_id]["total_earned"] += package["points"]
+        points_added = purchase_result['points_added']
+        points_db[user_id]["current_points"] += points_added
+        points_db[user_id]["total_earned"] += points_added
         points_db[user_id]["last_updated"] = datetime.now().isoformat()
         
         # 구매 기록 추가
         points_db[user_id]["history"].append({
             "type": "purchase",
-            "amount": package["points"],
-            "description": f"{package_id} 패키지 구매",
-            "timestamp": datetime.now().isoformat()
+            "amount": points_added,
+            "description": f"포인트 패키지 구매 (거래ID: {purchase_result['transaction_id']})",
+            "timestamp": datetime.now().isoformat(),
+            "metadata": {
+                "transaction_id": purchase_result['transaction_id'],
+                "package_id": package_id,
+                "payment_method": payment_method
+            }
         })
+        
+        # 3. 개별 데이터베이스 포인트 업데이트
+        user_points_collection = user_db_manager.get_user_collection(user_id, "points")
+        if user_points_collection:
+            user_points_collection.update_one(
+                {"user_id": user_id},
+                {
+                    "$inc": {
+                        "current_points": points_added,
+                        "total_earned": points_added
+                    },
+                    "$set": {"last_updated": datetime.now().isoformat()},
+                    "$push": {
+                        "history": {
+                            "type": "purchase",
+                            "amount": points_added,
+                            "description": f"포인트 패키지 구매 (거래ID: {purchase_result['transaction_id']})",
+                            "timestamp": datetime.now().isoformat(),
+                            "metadata": {
+                                "transaction_id": purchase_result['transaction_id'],
+                                "package_id": package_id,
+                                "payment_method": payment_method
+                            }
+                        }
+                    }
+                }
+            )
+        
+        print(f"✅ 포인트 구매 완료: {user_id} -> {package_id} ({points_added}포인트)")
         
         return {
             "success": True,
-            "message": f"{package['points']}포인트가 추가되었습니다.",
-            "current_points": points_db[user_id]["current_points"]
+            "message": purchase_result['message'],
+            "transaction_id": purchase_result['transaction_id'],
+            "points_added": points_added,
+            "current_points": points_db[user_id]["current_points"],
+            "total_cost": purchase_result['total_cost']
         }
         
     except HTTPException:
@@ -2302,7 +2430,7 @@ async def recall_by_intuition(user_id: str = None, limit: int = 10):
 
 @app.post("/api/chat")
 async def chat_endpoint(request: Request):
-    """채팅 API 엔드포인트 - GPT API 실패 시 반드시 에러 반환 (자동응답 금지)"""
+    """채팅 API 엔드포인트 - 토큰 계산 및 포인트 차감 시스템 통합"""
     print("🔍 /api/chat 엔드포인트 호출됨")
     try:
         # 요청 데이터 파싱
@@ -2313,12 +2441,15 @@ async def chat_endpoint(request: Request):
         session_id = data.get("session_id", "default")
         print(f"💬 사용자 메시지: {message}")
         print(f"🆔 세션 ID: {session_id}")
+        
         # 사용자 인증 확인
         print("🔐 사용자 인증 확인 시작")
         token = request.cookies.get("token") or request.headers.get("Authorization", "").replace("Bearer ", "")
         print(f"🍪 쿠키에서 토큰: {token[:20] + '...' if token else 'None'}")
         print(f"📋 Authorization 헤더: {request.headers.get('Authorization', 'None')}")
         user_id = "anonymous"
+        user_info = None
+        
         if token:
             try:
                 print("🔍 토큰 검증 시작")
@@ -2326,12 +2457,57 @@ async def chat_endpoint(request: Request):
                 print(f"🔍 토큰 페이로드: {payload}")
                 user_id = payload.get("user_id", "anonymous")
                 print(f"✅ 인증된 사용자 채팅: {user_id}")
+                
+                # 사용자 정보 조회
+                if user_id in users_db:
+                    user_info = users_db[user_id]
+                else:
+                    # 개별 데이터베이스에서 사용자 정보 조회
+                    user_db = user_db_manager.get_user_database(user_id)
+                    if user_db:
+                        user_collection = user_db['user_info']
+                        user_info = user_collection.find_one({"user_id": user_id})
+                
             except Exception as e:
                 print(f"❌ 토큰 검증 실패: {e}")
                 user_id = "anonymous"
         else:
             print("⚠️ 토큰 없음 - 익명 사용자로 처리")
-        # GPT 호출
+        
+        # 1. 토큰 계산 및 포인트 검증 (인증된 사용자만)
+        if user_id != "anonymous" and user_info:
+            print("💰 포인트 검증 시작")
+            
+            # 사용자 포인트 조회
+            current_points = 0
+            if user_id in points_db:
+                current_points = points_db[user_id].get("current_points", 0)
+            else:
+                # 개별 데이터베이스에서 포인트 조회
+                user_points_collection = user_db_manager.get_user_collection(user_id, "points")
+                if user_points_collection:
+                    points_doc = user_points_collection.find_one({"user_id": user_id})
+                    if points_doc:
+                        current_points = points_doc.get("current_points", 0)
+            
+            # 메시지 비용 계산 (사용자 메시지만)
+            cost_info = token_calculator.calculate_message_cost(message)
+            estimated_points_needed = cost_info['points_to_deduct']
+            
+            print(f"💰 현재 포인트: {current_points}")
+            print(f"💰 예상 필요 포인트: {estimated_points_needed}")
+            print(f"💰 토큰 수: {cost_info['tokens']}")
+            
+            # 포인트 충분성 검증
+            if current_points < estimated_points_needed:
+                return JSONResponse(status_code=402, content={
+                    "error": "포인트가 부족합니다",
+                    "current_points": current_points,
+                    "required_points": estimated_points_needed,
+                    "message": f"채팅을 위해 {estimated_points_needed}포인트가 필요하지만, 현재 {current_points}포인트만 보유하고 있습니다."
+                })
+        
+        # 2. GPT 호출
         try:
             response_text = await call_gpt4o_api_optimized(message, request)
         except Exception as gpt_error:
@@ -2340,16 +2516,106 @@ async def chat_endpoint(request: Request):
                 "error": "GPT API 호출 실패",
                 "detail": str(gpt_error)
             })
-        # 정상 응답
+        
+        # 3. 실제 비용 계산 및 포인트 차감 (인증된 사용자만)
+        if user_id != "anonymous" and user_info:
+            print("💰 실제 비용 계산 및 포인트 차감")
+            
+            # 실제 채팅 비용 계산 (사용자 메시지 + AI 응답)
+            actual_cost_info = token_calculator.calculate_chat_cost(message, response_text)
+            actual_points_needed = actual_cost_info['points_to_deduct']
+            
+            print(f"💰 실제 필요 포인트: {actual_points_needed}")
+            print(f"💰 사용자 토큰: {actual_cost_info['user_tokens']}")
+            print(f"💰 AI 응답 토큰: {actual_cost_info['ai_tokens']}")
+            print(f"💰 총 토큰: {actual_cost_info['total_tokens']}")
+            
+            # 포인트 차감
+            if user_id in points_db:
+                # 메모리 DB에서 차감
+                points_db[user_id]["current_points"] -= actual_points_needed
+                points_db[user_id]["total_spent"] += actual_points_needed
+                points_db[user_id]["last_updated"] = datetime.now().isoformat()
+                
+                # 포인트 사용 기록 추가
+                points_db[user_id]["history"].append({
+                    "type": "chat_cost",
+                    "amount": -actual_points_needed,
+                    "description": f"채팅 비용 (토큰: {actual_cost_info['total_tokens']})",
+                    "timestamp": datetime.now().isoformat(),
+                    "metadata": {
+                        "user_tokens": actual_cost_info['user_tokens'],
+                        "ai_tokens": actual_cost_info['ai_tokens'],
+                        "total_tokens": actual_cost_info['total_tokens'],
+                        "session_id": session_id
+                    }
+                })
+                
+                print(f"✅ 메모리 DB 포인트 차감 완료: {actual_points_needed}포인트")
+            
+            # 개별 데이터베이스에서도 차감
+            user_points_collection = user_db_manager.get_user_collection(user_id, "points")
+            if user_points_collection:
+                user_points_collection.update_one(
+                    {"user_id": user_id},
+                    {
+                        "$inc": {
+                            "current_points": -actual_points_needed,
+                            "total_spent": actual_points_needed
+                        },
+                        "$set": {"last_updated": datetime.now().isoformat()},
+                        "$push": {
+                            "history": {
+                                "type": "chat_cost",
+                                "amount": -actual_points_needed,
+                                "description": f"채팅 비용 (토큰: {actual_cost_info['total_tokens']})",
+                                "timestamp": datetime.now().isoformat(),
+                                "metadata": {
+                                    "user_tokens": actual_cost_info['user_tokens'],
+                                    "ai_tokens": actual_cost_info['ai_tokens'],
+                                    "total_tokens": actual_cost_info['total_tokens'],
+                                    "session_id": session_id
+                                }
+                            }
+                        }
+                    }
+                )
+                print(f"✅ 개별 DB 포인트 차감 완료: {actual_points_needed}포인트")
+        
+        # 4. 정상 응답
         response_data = {
             "response": response_text,
             "session_id": session_id,
             "user_id": user_id,
             "timestamp": datetime.now().isoformat(),
         }
+        
+        # 포인트 정보 추가 (인증된 사용자만)
+        if user_id != "anonymous" and user_info:
+            remaining_points = 0
+            if user_id in points_db:
+                remaining_points = points_db[user_id].get("current_points", 0)
+            else:
+                user_points_collection = user_db_manager.get_user_collection(user_id, "points")
+                if user_points_collection:
+                    points_doc = user_points_collection.find_one({"user_id": user_id})
+                    if points_doc:
+                        remaining_points = points_doc.get("current_points", 0)
+            
+            response_data.update({
+                "points_deducted": actual_points_needed if user_id != "anonymous" else 0,
+                "remaining_points": remaining_points,
+                "token_info": {
+                    "user_tokens": actual_cost_info['user_tokens'] if user_id != "anonymous" else 0,
+                    "ai_tokens": actual_cost_info['ai_tokens'] if user_id != "anonymous" else 0,
+                    "total_tokens": actual_cost_info['total_tokens'] if user_id != "anonymous" else 0
+                }
+            })
+        
         print(f"📤 응답 데이터: {response_data}")
         print("✅ /api/chat 엔드포인트 처리 완료")
         return response_data
+        
     except Exception as e:
         print(f"❌ /api/chat 엔드포인트 오류: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -2862,12 +3128,10 @@ async def simple_test():
 # 관리자 API 엔드포인트들
 @app.get("/api/admin/users")
 async def admin_get_users(current_user: dict = Depends(get_current_user)):
+    if not current_user or not current_user.get("is_admin", False):
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
     """관리자용 사용자 목록 조회"""
     try:
-        # 관리자 권한 확인
-        if not current_user.get("is_admin"):
-            raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
-        
         users_list = []
         for user in users_db.values():
             points_info = points_db.get(user["user_id"], {
@@ -2930,50 +3194,92 @@ async def admin_overview(current_user: dict = Depends(get_current_user)):
 
 @app.get("/api/admin/points")
 async def admin_points(current_user: dict = Depends(get_current_user)):
-    """관리자용 포인트 통계"""
+    """관리자 포인트 관리 API - 수익 관리 시스템 통합"""
     try:
         # 관리자 권한 확인
         if not current_user.get("is_admin"):
             raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
         
-        total_issued = 0
-        total_spent = 0
-        user_count = len(points_db)
+        # 1. 수익 관리 시스템에서 전체 통계 가져오기
+        revenue_stats = revenue_manager.get_revenue_statistics()
         
-        for points_info in points_db.values():
-            total_issued += points_info.get("total_earned", 0)
-            total_spent += points_info.get("total_spent", 0)
+        # 2. 사용자별 포인트 정보 (메모리 DB + 개별 DB 통합)
+        user_points = []
         
-        avg_per_user = total_issued / user_count if user_count > 0 else 0
+        # 메모리 DB 사용자들
+        for user_id, points_info in points_db.items():
+            user = users_db.get(user_id, {})
+            user_points.append({
+                "user_id": user_id,
+                "name": user.get("name", "Unknown"),
+                "email": user.get("email", "Unknown"),
+                "current_points": points_info.get("current_points", 0),
+                "total_earned": points_info.get("total_earned", 0),
+                "total_spent": points_info.get("total_spent", 0),
+                "last_updated": points_info.get("last_updated", ""),
+                "database_type": "memory"
+            })
+        
+        # 개별 데이터베이스 사용자들
+        individual_users = user_db_manager.get_all_user_databases()
+        for user_id, db_info in individual_users.items():
+            user_points_collection = user_db_manager.get_user_collection(user_id, "points")
+            if user_points_collection:
+                points_doc = user_points_collection.find_one({"user_id": user_id})
+                if points_doc:
+                    user_info_collection = user_db_manager.get_user_collection(user_id, "user_info")
+                    user_doc = user_info_collection.find_one({"user_id": user_id}) if user_info_collection else {}
+                    
+                    user_points.append({
+                        "user_id": user_id,
+                        "name": user_doc.get("name", "Unknown"),
+                        "email": user_doc.get("email", "Unknown"),
+                        "current_points": points_doc.get("current_points", 0),
+                        "total_earned": points_doc.get("total_earned", 0),
+                        "total_spent": points_doc.get("total_spent", 0),
+                        "last_updated": points_doc.get("last_updated", ""),
+                        "database_type": "individual",
+                        "database_name": db_info.get("database_name", "")
+                    })
+        
+        # 3. 최근 거래 내역
+        recent_transactions = revenue_manager.get_recent_transactions(limit=20)
         
         return {
-            "total_issued": total_issued,
-            "total_spent": total_spent,
-            "avg_per_user": round(avg_per_user, 1)
+            "revenue_stats": revenue_stats,
+            "user_points": user_points,
+            "recent_transactions": recent_transactions,
+            "total_users": len(user_points),
+            "total_points": sum(user.get("current_points", 0) for user in user_points),
+            "total_earned": sum(user.get("total_earned", 0) for user in user_points),
+            "total_spent": sum(user.get("total_spent", 0) for user in user_points)
         }
+        
     except HTTPException:
         raise
     except Exception as e:
-        print(f"관리자 포인트 통계 조회 오류: {str(e)}")
-        return {
-            "total_issued": 0,
-            "total_spent": 0,
-            "avg_per_user": 0
-        }
+        print(f"관리자 포인트 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail="포인트 정보 조회 중 오류가 발생했습니다.")
 
 @app.get("/api/admin/system")
 async def admin_system(current_user: dict = Depends(get_current_user)):
-    """관리자용 시스템 정보"""
+    """관리자용 시스템 정보 - 개별 데이터베이스 통합"""
     try:
         # 관리자 권한 확인
         if not current_user.get("is_admin"):
             raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
         
+        # 개별 데이터베이스 정보
+        individual_dbs = user_db_manager.get_all_user_databases()
+        
         return {
-            "users_count": len(users_db),
-            "points_count": len(points_db),
+            "users_count": len(users_db) + len(individual_dbs),
+            "points_count": len(points_db) + len(individual_dbs),
+            "individual_databases": len(individual_dbs),
+            "memory_databases": len(users_db),
             "server_status": "running",
-            "uptime": "1시간 30분"
+            "uptime": "1시간 30분",
+            "database_system": "hybrid"  # 메모리 + 개별 DB 하이브리드
         }
     except HTTPException:
         raise
@@ -2982,9 +3288,84 @@ async def admin_system(current_user: dict = Depends(get_current_user)):
         return {
             "users_count": 0,
             "points_count": 0,
+            "individual_databases": 0,
+            "memory_databases": 0,
             "server_status": "unknown",
-            "uptime": "unknown"
+            "uptime": "unknown",
+            "database_system": "unknown"
         }
+
+# 수익 관리 API
+@app.get("/api/admin/revenue")
+async def admin_revenue(current_user: dict = Depends(get_current_user)):
+    """관리자 수익 관리 API"""
+    try:
+        # 관리자 권한 확인
+        if not current_user.get("is_admin"):
+            raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+        
+        # 수익 통계
+        revenue_stats = revenue_manager.get_revenue_statistics()
+        
+        # 최근 거래 내역
+        recent_transactions = revenue_manager.get_recent_transactions(limit=50)
+        
+        # 월별 수익 추이
+        monthly_revenue = revenue_manager.get_monthly_revenue()
+        
+        # 패키지별 판매 통계
+        package_stats = revenue_manager.get_package_statistics()
+        
+        return {
+            "revenue_stats": revenue_stats,
+            "recent_transactions": recent_transactions,
+            "monthly_revenue": monthly_revenue,
+            "package_stats": package_stats
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"관리자 수익 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail="수익 정보 조회 중 오류가 발생했습니다.")
+
+@app.post("/api/admin/revenue/refund")
+async def admin_refund_transaction(request: Request, current_user: dict = Depends(get_current_user)):
+    """관리자 거래 환불 API"""
+    try:
+        # 관리자 권한 확인
+        if not current_user.get("is_admin"):
+            raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+        
+        body = await request.json()
+        transaction_id = body.get("transaction_id")
+        refund_reason = body.get("refund_reason", "관리자 환불")
+        
+        if not transaction_id:
+            raise HTTPException(status_code=400, detail="거래 ID가 필요합니다.")
+        
+        # 환불 처리
+        refund_result = revenue_manager.process_refund(
+            transaction_id=transaction_id,
+            refund_reason=refund_reason,
+            processed_by=current_user.get("user_id")
+        )
+        
+        if not refund_result['success']:
+            raise HTTPException(status_code=400, detail=refund_result.get('error', '환불 처리 실패'))
+        
+        return {
+            "success": True,
+            "message": "환불이 성공적으로 처리되었습니다.",
+            "refund_amount": refund_result['refund_amount'],
+            "transaction_id": transaction_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"환불 처리 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail="환불 처리 중 오류가 발생했습니다.")
 
 # 학습 관련 API 엔드포인트
 @app.post("/api/admin/auto-learning")
@@ -4331,6 +4712,125 @@ async def get_session_messages(session_id: str, request: Request):
     except Exception as e:
         print(f"❌ 세션 메시지 조회 오류: {e}")
         return {"messages": [], "session_id": session_id, "user_id": user_id}
+
+@app.get("/api/admin/storage")
+async def admin_storage_overview(current_user: dict = Depends(get_current_user)):
+    """관리자용 전체 사용자 저장공간 정보 조회"""
+    try:
+        # 관리자 권한 확인
+        if not current_user.get("is_admin"):
+            raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+        
+        if storage_manager_instance:
+            # 전체 사용자 저장공간 정보 조회
+            all_users_storage = await storage_manager_instance.get_all_users_storage_info()
+            
+            # 통계 계산
+            total_users = len(all_users_storage)
+            total_quota_mb = sum(user.get("total_quota_mb", 500) for user in all_users_storage)
+            total_used_mb = sum(user.get("used_mb", 0) for user in all_users_storage)
+            total_usage_percentage = (total_used_mb / total_quota_mb * 100) if total_quota_mb > 0 else 0
+            
+            # 사용량이 높은 사용자 (80% 이상)
+            high_usage_users = [
+                user for user in all_users_storage 
+                if user.get("usage_percentage", 0) >= 80
+            ]
+            
+            # 저장공간 부족 사용자 (95% 이상)
+            critical_users = [
+                user for user in all_users_storage 
+                if user.get("usage_percentage", 0) >= 95
+            ]
+            
+            return {
+                "success": True,
+                "overview": {
+                    "total_users": total_users,
+                    "total_quota_mb": total_quota_mb,
+                    "total_used_mb": total_used_mb,
+                    "total_usage_percentage": round(total_usage_percentage, 2),
+                    "high_usage_users_count": len(high_usage_users),
+                    "critical_users_count": len(critical_users)
+                },
+                "users_storage": all_users_storage,
+                "high_usage_users": high_usage_users,
+                "critical_users": critical_users
+            }
+        else:
+            return {
+                "success": True,
+                "overview": {
+                    "total_users": 0,
+                    "total_quota_mb": 0,
+                    "total_used_mb": 0,
+                    "total_usage_percentage": 0,
+                    "high_usage_users_count": 0,
+                    "critical_users_count": 0
+                },
+                "users_storage": [],
+                "high_usage_users": [],
+                "critical_users": [],
+                "message": "저장공간 관리 시스템을 사용할 수 없습니다."
+            }
+    except Exception as e:
+        print(f"❌ 관리자 저장공간 정보 조회 실패: {e}")
+        return {"error": f"저장공간 정보 조회 중 오류가 발생했습니다: {str(e)}"}
+
+@app.post("/api/admin/storage/manage")
+async def admin_manage_user_storage(request: Request, current_user: dict = Depends(get_current_user)):
+    """관리자용 사용자 저장공간 관리"""
+    try:
+        # 관리자 권한 확인
+        if not current_user.get("is_admin"):
+            raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+        
+        data = await request.json()
+        action = data.get("action")  # "upgrade", "reset", "limit"
+        target_user_id = data.get("user_id")
+        amount_mb = data.get("amount_mb", 100)
+        
+        if not target_user_id:
+            return {"error": "사용자 ID가 필요합니다."}
+        
+        if storage_manager_instance:
+            if action == "upgrade":
+                success = await storage_manager_instance.upgrade_user_storage(target_user_id, amount_mb)
+                message = f"사용자 {target_user_id}의 저장공간을 {amount_mb}MB 추가했습니다."
+            elif action == "reset":
+                success = await storage_manager_instance.reset_user_storage(target_user_id)
+                message = f"사용자 {target_user_id}의 저장공간을 초기화했습니다."
+            elif action == "limit":
+                success = await storage_manager_instance.set_user_storage_limit(target_user_id, amount_mb)
+                message = f"사용자 {target_user_id}의 저장공간 한도를 {amount_mb}MB로 설정했습니다."
+            else:
+                return {"error": "지원하지 않는 작업입니다."}
+            
+            if success:
+                return {
+                    "success": True,
+                    "message": message,
+                    "action": action,
+                    "user_id": target_user_id
+                }
+            else:
+                return {"error": f"저장공간 관리 작업에 실패했습니다."}
+        else:
+            return {"error": "저장공간 관리 시스템을 사용할 수 없습니다."}
+    except Exception as e:
+        print(f"❌ 관리자 저장공간 관리 실패: {e}")
+        return {"error": f"저장공간 관리 중 오류가 발생했습니다: {str(e)}"}
+
+# 관리자 저장공간 통계 API
+@app.get("/api/admin/storage")
+async def admin_storage_overview(current_user: dict = Depends(get_current_user)):
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    if not STORAGE_MANAGER_AVAILABLE:
+        return {"success": False, "error": "Storage manager unavailable"}
+    storage_manager = get_storage_manager()
+    stats = await storage_manager.get_system_storage_stats()
+    return {"success": True, "storage_stats": stats}
 
 if __name__ == "__main__":
     import traceback

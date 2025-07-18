@@ -116,15 +116,6 @@ def find_available_port(start_port=8081):
         port += 1
     return None
 
-# app.py에서 FastAPI 앱을 import
-try:
-    from app import app
-    logger.info("✅ app.py 로드 성공")
-except Exception as e:
-    logger.error(f"❌ app.py 로드 실패: {e}")
-    # app이 로드되지 않아도 main.py는 실행 가능하도록 함
-    app = None
-
 if __name__ == "__main__":
     # 환경변수 로드
     load_env_file()
@@ -135,16 +126,14 @@ if __name__ == "__main__":
     # 프롬프트 데이터 로드
     prompts_data = load_prompts_data()
     
-    # app이 로드되지 않았다면 종료
-    if app is None:
-        logger.error("❌ app.py에서 FastAPI 앱을 로드할 수 없습니다.")
-        sys.exit(1)
+    # app.py를 직접 실행
+    logger.info("🚀 app.py를 직접 실행합니다...")
     
     # uvicorn으로 서버 실행
     import uvicorn
     
     # Railway 환경에서 포트 설정
-    default_port = int(os.getenv("PORT", 8081))
+    default_port = int(os.getenv("PORT", 8001))
     
     # 포트 사용 가능 여부 확인
     if not check_port_availability(default_port):
@@ -162,4 +151,12 @@ if __name__ == "__main__":
     host = "0.0.0.0"
     
     logger.info(f"🚀 서버 시작: {host}:{port}")
-    uvicorn.run(app, host=host, port=port) 
+    
+    # app.py에서 FastAPI 앱을 import하여 실행
+    try:
+        from app import app
+        logger.info("✅ app.py에서 FastAPI 앱 로드 성공")
+        uvicorn.run(app, host=host, port=port)
+    except Exception as e:
+        logger.error(f"❌ app.py 실행 실패: {e}")
+        sys.exit(1) 
