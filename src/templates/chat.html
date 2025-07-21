@@ -2344,7 +2344,8 @@
                 const res = await fetch('/api/user/points');
                 if (res.ok) {
                     const data = await res.json();
-                    document.getElementById('currentPoints').textContent = data.points || 0;
+                    const currentPoints = data.points || 0;
+                    document.getElementById('currentPoints').textContent = currentPoints.toLocaleString();
                     if (change) {
                         const el = document.getElementById('pointChange');
                         el.textContent = (change > 0 ? '+' : '') + change;

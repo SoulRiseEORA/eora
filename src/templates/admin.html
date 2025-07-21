@@ -216,14 +216,74 @@
                 font-size: 2em;
             }
         }
+
+        /* 채팅 보너스 관련 스타일 */
+        .bonus-actions {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .bonus-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .bonus-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+            background: linear-gradient(135deg, #ff5252 0%, #d63031 100%);
+        }
+
+        .all-users-btn {
+            background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+            box-shadow: 0 5px 15px rgba(0, 184, 148, 0.3);
+        }
+
+        .all-users-btn:hover {
+            box-shadow: 0 8px 25px rgba(0, 184, 148, 0.4);
+            background: linear-gradient(135deg, #00a085 0%, #008f7a 100%);
+        }
+
+        .action-btn.bonus-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 2px;
+        }
+
+        .action-btn.bonus-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
         <div class="header">
-            <h1 class="title">🚀 EORA AI 관리자 페이지</h1>
-            <p class="subtitle">AI 시스템 관리 및 모니터링</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h1 class="title">🚀 EORA AI 관리자 페이지</h1>
+                    <p class="subtitle">AI 시스템 관리 및 모니터링</p>
+                </div>
+                <a href="/" class="btn btn-primary"
+                    style="text-decoration: none; color: white; padding: 12px 24px; border-radius: 10px; background: #667eea; transition: all 0.3s ease;">
+                    🏠 홈으로 가기
+                </a>
+            </div>
         </div>
 
         <div class="user-info">
@@ -773,6 +833,11 @@
                         <div class="stat-label">평균 포인트</div>
                     </div>
                 </div>
+                <div class="bonus-actions">
+                    <button class="bonus-btn all-users-btn" onclick="giveChatBonusToAll()" title="모든 사용자에게 채팅 보너스 지급">
+                        🎁 모든 사용자에게 10만 포인트 지급
+                    </button>
+                </div>
             `;
 
             // 테이블 - 개선된 스타일
@@ -799,6 +864,9 @@
                             </button>
                             <button class="action-btn reset-btn" onclick="chargePoint('${user.user_id}','reset')" title="포인트 초기화">
                                 <span class="btn-icon">🔄</span> 초기화
+                            </button>
+                            <button class="action-btn bonus-btn" onclick="giveChatBonusToUser('${user.user_id}')" title="채팅 보너스 지급">
+                                <span class="btn-icon">🎁</span> 보너스
                             </button>
                             <button class="action-btn history-btn" onclick="viewPointHistory('${user.user_id}')" title="포인트 내역">
                                 <span class="btn-icon">📊</span> 내역
@@ -1000,6 +1068,51 @@
             }).then(r => r.json()).then(res => {
                 if (res.success) { alert('처리 완료!'); openPointManagement(); }
                 else alert('실패: ' + (res.message || ''));
+            });
+        }
+
+        // 모든 사용자에게 채팅 보너스 지급
+        function giveChatBonusToAll() {
+            if (!confirm('모든 사용자에게 10만 포인트를 지급하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
+                return;
+            }
+
+            fetch('/api/admin/points/give-chat-bonus', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(r => r.json()).then(res => {
+                if (res.success) {
+                    alert('✅ ' + res.message);
+                    openPointManagement(); // 포인트 관리 페이지 새로고침
+                } else {
+                    alert('❌ 실패: ' + (res.message || '알 수 없는 오류'));
+                }
+            }).catch(error => {
+                console.error('채팅 보너스 지급 오류:', error);
+                alert('❌ 네트워크 오류가 발생했습니다.');
+            });
+        }
+
+        // 특정 사용자에게 채팅 보너스 지급
+        function giveChatBonusToUser(userId) {
+            if (!confirm('이 사용자에게 10만 포인트를 지급하시겠습니까?')) {
+                return;
+            }
+
+            fetch('/api/admin/points/give-user-bonus', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            }).then(r => r.json()).then(res => {
+                if (res.success) {
+                    alert('✅ ' + res.message);
+                    openPointManagement(); // 포인트 관리 페이지 새로고침
+                } else {
+                    alert('❌ 실패: ' + (res.message || '알 수 없는 오류'));
+                }
+            }).catch(error => {
+                console.error('사용자 채팅 보너스 지급 오류:', error);
+                alert('❌ 네트워크 오류가 발생했습니다.');
             });
         }
 

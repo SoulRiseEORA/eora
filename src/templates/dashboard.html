@@ -398,7 +398,9 @@
                     document.getElementById('sessions-count').textContent = data.sessions_count;
 
                     // 포인트 업데이트
-                    document.getElementById('current-points').textContent = data.points.current_points;
+                    const points = data.points.current_points;
+                    const formatted = points.toLocaleString();
+                    document.getElementById('current-points').textContent = formatted;
 
                 } else {
                     console.error('통계 로드 실패:', response.status);

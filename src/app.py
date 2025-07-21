@@ -79,23 +79,29 @@ except Exception as e:
     logger.info("ℹ️ 기본 채팅 시스템으로 동작합니다.")
 
 # 사용자 인증 함수
+import jwt
+SECRET_KEY = os.environ.get("SECRET_KEY", "eora_secret_key")
+ALGORITHM = "HS256"
+
 def get_current_user(request: Request):
-    """현재 사용자 정보를 반환합니다."""
     try:
-        # 실제 환경에서는 JWT 토큰 등을 사용하여 사용자 인증
-        # 현재는 기본 사용자 정보 반환
+        token = None
+        auth = request.headers.get("authorization")
+        if auth and auth.startswith("Bearer "):
+            token = auth[7:]
+        if not token:
+            token = request.cookies.get("access_token")
+        if not token:
+            return None
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return {
-            "user_id": "anonymous",
-            "username": "게스트",
-            "email": "guest@example.com"
+            "user_id": payload.get("user_id"),
+            "role": payload.get("role", "user"),
+            "email": payload.get("email")
         }
     except Exception as e:
         logger.error(f"사용자 인증 오류: {e}")
-        return {
-            "user_id": "anonymous",
-            "username": "게스트",
-            "email": "guest@example.com"
-        }
+        return None
 
 # Dotenv 로드 - b43dd7c 커밋의 성공적인 방식 적용
 from dotenv import load_dotenv
@@ -190,12 +196,14 @@ def clean_mongodb_url(url):
 def try_mongodb_connection():
     """MongoDB 연결을 시도합니다."""
     urls_to_try = []
-    
+    print("[MongoDB 연결 디버깅] 환경변수 및 우선순위 점검 시작")
+    print("  - MONGODB_URL:", os.environ.get('MONGODB_URL'))
+    print("  - MONGO_PUBLIC_URL:", os.environ.get('MONGO_PUBLIC_URL'))
+    print("  - MONGO_URL:", os.environ.get('MONGO_URL'))
+    print("  - MONGODB_URI:", os.environ.get('MONGODB_URI'))
     # Railway 환경에서 사용할 수 있는 MongoDB URL들
     if MONGODB_URL:
         urls_to_try.append(MONGODB_URL)
-    
-    # Railway MongoDB 서비스 연결 문자열들
     railway_urls = [
         os.getenv("MONGO_PUBLIC_URL"),
         os.getenv("MONGO_URL"),
@@ -203,55 +211,52 @@ def try_mongodb_connection():
         "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@trolley.proxy.rlwy.net:26594",
         "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@mongodb.railway.internal:27017"
     ]
-    
     for url in railway_urls:
         if url and url not in urls_to_try:
             urls_to_try.append(url)
-    
-    # 로컬 개발 환경용 URL들
     local_urls = [
         "mongodb://localhost:27017",
         "mongodb://127.0.0.1:27017"
     ]
-    
     for url in local_urls:
         if url not in urls_to_try:
             urls_to_try.append(url)
-    
+    print(f"[MongoDB 연결 디버깅] 연결 시도할 URL 목록:")
+    for i, url in enumerate(urls_to_try, 1):
+        print(f"  {i}. {url}")
     logger.info(f"🔗 연결 시도할 URL 수: {len(urls_to_try)}")
-    
     for i, url in enumerate(urls_to_try, 1):
         if not url:
             continue
-            
         try:
             logger.info(f"🔗 MongoDB 연결 시도: {i}/{len(urls_to_try)}")
             logger.info(f"📝 연결 URL: {url}")
-            
-            # 연결 문자열 정리
+            print(f"[MongoDB 연결 디버깅] {i}/{len(urls_to_try)} 연결 시도: {url}")
             clean_url = clean_mongodb_url(url)
-            
-            # 연결 시도
+            print(f"[MongoDB 연결 디버깅] 실제 연결에 사용되는 URL: {clean_url}")
             client = MongoClient(clean_url, serverSelectionTimeoutMS=5000)
             client.admin.command('ping')
-            
             logger.info(f"✅ MongoDB 연결 성공: {i}/{len(urls_to_try)}")
+            print(f"[MongoDB 연결 디버깅] 연결 성공! client: {client}")
             return client
-            
         except Exception as e:
             logger.warning(f"❌ MongoDB 연결 실패 ({i}/{len(urls_to_try)}): {type(e).__name__} - {str(e)}")
+            print(f"[MongoDB 연결 디버깅] 연결 실패: {type(e).__name__} - {str(e)}")
             continue
-    
     logger.error("❌ 모든 MongoDB 연결 시도 실패")
+    print("[MongoDB 연결 디버깅] 모든 연결 시도 실패!")
     return None
 
 # MongoDB 연결 시도
+global db, users_collection
 client = try_mongodb_connection()
-
 if client is None:
     logger.error("❌ 모든 MongoDB 연결 시도 실패")
+    print("[MongoDB 연결 디버깅] client=None, db/users_collection 모두 None으로 설정")
     # 연결 실패 시에도 서버는 계속 실행
     logger.info("ℹ️ 메모리 기반 세션 관리로 전환합니다.")
+    db = None
+    users_collection = None
 else:
     # 데이터베이스 및 컬렉션 설정
     try:
@@ -259,28 +264,23 @@ else:
         chat_logs_collection = db["chat_logs"]
         sessions_collection = db["sessions"]
         users_collection = db["users"]
-        aura_collection = db["aura"]
-        system_logs_collection = db["system_logs"]
-        points_collection = db["points"]
-        
+        print(f"[MongoDB 연결 디버깅] db: {db}, users_collection: {users_collection}")
         logger.info(f"📊 데이터베이스: {DATABASE_NAME}")
-        
-        # 컬렉션 목록 확인
         try:
             collections = db.list_collection_names()
             logger.info(f"📊 컬렉션 목록: {collections}")
+            print(f"[MongoDB 연결 디버깅] 컬렉션 목록: {collections}")
         except Exception as e:
             logger.warning(f"⚠️ 컬렉션 목록 조회 실패: {e}")
+            print(f"[MongoDB 연결 디버깅] 컬렉션 목록 조회 실패: {e}")
     except Exception as e:
         logger.error(f"❌ MongoDB 컬렉션 초기화 실패: {e}")
+        print(f"[MongoDB 연결 디버깅] 컬렉션 초기화 실패: {e}")
         logger.info("ℹ️ 메모리 기반 세션 관리로 전환합니다.")
-        # 컬렉션 변수들을 None으로 설정
         chat_logs_collection = None
         sessions_collection = None
         users_collection = None
-        aura_collection = None
-        system_logs_collection = None
-        points_collection = None
+        db = None
 
 # 전역 변수 초기화
 prompts_data = {}
@@ -1006,10 +1006,19 @@ async def login(request: Request):
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin(request: Request):
+    # 1. JWT 인증 시도
     user = get_current_user(request)
-    if not user or user.get("role") != "admin":
+    # 2. 쿠키에서 user_email 직접 확인 (JWT가 없거나 만료된 경우도 허용)
+    user_email = request.cookies.get("user_email")
+    # 3. localStorage는 서버에서 접근 불가, 쿠키만 사용
+    is_admin = False
+    if user and user.get("email") == "admin@eora.ai":
+        is_admin = True
+    elif user_email == "admin@eora.ai":
+        is_admin = True
+    if not is_admin:
         return RedirectResponse(url="/")
-    return templates.TemplateResponse("admin.html", {"request": request, "user": user, "is_admin": True})
+    return templates.TemplateResponse("admin.html", {"request": request, "is_admin": True})
 
 @app.get("/debug", response_class=HTMLResponse)
 async def debug(request: Request):
@@ -1873,22 +1882,22 @@ async def get_user_stats():
     return {
         "total_messages": 0,
         "total_sessions": 1,
-        "points": 1000,
+        "points": 100000,
         "aura_level": 5
     }
 
 # 포인트 시스템 API
 @app.get("/api/user/points")
 async def get_user_points():
-    return {"points": 1000, "user_id": "anonymous"}
+    return {"points": 100000, "user_id": "anonymous"}
 
 @app.get("/api/points/packages")
 async def get_point_packages():
     return {
         "packages": [
-            {"id": 1, "name": "기본 패키지", "points": 100, "price": 1000},
-            {"id": 2, "name": "프리미엄 패키지", "points": 500, "price": 5000},
-            {"id": 3, "name": "VIP 패키지", "points": 1000, "price": 10000}
+            {"id": 1, "name": "기본 패키지", "points": 100000, "price": 10000},
+            {"id": 2, "name": "프리미엄 패키지", "points": 500000, "price": 50000},
+            {"id": 3, "name": "VIP 패키지", "points": 1000000, "price": 100000}
         ]
     }
 
@@ -1899,18 +1908,19 @@ async def admin_login(request: Request):
         data = await request.json()
         email = data.get("email", "")
         password = data.get("password", "")
-        
-        # 기본 관리자 계정 (실제 환경에서는 데이터베이스에서 확인)
         if email == "admin@eora.ai" and password == "admin123":
+            access_token = create_access_token({"user_id": "admin", "role": "admin", "email": email})
+            user_info = {
+                "id": "admin",
+                "email": email,
+                "role": "admin",
+                "name": "EORA 관리자"
+            }
             return {
                 "success": True,
                 "message": "관리자 로그인 성공",
-                "user": {
-                    "id": "admin",
-                    "email": email,
-                    "role": "admin",
-                    "name": "EORA 관리자"
-                }
+                "user": user_info,
+                "access_token": access_token
             }
         else:
             return {
@@ -1926,80 +1936,97 @@ async def admin_login(request: Request):
 
 @app.post("/api/register")
 async def register(request: Request):
-    """회원가입 API"""
+    global db, users_collection
     try:
         data = await request.json()
         email = data.get("email", "")
         password = data.get("password", "")
         name = data.get("name", "")
+        print("[회원가입 시도] email:", email, "password:", password, "name:", name)
         if not email or not password:
+            print("[회원가입] 이메일/비밀번호 누락")
             return {"success": False, "message": "이메일과 비밀번호를 입력해주세요."}
+        if users_collection is None or db is None:
+            print("[회원가입] MongoDB 연결 실패(users_collection/db is None)")
+            return {"success": False, "message": "DB 연결 실패"}
         if users_collection.find_one({"email": email}):
+            print("[회원가입] 이미 등록된 이메일:", email)
             return {"success": False, "message": "이미 등록된 이메일입니다."}
         user_id = str(uuid.uuid4())
         user_doc = {"user_id": user_id, "email": email, "password": password, "name": name, "role": "user"}
         users_collection.insert_one(user_doc)
-        # 회원별 전용 컬렉션 생성 (보완)
         for coll in [f"user_{user_id}_chat", f"user_{user_id}_points"]:
             if coll not in db.list_collection_names():
                 db.create_collection(coll)
         db[f"user_{user_id}_points"].insert_one({"user_id": user_id, "points": 100000})
-        return {"success": True, "message": "회원가입 성공! 10만 포인트가 지급되었습니다.", "user_id": user_id}
+        access_token = create_access_token({"user_id": user_id, "role": "user", "email": email})
+        print("[회원가입 성공] email:", email, "user_id:", user_id)
+        resp = JSONResponse({
+            "success": True,
+            "message": "회원가입 성공! 10만 포인트가 지급되었습니다.",
+            "user": user_doc,
+            "access_token": access_token
+        })
+        resp.set_cookie(key="user_email", value=email, max_age=86400, path="/", samesite="Lax", secure=False)
+        return resp
     except Exception as e:
+        print("[회원가입 예외]", e)
         logger.error(f"회원가입 오류: {e}")
         return {"success": False, "message": str(e)}
 
 @app.post("/api/login")
 async def login(request: Request):
-    """일반 로그인 API (관리자 로그인과 동일하게 처리)"""
+    global users_collection
     try:
         data = await request.json()
         email = data.get("email", "")
         password = data.get("password", "")
-        
-        # 관리자 계정으로 로그인 시도
+        print("[로그인 시도] email:", email, "password:", password)
         if email == "admin@eora.ai" and password == "admin123":
-            return {
+            access_token = create_access_token({"user_id": "admin", "role": "admin", "email": email})
+            user_info = {
+                "id": "admin",
+                "email": email,
+                "role": "admin",
+                "name": "EORA 관리자"
+            }
+            print("[관리자 로그인 성공] email:", email)
+            resp = JSONResponse({
                 "success": True,
                 "message": "로그인 성공",
-                "user": {
-                    "id": "admin",
-                    "email": email,
-                    "role": "admin",
-                    "name": "EORA 관리자"
-                },
-                "access_token": "admin_token"
-            }
+                "user": user_info,
+                "access_token": access_token
+            })
+            resp.set_cookie(key="user_email", value=email, max_age=86400, path="/", samesite="Lax", secure=False)
+            return resp
         else:
-            # 일반 사용자 로그인 시도 (MongoDB에서 확인)
-            if users_collection is not None:
-                try:
-                    user = users_collection.find_one({"email": email, "password": password})
-                    if user:
-                        return {
-                            "success": True,
-                            "message": "로그인 성공",
-                            "user": {
-                                "id": str(user.get("_id", email)),
-                                "email": email,
-                                "role": user.get("role", "user"),
-                                "name": user.get("name", email.split('@')[0])
-                            },
-                            "access_token": f"user_token_{email}"
-                        }
-                except Exception as e:
-                    logger.warning(f"⚠️ MongoDB 사용자 조회 실패: {e}")
-            
-            return {
-                "success": False,
-                "message": "이메일 또는 비밀번호가 올바르지 않습니다."
-            }
+            if users_collection is None:
+                print("[로그인] MongoDB 연결 실패(users_collection is None)")
+                return {"success": False, "message": "DB 연결 실패"}
+            user = users_collection.find_one({"email": email, "password": password})
+            if user:
+                user_info = {
+                    "id": str(user.get("_id", email)),
+                    "email": email,
+                    "role": user.get("role", "user"),
+                    "name": user.get("name", email.split('@')[0])
+                }
+                access_token = create_access_token({"user_id": user.get("user_id"), "role": user.get("role", "user"), "email": email})
+                print("[일반 로그인 성공] email:", email)
+                resp = JSONResponse({
+                    "success": True,
+                    "message": "로그인 성공",
+                    "user": user_info,
+                    "access_token": access_token
+                })
+                resp.set_cookie(key="user_email", value=email, max_age=86400, path="/", samesite="Lax", secure=False)
+                return resp
+            print("[로그인 실패] 이메일 또는 비밀번호 불일치:", email)
+            return {"success": False, "message": "이메일 또는 비밀번호가 올바르지 않습니다."}
     except Exception as e:
+        print("[로그인 예외]", e)
         logger.error(f"로그인 오류: {e}")
-        return {
-            "success": False,
-            "message": "로그인 처리 중 오류가 발생했습니다."
-        }
+        return {"success": False, "message": "로그인 처리 중 오류가 발생했습니다."}
 
 @app.get("/api/prompts")
 async def get_prompts():
@@ -2761,6 +2788,7 @@ def get_user_storage_usage_mb(user_id):
 
 @app.post("/api/register")
 async def register(request: Request):
+    global db, users_collection
     try:
         data = await request.json()
         email = data.get("email", "")
@@ -2768,17 +2796,20 @@ async def register(request: Request):
         name = data.get("name", "")
         if not email or not password:
             return {"success": False, "message": "이메일과 비밀번호를 입력해주세요."}
+        if users_collection is None or db is None:
+            print("[회원가입] MongoDB 연결 실패(users_collection/db is None)")
+            return {"success": False, "message": "DB 연결 실패"}
         if users_collection.find_one({"email": email}):
             return {"success": False, "message": "이미 등록된 이메일입니다."}
         user_id = str(uuid.uuid4())
         user_doc = {"user_id": user_id, "email": email, "password": password, "name": name, "role": "user"}
         users_collection.insert_one(user_doc)
-        # 회원별 전용 컬렉션 생성 (보완)
         for coll in [f"user_{user_id}_chat", f"user_{user_id}_points"]:
             if coll not in db.list_collection_names():
                 db.create_collection(coll)
         db[f"user_{user_id}_points"].insert_one({"user_id": user_id, "points": 100000})
-        return {"success": True, "message": "회원가입 성공! 10만 포인트가 지급되었습니다.", "user_id": user_id}
+        access_token = create_access_token({"user_id": user_id, "role": "user", "email": email})
+        return {"success": True, "message": "회원가입 성공! 10만 포인트가 지급되었습니다.", "user": user_doc, "access_token": access_token}
     except Exception as e:
         logger.error(f"회원가입 오류: {e}")
         return {"success": False, "message": str(e)}
@@ -3155,6 +3186,10 @@ async def admin_storage_overview():
         logger.error(f"관리자 저장소 통계 오류: {e}")
         return {"success": False, "message": str(e)}
 
+@app.get("/aura_system", response_class=HTMLResponse)
+async def aura_system_page(request: Request):
+    return templates.TemplateResponse("aura_system.html", {"request": request})
+
 if __name__ == "__main__":
     import uvicorn
     import argparse
@@ -3211,3 +3246,9 @@ if __name__ == "__main__":
                     continue
         else:
             raise e 
+
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(hours=24)):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)

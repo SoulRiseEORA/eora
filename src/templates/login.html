@@ -248,7 +248,7 @@
         <div class="points-info">
             <h4>💎 포인트 시스템</h4>
             <p>GPT 대화를 위해 포인트를 구매하세요.<br>
-                회원가입 시 100포인트를 무료로 드립니다!</p>
+                회원가입 시 100,000포인트를 무료로 드립니다!</p>
         </div>
 
         <div id="error-message" class="error-message"></div>
@@ -380,23 +380,23 @@
                     body: JSON.stringify({
                         email: email,
                         password: password
-                    })
+                    }),
+                    credentials: 'include' // 쿠키 저장을 위해 반드시 필요
                 });
 
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // 사용자 정보 저장
                     localStorage.setItem('user', JSON.stringify(data.user));
-                    localStorage.setItem('access_token', 'admin_token');
+                    localStorage.setItem('access_token', data.access_token);
                     localStorage.setItem('user_email', data.user.email);
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+                    document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
                     localStorage.setItem('user_name', data.user.name);
                     localStorage.setItem('user_role', data.user.role);
                     localStorage.setItem('is_admin', 'true');
-
                     successMessage.textContent = '관리자 로그인 성공! 관리자 페이지로 이동합니다...';
                     successMessage.style.display = 'block';
-
                     setTimeout(() => {
                         window.location.href = '/admin';
                     }, 1000);
@@ -450,12 +450,21 @@
                         name: name,
                         email: email,
                         password: password
-                    })
+                    }),
+                    credentials: 'include' // 쿠키 저장을 위해 반드시 필요
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user_email', data.user.email);
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+                    document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
+                    localStorage.setItem('user_name', data.user.name);
+                    localStorage.setItem('user_role', data.user.role);
+                    localStorage.setItem('is_admin', 'true');
                     successMessage.textContent = '회원가입 성공! 자동 로그인 후 대시보드로 이동합니다...';
                     successMessage.style.display = 'block';
 
@@ -470,13 +479,17 @@
                                 body: JSON.stringify({
                                     email: email,
                                     password: password
-                                })
+                                }),
+                                credentials: 'include' // 쿠키 저장을 위해 반드시 필요
                             });
 
                             const loginData = await loginResponse.json();
 
                             if (loginResponse.ok) {
                                 localStorage.setItem('access_token', loginData.access_token);
+                                localStorage.setItem('user_email', loginData.user.email);
+                                document.cookie = `access_token=${loginData.access_token}; path=/; max-age=86400`;
+                                document.cookie = `user_email=${loginData.user.email}; path=/; max-age=86400`;
                                 window.location.href = '/dashboard';
                             } else {
                                 errorMessage.textContent = '자동 로그인에 실패했습니다. 수동으로 로그인해주세요.';
@@ -566,13 +579,21 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(requestBody)
+                    body: JSON.stringify(requestBody),
+                    credentials: 'include' // 쿠키 저장을 위해 반드시 필요
                 });
 
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    localStorage.setItem('auth_token', data.access_token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user_email', data.user.email);
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+                    document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
+                    localStorage.setItem('user_name', data.user.name);
+                    localStorage.setItem('user_role', data.user.role);
+                    localStorage.setItem('is_admin', 'true');
                     successMessage.textContent = `${provider} 로그인 성공! 대시보드로 이동합니다...`;
                     successMessage.style.display = 'block';
 
@@ -604,13 +625,21 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ email: email })
+                    body: JSON.stringify({ email: email }),
+                    credentials: 'include' // 쿠키 저장을 위해 반드시 필요
                 });
 
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    localStorage.setItem('auth_token', data.access_token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user_email', data.user.email);
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+                    document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
+                    localStorage.setItem('user_name', data.user.name);
+                    localStorage.setItem('user_role', data.user.role);
+                    localStorage.setItem('is_admin', 'true');
                     successMessage.textContent = '구글 로그인 성공! 대시보드로 이동합니다...';
                     successMessage.style.display = 'block';
 

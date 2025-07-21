@@ -1317,13 +1317,17 @@
                     document.getElementById('userDisplayName').textContent = userName;
                     document.getElementById('userDisplayEmail').textContent = userEmail;
 
-                    // 관리자 계정인 경우 관리자 버튼 표시
-                    const isAdmin = localStorage.getItem('is_admin') === 'true';
-                    if (isAdmin || userEmail === 'admin@eora.com') {
-                        const adminBtn = document.getElementById('adminBtn');
+                    // 관리자 계정인 경우 관리자 버튼 표시 (항상 강제)
+                    const isAdmin = localStorage.getItem('is_admin') === 'true' || userEmail === 'admin@eora.ai';
+                    const adminBtn = document.getElementById('adminBtn');
+                    if (isAdmin) {
                         if (adminBtn) {
                             adminBtn.style.display = 'inline-block';
+                        } else {
+                            console.warn('adminBtn 버튼이 DOM에 없습니다.');
                         }
+                    } else {
+                        if (adminBtn) adminBtn.style.display = 'none';
                     }
                 }
 
@@ -1391,6 +1395,7 @@
                         } else {
                             window.open('/chat', '_blank');
                             window.location.href = '/';
+                            setTimeout(() => location.reload(), 200); // 홈 이동 후 강제 새로고침
                         }
                     } else {
                         alert('로그인 실패: ' + data.message);
