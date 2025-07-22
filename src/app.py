@@ -28,6 +28,24 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2Pas
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+from functools import wraps
+def admin_required(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        request = kwargs.get('request')
+        if request is None:
+            for arg in args:
+                if hasattr(arg, 'headers'):
+                    request = arg
+                    break
+        user = None
+        if request:
+            user = get_current_user(request)
+        if not user or not user.get('is_admin', False):
+            raise HTTPException(status_code=403, detail='관리자만 접근 가능합니다.')
+        return await func(*args, **kwargs)
+    return wrapper
+
 # 데이터베이스 및 캐시
 import pymongo
 from pymongo import MongoClient
@@ -85,20 +103,63 @@ ALGORITHM = "HS256"
 
 def get_current_user(request: Request):
     try:
+        # 1. JWT 토큰 확인
         token = None
         auth = request.headers.get("authorization")
         if auth and auth.startswith("Bearer "):
             token = auth[7:]
         if not token:
             token = request.cookies.get("access_token")
-        if not token:
-            return None
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return {
-            "user_id": payload.get("user_id"),
-            "role": payload.get("role", "user"),
-            "email": payload.get("email")
-        }
+        
+        if token:
+            try:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                return {
+                    "user_id": payload.get("user_id"),
+                    "role": payload.get("role", "user"),
+                    "email": payload.get("email"),
+                    "is_admin": payload.get("is_admin", False)
+                }
+            except Exception as e:
+                logger.error(f"JWT 토큰 디코딩 오류: {e}")
+        
+        # 2. 세션 기반 인증 확인
+        session = request.cookies.get("session")
+        if session:
+            try:
+                # 세션 데이터 디코딩
+                import base64
+                session_data = base64.b64decode(session).decode('utf-8')
+                import json
+                user_data = json.loads(session_data)
+                
+                if "user" in user_data:
+                    user = user_data["user"]
+                    return {
+                        "user_id": user.get("user_id", user.get("id")),
+                        "role": user.get("role", "user"),
+                        "email": user.get("email"),
+                        "is_admin": user.get("is_admin", False)
+                    }
+            except Exception as e:
+                logger.error(f"세션 디코딩 오류: {e}")
+        
+        # 3. user_info 쿠키 확인
+        user_info_cookie = request.cookies.get("user_info")
+        if user_info_cookie:
+            try:
+                import json
+                user_info = json.loads(user_info_cookie)
+                return {
+                    "user_id": user_info.get("id"),
+                    "role": user_info.get("role", "user"),
+                    "email": user_info.get("email"),
+                    "is_admin": user_info.get("role") == "admin"
+                }
+            except Exception as e:
+                logger.error(f"user_info 쿠키 파싱 오류: {e}")
+        
+        return None
     except Exception as e:
         logger.error(f"사용자 인증 오류: {e}")
         return None
@@ -1005,20 +1066,12 @@ async def login(request: Request):
         """, status_code=200)
 
 @app.get("/admin", response_class=HTMLResponse)
-async def admin(request: Request):
-    # 1. JWT 인증 시도
+@admin_required
+async def admin_page(request: Request):
     user = get_current_user(request)
-    # 2. 쿠키에서 user_email 직접 확인 (JWT가 없거나 만료된 경우도 허용)
-    user_email = request.cookies.get("user_email")
-    # 3. localStorage는 서버에서 접근 불가, 쿠키만 사용
-    is_admin = False
-    if user and user.get("email") == "admin@eora.ai":
-        is_admin = True
-    elif user_email == "admin@eora.ai":
-        is_admin = True
-    if not is_admin:
-        return RedirectResponse(url="/")
-    return templates.TemplateResponse("admin.html", {"request": request, "is_admin": True})
+    if not user or not user.get("is_admin", False):
+        return RedirectResponse("/")
+    return templates.TemplateResponse("admin.html", {"request": request})
 
 @app.get("/debug", response_class=HTMLResponse)
 async def debug(request: Request):
@@ -1329,24 +1382,24 @@ async def get_sessions(request: Request):
 @app.post("/api/sessions")
 async def create_session(request: Request):
     try:
+        user = get_current_user(request)
+        if not user:
+            raise HTTPException(status_code=401, detail="로그인 필요")
         data = await request.json()
         session_name = data.get("name", "새 세션")
-        user_id = data.get("user_id", "anonymous")
+        # user_id는 반드시 로그인된 사용자의 user_id로 강제
+        user_id = user.get("user_id")
         session_id = generate_session_id()
-        
         session_data = {
             "name": session_name,
             "message_count": 0,
             "user_id": user_id
         }
-        
-        logger.info(f"📝 새 세션 생성: {session_name} (ID: {session_id})")
-        
+        logger.info(f"📝 새 세션 생성: {session_name} (ID: {session_id}) for user {user_id}")
         if sessions_collection is not None:
-            # MongoDB에 저장 - session_id 필드 추가
             session_doc = {
                 "_id": session_id,
-                "session_id": session_id,  # 명시적으로 session_id 필드 추가
+                "session_id": session_id,
                 "name": session_name,
                 "created_at": datetime.now(),
                 "last_activity": datetime.now(),
@@ -1362,7 +1415,6 @@ async def create_session(request: Request):
                 return session_doc
             except Exception as mongo_error:
                 logger.error(f"❌ MongoDB 세션 저장 실패: {mongo_error}")
-                # MongoDB 실패 시 메모리로 fallback
                 save_session_to_memory(session_id, session_data)
                 logger.info(f"✅ 메모리 세션 저장 완료 (fallback): {session_id}")
                 return {
@@ -1374,7 +1426,6 @@ async def create_session(request: Request):
                     "user_id": user_id
                 }
         else:
-            # 메모리 기반 저장
             save_session_to_memory(session_id, session_data)
             logger.info(f"✅ 메모리 세션 저장 완료: {session_id}")
             return {
@@ -1909,12 +1960,13 @@ async def admin_login(request: Request):
         email = data.get("email", "")
         password = data.get("password", "")
         if email == "admin@eora.ai" and password == "admin123":
-            access_token = create_access_token({"user_id": "admin", "role": "admin", "email": email})
+            access_token = create_access_token({"user_id": "admin", "role": "admin", "email": email, "is_admin": True})
             user_info = {
                 "id": "admin",
                 "email": email,
                 "role": "admin",
-                "name": "EORA 관리자"
+                "name": "EORA 관리자",
+                "is_admin": True
             }
             return {
                 "success": True,
@@ -1983,12 +2035,13 @@ async def login(request: Request):
         password = data.get("password", "")
         print("[로그인 시도] email:", email, "password:", password)
         if email == "admin@eora.ai" and password == "admin123":
-            access_token = create_access_token({"user_id": "admin", "role": "admin", "email": email})
+            access_token = create_access_token({"user_id": "admin", "role": "admin", "email": email, "is_admin": True})
             user_info = {
                 "id": "admin",
                 "email": email,
                 "role": "admin",
-                "name": "EORA 관리자"
+                "name": "EORA 관리자",
+                "is_admin": True
             }
             print("[관리자 로그인 성공] email:", email)
             resp = JSONResponse({
@@ -2786,201 +2839,52 @@ def get_user_storage_usage_mb(user_id):
         logger.error(f"용량 측정 오류: {e}")
         return 0.0
 
-@app.post("/api/register")
-async def register(request: Request):
+@app.post("/api/auth/register")
+async def register_user(request: Request):
+    import hashlib
     global db, users_collection
+    # 연결이 None이면 재시도
+    if users_collection is None or db is None:
+        logger.warning("⚠️ users_collection/db가 None입니다. 재연결 시도...")
+        initialize_mongodb_collections()
+        if users_collection is None or db is None:
+            logger.error("❌ users_collection이 None (MongoDB 연결 실패)")
+            return {"success": False, "message": "DB 연결 실패. 잠시 후 다시 시도해주세요."}
     try:
         data = await request.json()
         email = data.get("email", "")
         password = data.get("password", "")
         name = data.get("name", "")
         if not email or not password:
-            return {"success": False, "message": "이메일과 비밀번호를 입력해주세요."}
-        if users_collection is None or db is None:
-            print("[회원가입] MongoDB 연결 실패(users_collection/db is None)")
-            return {"success": False, "message": "DB 연결 실패"}
-        if users_collection.find_one({"email": email}):
-            return {"success": False, "message": "이미 등록된 이메일입니다."}
-        user_id = str(uuid.uuid4())
-        user_doc = {"user_id": user_id, "email": email, "password": password, "name": name, "role": "user"}
-        users_collection.insert_one(user_doc)
-        for coll in [f"user_{user_id}_chat", f"user_{user_id}_points"]:
-            if coll not in db.list_collection_names():
-                db.create_collection(coll)
-        db[f"user_{user_id}_points"].insert_one({"user_id": user_id, "points": 100000})
-        access_token = create_access_token({"user_id": user_id, "role": "user", "email": email})
-        return {"success": True, "message": "회원가입 성공! 10만 포인트가 지급되었습니다.", "user": user_doc, "access_token": access_token}
-    except Exception as e:
-        logger.error(f"회원가입 오류: {e}")
-        return {"success": False, "message": str(e)}
-
-@app.post("/api/chat")
-async def chat_endpoint(request: Request):
-    try:
-        data = await request.json()
-        user = get_current_user(request)
-        user_id = user.get("user_id") if user else None
-        if not user_id:
-            return {"success": False, "message": "로그인 필요"}
-        tokens_used = data.get("tokens_used", 0)
-        # 포인트 차감(토큰 2배)
-        points_col = db[f"user_{user_id}_points"]
-        user_points = points_col.find_one({"user_id": user_id})
-        cost = tokens_used * 2
-        if not user_points or user_points.get("points", 0) < cost:
-            return {"success": False, "message": "포인트가 부족합니다."}
-        points_col.update_one({"user_id": user_id}, {"$inc": {"points": -cost}})
-        # 대화 저장
-        chat_col = db[f"user_{user_id}_chat"]
-        chat_col.insert_one({"user_id": user_id, "message": data.get("message", ""), "created_at": datetime.now()})
-        # 1. 저장소 용량 체크
-        usage_mb = get_user_storage_usage_mb(user_id)
-        if usage_mb >= 100:
-            return {"success": False, "message": f"저장소 용량 초과(100MB). 채팅/저장 불가.", "usage_mb": usage_mb}
-        warn_msg = None
-        if usage_mb >= 95:
-            warn_msg = f"경고: 저장소 용량이 95MB를 초과했습니다. ({usage_mb}MB/100MB)"
-        return {"success": True, "message": "채팅 성공", "points": user_points["points"] - cost, "warning": warn_msg}
-    except Exception as e:
-        logger.error(f"채팅 오류: {e}")
-        return {"success": False, "message": str(e)}
-
-@app.get("/api/admin/points")
-async def admin_points():
-    users = []
-    if points_collection is not None:
-        for user in points_collection.find():
-            users.append({
-                "user_id": user.get("user_id"),
-                "email": user.get("email", user.get("user_id")),
-                "name": user.get("name", ""),
-                "points": user.get("points", 0)
-            })
-    return {"users": users}
-
-@app.post("/api/admin/points/charge")
-async def admin_points_charge(request: Request):
-    data = await request.json()
-    user_id = data.get("user_id")
-    type_ = data.get("type")
-    amount = int(data.get("amount", 0))
-    if not user_id or type_ not in ("add", "subtract", "reset"): return {"success": False, "message": "잘못된 요청"}
-    if points_collection is None:
-        return {"success": False, "message": "DB 연결 오류"}
-    user = points_collection.find_one({"user_id": user_id})
-    if not user:
-        return {"success": False, "message": "사용자 없음"}
-    if type_ == "add":
-        points_collection.update_one({"user_id": user_id}, {"$inc": {"points": amount}})
-    elif type_ == "subtract":
-        if user.get("points", 0) < amount:
-            return {"success": False, "message": "포인트 부족"}
-        points_collection.update_one({"user_id": user_id}, {"$inc": {"points": -amount}})
-    elif type_ == "reset":
-        points_collection.update_one({"user_id": user_id}, {"$set": {"points": 0}})
-    return {"success": True}
-
-@app.post("/api/points/purchase")
-async def points_purchase(request: Request):
-    data = await request.json()
-    points = int(data.get("points", 0))
-    price = int(data.get("price", 0))
-    user = await get_current_user(request)
-    if not user or not user.get("user_id"):
-        return {"success": False, "message": "로그인 필요"}
-    if points_collection is None:
-        return {"success": False, "message": "DB 연결 오류"}
-    points_collection.update_one({"user_id": user["user_id"]}, {"$inc": {"points": points}}, upsert=True)
-    # TODO: 결제 연동 시 실제 결제 검증 필요
-    return {"success": True, "message": f"{points} 포인트 충전 완료"}
-
-@app.get("/api/admin/user/{user_id}")
-async def admin_user_detail(user_id: str):
-    user = users_collection.find_one({"user_id": user_id}) if users_collection else None
-    points = points_collection.find_one({"user_id": user_id}) if points_collection else None
-    sessions = list(sessions_collection.find({"user_id": user_id})) if sessions_collection else []
-    return {
-        "user_id": user_id,
-        "email": user.get("email", user_id) if user else user_id,
-        "name": user.get("name", "") if user else "",
-        "created_at": user.get("created_at", "") if user else "",
-        "last_activity": user.get("last_activity", "") if user else "",
-        "role": user.get("role", "user") if user else "user",
-        "points": points.get("points", 0) if points else 0,
-        "sessions": [{"name": s.get("name", "세션"), "created_at": s.get("created_at", "")} for s in sessions]
-    }
-
-@app.get("/api/user/points/{user_id}")
-async def user_points_detail(user_id: str, from_: str = '', to: str = '', type: str = ''):
-    # from_, to: yyyy-mm-dd
-    points = points_collection.find_one({"user_id": user_id}) if points_collection else None
-    history = points.get("history", []) if points else []
-    def date_in_range(ts):
-        if not (from_ or to): return True
-        dt = datetime.fromisoformat(ts[:19]) if ts else None
-        if from_:
-            if not dt or dt < datetime.fromisoformat(from_): return False
-        if to:
-            if not dt or dt > datetime.fromisoformat(to)+timedelta(days=1): return False
-        return True
-    filtered = [h for h in history if (not type or h.get('type')==type) and date_in_range(h.get('timestamp',''))]
-    return {
-        "user_id": user_id,
-        "points": points.get("points", 0) if points else 0,
-        "history": filtered
-    }
-
-@app.get("/api/admin/points")
-async def admin_points(email: str = '', name: str = '', minp: int = None, maxp: int = None, sort: str = 'points', dir: int = -1):
-    users = []
-    q = {}
-    if email: q["email"] = {"$regex": email, "$options": "i"}
-    if name: q["name"] = {"$regex": name, "$options": "i"}
-    if minp is not None or maxp is not None:
-        q["points"] = {}
-        if minp is not None: q["points"]["$gte"] = minp
-        if maxp is not None: q["points"]["$lte"] = maxp
-    sort_tuple = (sort, dir)
-    if points_collection is not None:
-        for user in points_collection.find(q).sort([sort_tuple]):
-            users.append({
-                "user_id": user.get("user_id"),
-                "email": user.get("email", user.get("user_id")),
-                "name": user.get("name", ""),
-                "points": user.get("points", 0)
-            })
-    # 통계
-    total_users = points_collection.count_documents({}) if points_collection else 0
-    total_points = sum(u["points"] for u in users)
-    return {"users": users, "stats": {"total_users": total_users, "total_points": total_points}}
-
-@app.post("/api/auth/register")
-async def register_user(request: Request):
-    import hashlib
-    if users_collection is None:
-        logger.error("❌ users_collection이 None (MongoDB 연결 실패)")
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="MongoDB 연결 실패. 잠시 후 다시 시도해주세요.")
-    try:
-        data = await request.json()
-        email = data.get("email")
-        password = data.get("password")
-        name = data.get("name")
-        if not email or not password:
             return {"success": False, "message": "이메일과 비밀번호를 입력하세요."}
         if users_collection.find_one({"email": email}):
             return {"success": False, "message": "이미 등록된 이메일입니다."}
         user_id = str(uuid.uuid4())
         hashed_pw = hashlib.sha256(password.encode()).hexdigest()
-        users_collection.insert_one({
+        user_doc = {
             "user_id": user_id,
             "email": email,
             "password": hashed_pw,
             "name": name,
+            "role": "user",
             "is_admin": False
-        })
-        db[f"user_{user_id}_chat"].insert_one({"init": True})
+        }
+        users_collection.insert_one(user_doc)
+        # 개별 컬렉션 생성 및 포인트 지급
+        for coll in [f"user_{user_id}_chat", f"user_{user_id}_points"]:
+            if coll not in db.list_collection_names():
+                db.create_collection(coll)
         db[f"user_{user_id}_points"].insert_one({"user_id": user_id, "points": 100000})
-        return {"success": True, "message": "회원가입 완료! 10만 포인트 지급.", "user_id": user_id}
+        access_token = create_access_token({"user_id": user_id, "role": "user", "email": email})
+        logger.info(f"[회원가입 성공] email: {email}, user_id: {user_id}")
+        resp = JSONResponse({
+            "success": True,
+            "message": "회원가입 성공! 10만 포인트가 지급되었습니다.",
+            "user": user_doc,
+            "access_token": access_token
+        })
+        resp.set_cookie(key="user_email", value=email, max_age=86400, path="/", samesite="Lax", secure=False)
+        return resp
     except Exception as e:
         logger.error(f"회원가입 오류: {e}")
         return {"success": False, "message": f"회원가입 오류: {str(e)}"}
@@ -3038,12 +2942,7 @@ async def chat_endpoint(request: Request):
     db[f"user_{user_id}_chat"].insert_one({"session_id": session_id, "message": message})
     return {"success": True, "message": f"채팅 저장 및 {cost}포인트 차감 완료", "remain": points_doc["points"] - cost}
 
-@app.get("/admin")
-async def admin_page(request: Request):
-    user = get_user_by_token(request)
-    if not user or not user.get("is_admin", False):
-        return RedirectResponse("/")
-    return JSONResponse({"success": True, "message": "관리자 페이지", "user": user})
+# 중복된 관리자 페이지 정의 제거 - 1068번째 줄의 정의 사용
 
 # 1. MongoDB 연결 및 컬렉션 초기화 함수 분리
 
@@ -3086,30 +2985,21 @@ from fastapi import status, HTTPException
 
 @app.on_event("startup")
 def on_startup():
-    logger.info("🚦 FastAPI 앱 시작: MongoDB 컬렉션 초기화 시도")
+    logger.info("🚦 FastAPI 앱 시작: MongoDB 컬렉션 초기화 시도 및 연결 체크")
     initialize_mongodb_collections()
+    # 연결이 안 되어 있으면 재시도
+    global db, users_collection
+    if db is None or users_collection is None:
+        logger.warning("⚠️ MongoDB 연결이 None입니다. 재연결 시도...")
+        initialize_mongodb_collections()
+        if db is None or users_collection is None:
+            logger.error("❌ MongoDB 연결 실패. 회원가입 등 DB 기능이 동작하지 않습니다.")
 
 from functools import wraps
 from fastapi import Request, HTTPException, status, Depends
 
 # 관리자 접근제어 데코레이터
 
-def admin_required(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        request: Request = kwargs.get('request')
-        if request is None:
-            for arg in args:
-                if isinstance(arg, Request):
-                    request = arg
-                    break
-        user = None
-        if request:
-            user = getattr(request.state, 'user', None)
-        if not user or not user.get('is_admin', False):
-            raise HTTPException(status_code=403, detail="관리자만 접근 가능합니다.")
-        return await func(*args, **kwargs)
-    return wrapper
 
 # 관리자 계정 자동 생성 함수
 import hashlib
@@ -3141,11 +3031,7 @@ async def startup_event():
 # 관리자 접근제어 적용 예시 (admin 페이지 및 API)
 from fastapi.responses import HTMLResponse
 
-@app.get("/admin", response_class=HTMLResponse)
-@admin_required
-async def admin_page(request: Request):
-    # ... 기존 관리자 페이지 렌더링 코드 ...
-    return templates.TemplateResponse("admin.html", {"request": request})
+# 중복된 관리자 페이지 정의 제거 - 1068번째 줄의 정의 사용
 
 # /api/admin/* 라우트에 admin_required 적용 (예시)
 @app.get("/api/admin/users")
