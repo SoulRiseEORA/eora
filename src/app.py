@@ -1453,6 +1453,7 @@ async def create_session(request: Request):
             }
     except Exception as e:
         logger.error(f"세션 생성 오류: {e}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/sessions/{session_id}/messages")
