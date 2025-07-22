@@ -3693,3 +3693,11 @@ except Exception as e:
         "points_deducted": 0,
         "remaining_points": 100000
     }
+
+# .env 파일 로드 (로컬 개발 시)
+load_dotenv()
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+MONGODB_URI = os.environ.get("MONGODB_URI")
+
+# ... 기존 코드 ...
