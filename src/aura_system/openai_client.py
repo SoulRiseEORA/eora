@@ -2,7 +2,6 @@ import os
 import logging
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
-from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 
 # 로깅 설정
@@ -26,12 +25,18 @@ async def get_openai_client():
     """OpenAI 클라이언트 초기화"""
     global _openai_client
     if _openai_client is None:
-        _openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        _openai_client = AsyncOpenAI(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            # proxies 인수 제거 - httpx 0.28.1 호환성
+        )
     return _openai_client
 
 async def get_embeddings():
-    """OpenAI 임베딩 모델 초기화"""
-    return OpenAIEmbeddings()
+    """OpenAI 임베딩 모델 초기화 (직접 사용)"""
+    return AsyncOpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        # proxies 인수 제거 - httpx 0.28.1 호환성
+    )
 
 async def get_vector_store(embeddings):
     """Chroma 벡터 스토어 초기화"""

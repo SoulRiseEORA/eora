@@ -37,12 +37,12 @@ if not api_key:
     print("❌ OPENAI_API_KEY가 설정되지 않았습니다. .env 또는 시스템 환경 변수를 확인하세요.", file=sys.stderr)
     sys.exit(1)
 
-# (기존의 old key 패턴 감지 부분 제거)
-project_id = os.getenv("OPENAI_PROJECT_ID", "").strip()
-
 # 3) 클라이언트 초기화
 openai.api_key = api_key
-client = OpenAI(api_key=api_key)  # ✅ OpenAI 1.7.0 이상 기준 project_id 제거
+client = OpenAI(
+    api_key=api_key,
+    # proxies 인수 제거 - httpx 0.28.1 호환성
+)  # ✅ OpenAI 1.7.0 이상 기준 project_id 제거
 
 print("✅ OpenAI API 키 로드 완료")
 

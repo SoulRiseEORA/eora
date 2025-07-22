@@ -29,6 +29,10 @@ from EORA_GAI.eora_core import EORACore
 from EORA.eora_modular.recall_memory_with_enhancements import recall_memory_with_enhancements
 from belief_memory_engine.belief_detector import extract_belief_phrases, extract_belief_vector
 
+# dotenv 로드
+from dotenv import load_dotenv
+load_dotenv()
+
 logger = logging.getLogger(__name__)
 
 class EORAAdvancedChatSystem:
@@ -40,7 +44,10 @@ class EORAAdvancedChatSystem:
         self.session_id = str(uuid.uuid4())
         
         # OpenAI 클라이언트
-        self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.openai_client = OpenAI(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            # proxies 인수 제거 - httpx 0.28.1 호환성
+        )
         
         # 벡터 저장소
         self.vector_store = VectorStore()

@@ -4,8 +4,12 @@ import asyncio
 
 def get_openai_client():
     api_key = os.getenv("OPENAI_API_KEY", "")
-    project = os.getenv("OPENAI_PROJECT_ID", "")
-    return OpenAI(api_key=api_key, project=project)
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
+    return OpenAI(
+        api_key=api_key,
+        # proxies 인수 제거 - httpx 0.28.1 호환성
+    )
 
 # ✅ GPT 응답 생성 함수
 async def call_gpt_response(

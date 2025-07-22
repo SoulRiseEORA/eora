@@ -694,6 +694,12 @@
                     </div>
                 </div>
             </div>
+            <!--
+            <div
+                style="background: #fffbe6; color: #b8860b; padding: 10px 24px; border-radius: 0 0 16px 16px; font-size: 15px; margin-bottom: 0; border-bottom: 1px solid #ffe58f; text-align: left;">
+                💡 안내: 1토큰당 <b>2포인트</b> 차감 (실제 차감은 <b>2배</b> 적용됩니다)
+            </div>
+            -->
 
             <div class="chat-messages" id="chatMessages">
                 <div class="chat-welcome">
@@ -1754,6 +1760,7 @@
             console.log("🤖 AI 응답 요청 시작");
             showTypingIndicator();
 
+            let tokenCost = 0;
             try {
                 // 토큰 가져오기
                 const token = getCookie('access_token');
@@ -1770,7 +1777,9 @@
 
                 const requestBody = {
                     message: message,
-                    session_id: currentSessionId || 'default'
+                    session_id: currentSessionId || 'default',
+                    prompt_tokens: 0, // TODO: 실제 프롬프트 토큰 계산값으로 대체
+                    recall_tokens: 0  // TODO: 실제 회상 토큰 계산값으로 대체
                 };
 
                 console.log("📤 API 요청 데이터:", requestBody);
@@ -1792,18 +1801,31 @@
 
                     // AI 응답 추가 (중복 방지)
                     const aiTimestamp = new Date().toISOString();
-                    console.log("🤖 AI 응답 데이터:", {
-                        response: data.response,
-                        timestamp: aiTimestamp,
-                        originalMessage: message
-                    });
                     addMessage('assistant', data.response, aiTimestamp);
 
                     // AI 응답을 몽고DB에 저장 (중복 방지)
                     if (currentSessionId) {
-                        console.log("💾 AI 응답 DB 저장");
                         await saveMessageToDatabase(currentSessionId, 'assistant', data.response);
                     }
+
+                    // === [포인트 차감 실시간 반영: 전체 토큰 기준] ===
+                    let totalTokens = 0;
+                    if (typeof data.total_tokens === 'number') {
+                        totalTokens = data.total_tokens;
+                    } else if (data.token_info && typeof data.token_info.total_tokens === 'number') {
+                        totalTokens = data.token_info.total_tokens;
+                    } else {
+                        totalTokens = 1;
+                    }
+                    updatePointStatus(-totalTokens);
+                    // 안내문구 표시
+                    const el = document.getElementById('pointChange');
+                    if (el) {
+                        el.textContent = `- ${totalTokens} 토큰 차감`;
+                        el.style.color = '#e53935';
+                        setTimeout(() => { el.textContent = ''; }, 2500);
+                    }
+                    // =============================
                 } else {
                     const errorData = await response.json().catch(() => ({}));
                     console.error("❌ API 오류:", errorData);
@@ -2346,12 +2368,6 @@
                     const data = await res.json();
                     const currentPoints = data.points || 0;
                     document.getElementById('currentPoints').textContent = currentPoints.toLocaleString();
-                    if (change) {
-                        const el = document.getElementById('pointChange');
-                        el.textContent = (change > 0 ? '+' : '') + change;
-                        el.style.color = '#2196f3';
-                        setTimeout(() => { el.textContent = ''; }, 2000);
-                    }
                 }
             } catch (e) { }
         }

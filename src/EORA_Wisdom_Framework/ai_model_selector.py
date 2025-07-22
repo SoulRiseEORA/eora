@@ -22,21 +22,25 @@ for env_path in (root_env, src_env):
             env_loaded = True
             break
         except PermissionError as e:
+            continue
         except Exception as e:
+            continue
 
 if not env_loaded:
+    print("❌ .env 파일을 찾을 수 없습니다.")
+    sys.exit(1)
 
 # 2) API 키 로드
 api_key = os.getenv("OPENAI_API_KEY", "").strip()
 if not api_key:
     sys.exit(1)
 
-# (기존의 old key 패턴 감지 부분 제거)
-project_id = os.getenv("OPENAI_PROJECT_ID", "").strip()
-
 # 3) 클라이언트 초기화
 openai.api_key = api_key
-client = OpenAI(api_key=api_key)  # ✅ OpenAI 1.7.0 이상 기준 project_id 제거
+client = OpenAI(
+    api_key=api_key,
+    # proxies 인수 제거 - httpx 0.28.1 호환성
+)  # ✅ OpenAI 1.7.0 이상 기준 project_id 제거
 
 
 # ──────────────────────────────────────────────────────────
@@ -84,6 +88,7 @@ def do_task(
     )
     elapsed = time.time() - start_time
 
+    print(f"[Metrics] Request #{request_counter:<3} | "
           f"Model={model:<8} | Temp={temperature:<4} | "
           f"MaxTokens={max_tokens:<5} | "
           f"Elapsed={elapsed:.3f}s")

@@ -118,9 +118,11 @@ def get_client():
     if not keys:
         raise ValueError("유효한 API 키가 없습니다.")
     selected = random.choice(keys)
-    project_id = os.getenv("OPENAI_PROJECT_ID")
-    print(f"[ROUTER] 사용된 키: {selected[:12]}... / Project: {project_id}")
-    return OpenAI(api_key=selected, project=project_id)
+    print(f"[ROUTER] 사용된 키: {selected[:12]}...")
+    return OpenAI(
+        api_key=selected,
+        # proxies 인수 제거 - httpx 0.28.1 호환성
+    )
 
 def ask(prompt, system_msg="", max_tokens=1024, stream=False):
     client = get_client()

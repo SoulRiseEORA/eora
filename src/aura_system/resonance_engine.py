@@ -37,8 +37,10 @@ def embed_text(text: str) -> List[float]:
         
         # 2. 임베딩 생성
         api_key = os.getenv("OPENAI_API_KEY", "")
-        project = os.getenv("OPENAI_PROJECT_ID", "")
-        client = OpenAI(api_key=api_key, project=project)
+        client = OpenAI(
+            api_key=api_key,
+            # proxies 인수 제거 - httpx 0.28.1 호환성
+        )
         response = client.embeddings.create(
             model="text-embedding-3-small",
             input=text

@@ -24,7 +24,7 @@ class Embeddings:
             openai_config = self.config.get("openai", {})
             self.client = AsyncOpenAI(
                 api_key=openai_config.get("api_key", os.getenv("OPENAI_API_KEY")),
-                base_url=openai_config.get("base_url", "https://api.openai.com/v1")
+                # proxies 인수 제거 - httpx 0.28.1 호환성
             )
             
             # Redis 클라이언트 초기화

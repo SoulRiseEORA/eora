@@ -92,7 +92,9 @@ if __name__ == "__main__":
         print("[결과]", "성공" if success else "실패")
 
     asyncio.run(main())
-openai import OpenAI
+
+# OpenAI 클라이언트 관련 import
+from openai import OpenAI
 import os
 import json
 from dotenv import load_dotenv
@@ -181,16 +183,14 @@ def load_prompt(ai_key):
     except Exception as e:
         return f"[프롬프트 오류: {str(e)}]"
 
-def get_openai_client(ai_key):
-    if ai_key == "ai1":
-        api_key = os.getenv("OPENAI_API_KEY", "")
-    else:
-        index = ai_key.replace("ai", "")
-        api_key = os.getenv(f"OPENAI_API_KEY_{index}", "")
+def get_openai_client():
+    api_key = os.getenv("OPENAI_API_KEY", "")
     if not api_key:
-        raise ValueError(f"API 키를 찾을 수 없습니다: {ai_key}")
-    project = os.getenv("OPENAI_PROJECT_ID", "")
-    return OpenAI(api_key=api_key, project=project)
+        raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
+    return OpenAI(
+        api_key=api_key,
+        # proxies 인수 제거 - httpx 0.28.1 호환성
+    )
 
 class BaseGPT:
     def __init__(self, ai_key, model=None, temp=None):
@@ -198,7 +198,7 @@ class BaseGPT:
         self.model = model or os.getenv("GPT_MODEL", "gpt-4")
         self.temp = float(os.getenv("TEMPERATURE", "0.7"))
         self.system_prompt = load_prompt(ai_key)
-        self.client = get_openai_client(ai_key)
+        self.client = get_openai_client()
 
     def ask(self, user_input, chat_history=[]):
         messages = [{"role": "system", "content": self.system_prompt}]
@@ -217,12 +217,29 @@ class BaseGPT:
         except Exception as e:
             return f"❌ GPT 호출 실패: {str(e)}"
 
-class AI1(BaseGPT): def __init__(self): super().__init__("ai1")
-class AI2(BaseGPT): def __init__(self): super().__init__("ai2")
-class AI3(BaseGPT): def __init__(self): super().__init__("ai3")
-class AI4(BaseGPT): def __init__(self): super().__init__("ai4")
-class AI5(BaseGPT): def __init__(self): super().__init__("ai5")
-class AI6(BaseGPT): def __init__(self): super().__init__("ai6")
+class AI1(BaseGPT):
+    def __init__(self):
+        super().__init__("ai1")
+
+class AI2(BaseGPT):
+    def __init__(self):
+        super().__init__("ai2")
+
+class AI3(BaseGPT):
+    def __init__(self):
+        super().__init__("ai3")
+
+class AI4(BaseGPT):
+    def __init__(self):
+        super().__init__("ai4")
+
+class AI5(BaseGPT):
+    def __init__(self):
+        super().__init__("ai5")
+
+class AI6(BaseGPT):
+    def __init__(self):
+        super().__init__("ai6")
 
 EORAAI = AI1
 

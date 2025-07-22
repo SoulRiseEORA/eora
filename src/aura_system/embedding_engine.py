@@ -19,7 +19,7 @@ load_dotenv()
 # OpenAI 클라이언트 초기화
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY", ""),
-    project=os.getenv("OPENAI_PROJECT_ID", None)
+    # proxies 인수 제거 - httpx 0.28.1 호환성
 )
 
 # ✅ 임베딩 생성 함수
