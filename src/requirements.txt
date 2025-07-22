@@ -12,3 +12,4 @@ PyJWT
 numpy
 sentence-transformers
 faiss-cpu
+psutil==5.9.6

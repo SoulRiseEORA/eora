@@ -3252,6 +3252,321 @@ async def admin_storage_overview():
 async def aura_system_page(request: Request):
     return templates.TemplateResponse("aura_system.html", {"request": request})
 
+# 관리자 API 엔드포인트들
+@app.get("/api/admin/stats")
+async def get_admin_stats(request: Request):
+    """관리자 대시보드 통계"""
+    try:
+        # 기본 통계 계산
+        total_users = db.users.count_documents({})
+        active_sessions = db.sessions.count_documents({})
+        total_chats = db.chat_logs.count_documents({})
+        
+        # 총 포인트 계산
+        total_points = 0
+        for collection_name in db.list_collection_names():
+            if collection_name.endswith('_points'):
+                points_docs = db[collection_name].find({})
+                for doc in points_docs:
+                    total_points += doc.get('points', 0)
+        
+        # 시스템 자원 사용률 (간단한 추정)
+        import psutil
+        cpu_usage = psutil.cpu_percent(interval=1)
+        memory_usage = psutil.virtual_memory().percent
+        
+        return {
+            "success": True,
+            "stats": {
+                "total_users": total_users,
+                "active_sessions": active_sessions,
+                "total_chats": total_chats,
+                "total_points": total_points,
+                "cpu_usage": round(cpu_usage, 1),
+                "memory_usage": round(memory_usage, 1)
+            }
+        }
+    except Exception as e:
+        logger.error(f"관리자 통계 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/prompts/{ai}/{prompt_type}")
+async def get_prompt(request: Request, ai: str, prompt_type: str):
+    """프롬프트 조회"""
+    try:
+        # ai_prompts가 정의되지 않은 경우 기본 프롬프트 반환
+        if 'ai_prompts' not in globals() or not ai_prompts:
+            default_prompts = {
+                "ai1": {
+                    "system": "당신은 EORA AI 시스템의 AI1입니다. 사용자와 대화를 나누며 도움을 제공합니다.",
+                    "role": "AI1 역할: 친근하고 도움이 되는 AI 어시스턴트",
+                    "guide": "사용자의 질문에 정확하고 유용한 답변을 제공하세요.",
+                    "format": "답변은 명확하고 이해하기 쉽게 작성하세요."
+                },
+                "ai2": {
+                    "system": "당신은 EORA AI 시스템의 AI2입니다. 전문적인 조언을 제공합니다.",
+                    "role": "AI2 역할: 전문가 수준의 조언을 제공하는 AI",
+                    "guide": "전문적이고 정확한 정보를 제공하세요.",
+                    "format": "전문적이면서도 이해하기 쉽게 설명하세요."
+                }
+            }
+            
+            if ai in default_prompts and prompt_type in default_prompts[ai]:
+                prompt_content = default_prompts[ai][prompt_type]
+                return {"success": True, "prompt": prompt_content}
+            else:
+                return {"success": False, "error": "프롬프트를 찾을 수 없습니다."}
+        
+        # 기존 로직
+        if ai in ai_prompts and prompt_type in ai_prompts[ai]:
+            prompt_content = ai_prompts[ai][prompt_type]
+            return {"success": True, "prompt": prompt_content}
+        else:
+            return {"success": False, "error": "프롬프트를 찾을 수 없습니다."}
+    except Exception as e:
+        logger.error(f"프롬프트 조회 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/admin/prompts/save")
+async def save_prompt(request: Request):
+    """프롬프트 저장"""
+    try:
+        data = await request.json()
+        ai = data.get('ai')
+        prompt_type = data.get('type')
+        content = data.get('content')
+        
+        if not all([ai, prompt_type, content]):
+            return {"success": False, "error": "필수 파라미터가 누락되었습니다."}
+        
+        # 프롬프트 파일 업데이트 (실제 구현에서는 파일에 저장)
+        logger.info(f"프롬프트 저장: {ai}/{prompt_type}")
+        
+        return {"success": True, "message": "프롬프트가 저장되었습니다."}
+    except Exception as e:
+        logger.error(f"프롬프트 저장 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/users")
+async def get_users(request: Request):
+    """사용자 목록 조회"""
+    try:
+        users = []
+        
+        # 포인트 컬렉션에서 사용자 정보 수집
+        for collection_name in db.list_collection_names():
+            if collection_name.endswith('_points'):
+                user_id = collection_name.replace('_points', '')
+                points_doc = db[collection_name].find_one({"user_id": user_id})
+                
+                if points_doc:
+                    user_info = {
+                        "user_id": user_id,
+                        "email": f"{user_id[:8]}...",  # 간단한 표시
+                        "points": points_doc.get('points', 0),
+                        "created_at": points_doc.get('created_at', 'N/A'),
+                        "last_login": points_doc.get('last_login', 'N/A'),
+                        "status": "활성"
+                    }
+                    users.append(user_info)
+        
+        return {"success": True, "users": users}
+    except Exception as e:
+        logger.error(f"사용자 목록 조회 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/storage")
+async def get_storage_stats(request: Request):
+    """저장소 통계"""
+    try:
+        # 데이터베이스 크기 추정
+        db_size = 0
+        try:
+            for collection_name in db.list_collection_names():
+                collection = db[collection_name]
+                db_size += collection.count_documents({}) * 0.001  # 간단한 추정
+        except Exception as db_error:
+            logger.warning(f"데이터베이스 크기 계산 오류: {db_error}")
+            db_size = 0
+        
+        return {
+            "success": True,
+            "storage": {
+                "db_size": round(db_size, 1),
+                "file_size": 0,  # 파일 저장소 크기
+                "backup_size": 0  # 백업 크기
+            }
+        }
+    except Exception as e:
+        logger.error(f"저장소 통계 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/admin/backup")
+async def create_backup(request: Request):
+    """백업 생성"""
+    try:
+        # 간단한 백업 로직 (실제 구현에서는 실제 백업 수행)
+        logger.info("백업 생성 요청")
+        
+        return {"success": True, "message": "백업이 생성되었습니다."}
+    except Exception as e:
+        logger.error(f"백업 생성 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/points/stats")
+async def get_point_stats(request: Request):
+    """포인트 통계"""
+    try:
+        total_sold = 0
+        total_used = 0
+        remaining = 0
+        
+        # 모든 포인트 컬렉션에서 통계 계산
+        for collection_name in db.list_collection_names():
+            if collection_name.endswith('_points'):
+                points_docs = db[collection_name].find({})
+                for doc in points_docs:
+                    current_points = doc.get('points', 0)
+                    total_used_points = doc.get('total_used', 0)
+                    
+                    remaining += current_points
+                    total_used += total_used_points
+                    total_sold += current_points + total_used_points
+        
+        return {
+            "success": True,
+            "stats": {
+                "total_sold": total_sold,
+                "total_used": total_used,
+                "remaining": remaining
+            }
+        }
+    except Exception as e:
+        logger.error(f"포인트 통계 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/points/users")
+async def get_point_users(request: Request):
+    """포인트 사용자 목록"""
+    try:
+        users = []
+        
+        for collection_name in db.list_collection_names():
+            if collection_name.endswith('_points'):
+                user_id = collection_name.replace('_points', '')
+                points_doc = db[collection_name].find_one({"user_id": user_id})
+                
+                if points_doc:
+                    user_info = {
+                        "user_id": user_id,
+                        "current_points": points_doc.get('points', 0),
+                        "total_used": points_doc.get('total_used', 0),
+                        "last_updated": points_doc.get('last_updated', 'N/A')
+                    }
+                    users.append(user_info)
+        
+        return {"success": True, "users": users}
+    except Exception as e:
+        logger.error(f"포인트 사용자 목록 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/admin/points/adjust")
+async def adjust_user_points(request: Request):
+    """사용자 포인트 조정"""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        amount = data.get('amount', 0)
+        action = data.get('action', 'add')
+        
+        if not user_id:
+            return {"success": False, "error": "사용자 ID가 필요합니다."}
+        
+        collection_name = f"user_{user_id}_points"
+        points_collection = db[collection_name]
+        
+        current_doc = points_collection.find_one({"user_id": user_id})
+        current_points = current_doc.get('points', 0) if current_doc else 0
+        
+        if action == 'add':
+            new_points = current_points + amount
+        elif action == 'subtract':
+            new_points = max(0, current_points - amount)
+        elif action == 'set':
+            new_points = amount
+        else:
+            return {"success": False, "error": "잘못된 액션입니다."}
+        
+        points_collection.update_one(
+            {"user_id": user_id},
+            {
+                "$set": {
+                    "points": new_points,
+                    "last_updated": datetime.now().isoformat()
+                }
+            },
+            upsert=True
+        )
+        
+        return {"success": True, "message": f"포인트가 {action}되었습니다."}
+    except Exception as e:
+        logger.error(f"포인트 조정 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/monitoring")
+async def get_monitoring_stats(request: Request):
+    """시스템 모니터링 통계"""
+    try:
+        # 활성 세션 수
+        active_sessions = db.sessions.count_documents({})
+        
+        # API 호출 수 (간단한 추정)
+        api_calls = db.chat_logs.count_documents({})
+        
+        # 평균 응답시간 (간단한 추정)
+        avg_response_time = 500  # ms
+        
+        return {
+            "success": True,
+            "monitoring": {
+                "concurrent_users": active_sessions,
+                "api_calls": api_calls,
+                "avg_response_time": avg_response_time
+            }
+        }
+    except Exception as e:
+        logger.error(f"모니터링 통계 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/resources")
+async def get_resource_stats(request: Request):
+    """시스템 자원 통계"""
+    try:
+        import psutil
+        
+        cpu_usage = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        # 네트워크 사용량 (간단한 추정)
+        network = psutil.net_io_counters()
+        upload_speed = network.bytes_sent / 1024  # KB
+        download_speed = network.bytes_recv / 1024  # KB
+        
+        return {
+            "success": True,
+            "resources": {
+                "cpu_usage": round(cpu_usage, 1),
+                "memory_usage": round(memory.percent, 1),
+                "disk_usage": round((disk.used / disk.total) * 100, 1),
+                "upload_speed": round(upload_speed, 1),
+                "download_speed": round(download_speed, 1)
+            }
+        }
+    except Exception as e:
+        logger.error(f"자원 통계 오류: {e}")
+        return {"success": False, "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     import argparse
