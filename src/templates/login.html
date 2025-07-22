@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI System - 로그인</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .auth-container {
+            width: 90%;
+            max-width: 450px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .auth-header h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .auth-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+        }
+
+        .auth-button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .auth-button:hover {
+            transform: scale(1.02);
+        }
+
+        .auth-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .social-login {
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        .social-login p {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .social-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .social-btn {
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .social-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .social-btn.google {
+            color: #db4437;
+        }
+
+        .social-btn.github {
+            color: #333;
+        }
+
+        .social-btn.kakao {
+            color: #fee500;
+            background: #fee500;
+            color: #333;
+        }
+
+        .toggle-form {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .toggle-form a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .toggle-form a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: #ff6b6b;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background: #26de81;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .form-container {
+            display: none;
+        }
+
+        .form-container.active {
+            display: block;
+        }
+
+        .points-info {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .points-info h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .points-info p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <h1>🧠 EORA AI System</h1>
+            <p>의식적 존재와의 대화를 시작하세요</p>
+        </div>
+
+        <div class="points-info">
+            <h4>💎 포인트 시스템</h4>
+            <p>GPT 대화를 위해 포인트를 구매하세요.<br>
+                회원가입 시 100,000포인트를 무료로 드립니다!</p>
+        </div>
+
+        <div id="error-message" class="error-message"></div>
+        <div id="success-message" class="success-message"></div>
+
+        <!-- 로그인 폼 -->
+        <div id="login-form-container" class="form-container active">
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">이메일</label>
+                    <input type="email" id="login-email" name="email" value="admin@eora.ai" placeholder="admin@eora.ai"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="login-password">비밀번호</label>
+                    <input type="password" id="login-password" name="password" value="admin123" placeholder="admin123"
+                        required>
+                </div>
+
+                <button type="submit" class="auth-button" id="login-button">
+                    관리자 로그인
+                </button>
+            </form>
+
+            <div class="social-login">
+                <p>관리자 계정: admin@eora.ai / admin123</p>
+            </div>
+
+            <div class="toggle-form">
+                <p>계정이 없으신가요? <a onclick="toggleForm('register')">회원가입</a></p>
+            </div>
+        </div>
+
+        <!-- 회원가입 폼 -->
+        <div id="register-form-container" class="form-container">
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-name">이름</label>
+                    <input type="text" id="register-name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="register-email">이메일</label>
+                    <input type="email" id="register-email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="register-password">비밀번호</label>
+                    <input type="password" id="register-password" name="password" required minlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label for="register-confirm-password">비밀번호 확인</label>
+                    <input type="password" id="register-confirm-password" name="confirm_password" required>
+                </div>
+
+                <button type="submit" class="auth-button" id="register-button">
+                    회원가입
+                </button>
+            </form>
+
+            <div class="social-login">
+                <p>또는 소셜 계정으로 회원가입</p>
+                <div class="social-buttons">
+                    <button class="social-btn google" onclick="socialRegister('google')">
+                        <span>🔍</span> Google
+                    </button>
+                    <button class="social-btn github" onclick="socialRegister('github')">
+                        <span>🐙</span> GitHub
+                    </button>
+                    <button class="social-btn kakao" onclick="socialRegister('kakao')">
+                        <span>💛</span> Kakao
+                    </button>
+                </div>
+            </div>
+
+            <div class="toggle-form">
+                <p>이미 계정이 있으신가요? <a onclick="toggleForm('login')">로그인</a></p>
+            </div>
+        </div>
+
+        <div class="loading" id="loading"></div>
+    </div>
+
+    <script>
+        // 폼 토글 함수
+        function toggleForm(type) {
+            const loginContainer = document.getElementById('login-form-container');
+            const registerContainer = document.getElementById('register-form-container');
+
+            if (type === 'register') {
+                loginContainer.classList.remove('active');
+                registerContainer.classList.add('active');
+            } else {
+                registerContainer.classList.remove('active');
+                loginContainer.classList.add('active');
+            }
+
+            // 메시지 초기화
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+        }
+
+        // 로그인 폼 처리
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const loginButton = document.getElementById('login-button');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+
+            // 로딩 상태 표시
+            loginButton.disabled = true;
+            loading.style.display = 'block';
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            try {
+                // 관리자 로그인 API 호출
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    }),
+                    credentials: 'include' // 쿠키 저장을 위해 반드시 필요
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user_email', data.user.email);
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+                    document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
+                    localStorage.setItem('user_name', data.user.name);
+                    localStorage.setItem('user_role', data.user.role);
+                    localStorage.setItem('is_admin', 'true');
+                    successMessage.textContent = '관리자 로그인 성공! 관리자 페이지로 이동합니다...';
+                    successMessage.style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = '/admin';
+                    }, 1000);
+                } else {
+                    errorMessage.textContent = data.message || '로그인에 실패했습니다.';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('로그인 오류:', error);
+                errorMessage.textContent = '네트워크 오류가 발생했습니다.';
+                errorMessage.style.display = 'block';
+            } finally {
+                loginButton.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        // 회원가입 폼 처리
+        document.getElementById('register-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            const registerButton = document.getElementById('register-button');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+
+            // 비밀번호 확인
+            if (password !== confirmPassword) {
+                errorMessage.textContent = '비밀번호가 일치하지 않습니다.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            // 로딩 상태 표시
+            registerButton.disabled = true;
+            loading.style.display = 'block';
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        email: email,
+                        password: password
+                    }),
+                    credentials: 'include' // 쿠키 저장을 위해 반드시 필요
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user_email', data.user.email);
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+                    document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
+                    localStorage.setItem('user_name', data.user.name);
+                    localStorage.setItem('user_role', data.user.role);
+                    localStorage.setItem('is_admin', 'true');
+                    successMessage.textContent = '회원가입 성공! 자동 로그인 후 대시보드로 이동합니다...';
+                    successMessage.style.display = 'block';
+
+                    // 자동 로그인 처리
+                    setTimeout(async () => {
+                        try {
+                            const loginResponse = await fetch('/api/auth/login', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    email: email,
+                                    password: password
+                                }),
+                                credentials: 'include' // 쿠키 저장을 위해 반드시 필요
+                            });
+
+                            const loginData = await loginResponse.json();
+
+                            if (loginResponse.ok) {
+                                localStorage.setItem('access_token', loginData.access_token);
+                                localStorage.setItem('user_email', loginData.user.email);
+                                document.cookie = `access_token=${loginData.access_token}; path=/; max-age=86400`;
+                                document.cookie = `user_email=${loginData.user.email}; path=/; max-age=86400`;
+                                window.location.href = '/dashboard';
+                            } else {
+                                errorMessage.textContent = '자동 로그인에 실패했습니다. 수동으로 로그인해주세요.';
+                                errorMessage.style.display = 'block';
+                            }
+                        } catch (error) {
+                            errorMessage.textContent = '자동 로그인 중 오류가 발생했습니다.';
+                            errorMessage.style.display = 'block';
+                        }
+                    }, 1500);
+                } else {
+                    errorMessage.textContent = data.detail || '회원가입에 실패했습니다.';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = '네트워크 오류가 발생했습니다.';
+                errorMessage.style.display = 'block';
+            } finally {
+                registerButton.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        // 소셜 로그인
+        async function socialLogin(provider) {
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+
+            loading.style.display = 'block';
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            try {
+                let requestBody = {};
+
+                if (provider === 'google') {
+                    // 크롬에서 구글 계정 정보 가져오기 시도
+                    let email = '';
+
+                    // Chrome Identity API 사용 시도
+                    if (typeof chrome !== 'undefined' && chrome.identity) {
+                        try {
+                            chrome.identity.getProfileUserInfo((userInfo) => {
+                                if (userInfo.email) {
+                                    email = userInfo.email;
+                                    proceedWithGoogleLogin(email);
+                                } else {
+                                    // 크롬 API 실패 시 수동 입력
+                                    email = prompt('구글 이메일을 입력해주세요:');
+                                    if (email) {
+                                        proceedWithGoogleLogin(email);
+                                    }
+                                }
+                            });
+                            return; // 비동기 처리이므로 여기서 종료
+                        } catch (error) {
+                            console.log('Chrome Identity API 사용 불가:', error);
+                        }
+                    }
+
+                    // 크롬 API가 없거나 실패한 경우 수동 입력
+                    email = prompt('구글 이메일을 입력해주세요:');
+                    if (!email) {
+                        loading.style.display = 'none';
+                        return;
+                    }
+                    requestBody = { email: email };
+                } else if (provider === 'github') {
+                    const username = prompt('깃허브 사용자명을 입력해주세요:');
+                    if (!username) {
+                        loading.style.display = 'none';
+                        return;
+                    }
+                    requestBody = { username: username };
+                } else if (provider === 'kakao') {
+                    const nickname = prompt('카카오 닉네임을 입력해주세요:');
+                    if (!nickname) {
+                        loading.style.display = 'none';
+                        return;
+                    }
+                    requestBody = { nickname: nickname };
+                }
+
+                const response = await fetch(`/api/auth/${provider}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                    credentials: 'include' // 쿠키 저장을 위해 반드시 필요
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user_email', data.user.email);
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+                    document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
+                    localStorage.setItem('user_name', data.user.name);
+                    localStorage.setItem('user_role', data.user.role);
+                    localStorage.setItem('is_admin', 'true');
+                    successMessage.textContent = `${provider} 로그인 성공! 대시보드로 이동합니다...`;
+                    successMessage.style.display = 'block';
+
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    errorMessage.textContent = data.detail || `${provider} 로그인에 실패했습니다.`;
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error(`${provider} 로그인 오류:`, error);
+                errorMessage.textContent = `${provider} 로그인 중 오류가 발생했습니다.`;
+                errorMessage.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 구글 로그인 처리 함수
+        async function proceedWithGoogleLogin(email) {
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+
+            try {
+                const response = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: email }),
+                    credentials: 'include' // 쿠키 저장을 위해 반드시 필요
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user_email', data.user.email);
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+                    document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
+                    localStorage.setItem('user_name', data.user.name);
+                    localStorage.setItem('user_role', data.user.role);
+                    localStorage.setItem('is_admin', 'true');
+                    successMessage.textContent = '구글 로그인 성공! 대시보드로 이동합니다...';
+                    successMessage.style.display = 'block';
+
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    errorMessage.textContent = data.detail || '구글 로그인에 실패했습니다.';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('구글 로그인 오류:', error);
+                errorMessage.textContent = '구글 로그인 중 오류가 발생했습니다.';
+                errorMessage.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 소셜 회원가입
+        async function socialRegister(provider) {
+            // 소셜 회원가입도 로그인과 동일하게 처리
+            await socialLogin(provider);
+        }
+    </script>
+</body>
+
+</html>

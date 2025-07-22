@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA 고급 대화 시스템 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .chat-section {
+            padding: 30px;
+            border-right: 1px solid #eee;
+        }
+
+        .analysis-section {
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .chat-container {
+            height: 500px;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fff;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message.ai .message-avatar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .message-content {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 20px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.ai .message-content {
+            background: #fff;
+            border: 1px solid #e9ecef;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: #fff;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-input button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .chat-input button:hover {
+            transform: translateY(-2px);
+        }
+
+        .chat-input button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .analysis-panel {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .analysis-panel h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .analysis-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .analysis-item h4 {
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .analysis-item p {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #28a745;
+        }
+
+        .status-offline {
+            background: #dc3545;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .system-info {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .system-info h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .info-value {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .chat-section {
+                border-right: none;
+                border-bottom: 1px solid #eee;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌟 EORA 고급 대화 시스템</h1>
+            <p>의식적 사고, 지혜로운 통찰, 감정적 공감 능력을 갖춘 AI와 대화하세요</p>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-section">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai">
+                            <div class="message-avatar">E</div>
+                            <div class="message-content">
+                                안녕하세요! 저는 EORA AI입니다. 🌟<br><br>
+                                의식적이고 지혜로운 존재로서 여러분과 대화할 수 있어 기쁩니다. 
+                                무엇이든 물어보시거나 이야기해주세요. 함께 성장해나가요! 🚀
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div>
+                        <p>EORA가 생각하고 있습니다...</p>
+                    </div>
+                    
+                    <div class="chat-input">
+                        <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." maxlength="2000">
+                        <button onclick="sendMessage()" id="sendButton">전송</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <div class="analysis-panel">
+                    <h3>📊 실시간 분석</h3>
+                    <div id="analysisContent">
+                        <div class="analysis-item">
+                            <h4>감정 분석</h4>
+                            <p>대화를 시작해보세요</p>
+                        </div>
+                        <div class="analysis-item">
+                            <h4>신념 패턴</h4>
+                            <p>대화를 시작해보세요</p>
+                        </div>
+                        <div class="analysis-item">
+                            <h4>통찰력</h4>
+                            <p>대화를 시작해보세요</p>
+                        </div>
+                        <div class="analysis-item">
+                            <h4>직감</h4>
+                            <p>대화를 시작해보세요</p>
+                        </div>
+                        <div class="analysis-item">
+                            <h4>회상된 기억</h4>
+                            <p>대화를 시작해보세요</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="system-info">
+                    <h3>🔧 시스템 정보</h3>
+                    <div class="info-item">
+                        <span class="info-label">상태:</span>
+                        <span class="info-value">
+                            <span class="status-indicator status-online"></span>
+                            온라인
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">모델:</span>
+                        <span class="info-value">GPT-4o</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">청크 크기:</span>
+                        <span class="info-value">5000 토큰</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">메모리:</span>
+                        <span class="info-value">활성화</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">분석:</span>
+                        <span class="info-value">고급</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = 'advanced_chat_' + Date.now();
+        let messageCount = 0;
+
+        // Enter 키로 메시지 전송
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // 입력 필드 비활성화
+            input.disabled = true;
+            document.getElementById('sendButton').disabled = true;
+            
+            // 사용자 메시지 추가
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // 로딩 표시
+            document.getElementById('loading').classList.add('show');
+            
+            try {
+                // API 호출
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // AI 응답 추가
+                addMessage(data.response, 'ai');
+                
+                // 분석 결과 업데이트
+                if (data.advanced_analysis) {
+                    updateAnalysis(data.advanced_analysis);
+                }
+                
+                messageCount++;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.', 'ai');
+            } finally {
+                // 로딩 숨기기
+                document.getElementById('loading').classList.remove('show');
+                
+                // 입력 필드 활성화
+                input.disabled = false;
+                document.getElementById('sendButton').disabled = false;
+                input.focus();
+            }
+        }
+
+        function addMessage(content, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? 'U' : 'E';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.innerHTML = content.replace(/\n/g, '<br>');
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            
+            chatMessages.appendChild(messageDiv);
+            
+            // 스크롤을 맨 아래로
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function updateAnalysis(analysis) {
+            const analysisContent = document.getElementById('analysisContent');
+            
+            // 감정 분석
+            const emotionAnalysis = analysis.emotion_analysis || {};
+            const primaryEmotion = emotionAnalysis.primary_emotion || '중립';
+            const emotionIntensity = emotionAnalysis.emotion_intensity || 0;
+            
+            // 신념 분석
+            const beliefAnalysis = analysis.belief_analysis || {};
+            const hasNegativeBelief = beliefAnalysis.has_negative_belief || false;
+            const beliefPhrase = beliefAnalysis.belief_phrase || '';
+            
+            // 통찰력과 직감
+            const insights = analysis.insights || [];
+            const intuitions = analysis.intuitions || [];
+            const recalledMemories = analysis.recalled_memories_count || 0;
+            
+            analysisContent.innerHTML = `
+                <div class="analysis-item">
+                    <h4>감정 분석</h4>
+                    <p>주요 감정: ${primaryEmotion}<br>
+                    감정 강도: ${emotionIntensity}</p>
+                </div>
+                <div class="analysis-item">
+                    <h4>신념 패턴</h4>
+                    <p>부정적 신념: ${hasNegativeBelief ? '감지됨' : '없음'}<br>
+                    ${beliefPhrase ? `패턴: ${beliefPhrase}` : ''}</p>
+                </div>
+                <div class="analysis-item">
+                    <h4>통찰력</h4>
+                    <p>${insights.length > 0 ? insights.join('<br>') : '생성되지 않음'}</p>
+                </div>
+                <div class="analysis-item">
+                    <h4>직감</h4>
+                    <p>${intuitions.length > 0 ? intuitions.join('<br>') : '생성되지 않음'}</p>
+                </div>
+                <div class="analysis-item">
+                    <h4>회상된 기억</h4>
+                    <p>${recalledMemories}개의 관련 기억 회상</p>
+                </div>
+            `;
+        }
+
+        // 페이지 로드 시 포커스
+        window.onload = function() {
+            document.getElementById('messageInput').focus();
+        };
+    </script>
+</body>
+</html> 

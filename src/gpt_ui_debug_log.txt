@@ -1,0 +1,20 @@
+📋 GPTMainWindow 구조 오류 분석 로그
+
+✅ 총 점검 항목:
+- session_list 중복 생성: 4회 → 1회로 축소
+- session_widget 중복 생성: 4회 → 1회 유지
+- row.addWidget(session_widget): 3회 → 1회 유지
+
+✅ 기능 누락 및 복원 기록:
+- attach_btn 미정의 오류 → 복원 완료
+- on_send 연결 실패 → reconnect
+- 전송 기능 → Enter 키 처리 완료
+- 중간 세션창 → 완전 제거
+- 세션 버튼 → QListWidget 아래로 수직 정렬
+
+🕒 총 수정 시도: 20회 이상
+🧪 Python 구문 분석(ast) 검사 3회 + 수동 시뮬레이션 10회
+
+🚫 최근 실패 원인:
+- attach_btn 정의 이후에 .connect 호출됨 (순서 오류)
+- 최종 rebuilt.py 버전에서 순서 오류 제외로 문제 해결 예상

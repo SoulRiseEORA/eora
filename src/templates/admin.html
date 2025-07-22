@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 관리자 페이지</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .title {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .admin-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .admin-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+
+        .admin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .card-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .card-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .card-description {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1em;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .table tr:hover {
+            background-color: #e9ecef;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 12px;
+        }
+
+        .action-btn.edit {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .action-btn.delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .action-btn.view {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.3s ease;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .chart-container {
+            margin: 20px 0;
+            height: 300px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .title {
+                font-size: 2em;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h1 class="title">🚀 EORA AI 관리자 페이지</h1>
+                    <p class="subtitle">AI 시스템 관리 및 모니터링</p>
+                </div>
+                <a href="/" class="btn btn-primary"
+                    style="text-decoration: none; color: white; padding: 12px 24px; border-radius: 10px; background: #667eea; transition: all 0.3s ease;">
+                    🏠 홈으로 가기
+                </a>
+            </div>
+        </div>
+
+        <div class="admin-panel">
+            <div class="admin-grid">
+                <div class="admin-card" onclick="openPromptManagement()">
+                    <div class="card-icon">📝</div>
+                    <h3 class="card-title">프롬프트 관리</h3>
+                    <p class="card-description">AI별 프롬프트를 수정하고 관리합니다. 시스템, 역할, 가이드, 포맷 프롬프트를 편집할 수 있습니다. 별도 페이지에서 상세 관리가
+                        가능합니다.</p>
+                    <button class="btn btn-primary">프롬프트 관리</button>
+                </div>
+
+                <div class="admin-card" onclick="openUserManagement()">
+                    <div class="card-icon">👥</div>
+                    <h3 class="card-title">회원 관리</h3>
+                    <p class="card-description">사용자 계정, 권한, 세션을 관리하고 사용자 활동을 추적합니다.</p>
+                    <button class="btn btn-secondary">회원 관리</button>
+                </div>
+
+                <div class="admin-card" onclick="openStorageManagement()">
+                    <div class="card-icon">💾</div>
+                    <h3 class="card-title">저장소 관리</h3>
+                    <p class="card-description">데이터베이스, 파일 저장소, 백업을 관리하고 저장 공간을 모니터링합니다.</p>
+                    <button class="btn btn-secondary">저장소 관리</button>
+                </div>
+
+                <div class="admin-card" onclick="openPointManagement()">
+                    <div class="card-icon">⭐</div>
+                    <h3 class="card-title">포인트 관리</h3>
+                    <p class="card-description">사용자 포인트 충전, 차감, 내역 관리 및 포인트 시스템을 관리합니다.</p>
+                    <button class="btn btn-success">포인트 관리</button>
+                </div>
+
+                <div class="admin-card" onclick="openSystemMonitoring()">
+                    <div class="card-icon">📊</div>
+                    <h3 class="card-title">시스템 모니터링</h3>
+                    <p class="card-description">시스템 상태, 사용자 활동, 성능 지표를 실시간으로 모니터링합니다.</p>
+                    <button class="btn btn-secondary">모니터링</button>
+                </div>
+
+                <div class="admin-card" onclick="openResourceManagement()">
+                    <div class="card-icon">🔧</div>
+                    <h3 class="card-title">자원 관리</h3>
+                    <p class="card-description">CPU, 메모리, 네트워크 사용량을 모니터링하고 시스템 자원을 관리합니다.</p>
+                    <button class="btn btn-warning">자원 관리</button>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <h3 style="margin-bottom: 20px; color: #333;">📊 시스템 현황</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-users">0</div>
+                        <div class="stat-label">총 사용자</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="active-sessions">0</div>
+                        <div class="stat-label">활성 세션</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-chats">0</div>
+                        <div class="stat-label">총 채팅</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-points">0</div>
+                        <div class="stat-label">총 포인트</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="cpu-usage">0%</div>
+                        <div class="stat-label">CPU 사용률</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="memory-usage">0%</div>
+                        <div class="stat-label">메모리 사용률</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="logout-section" style="text-align: center; margin-top: 40px;">
+                <button class="btn btn-danger" onclick="logout()">로그아웃</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 프롬프트 관리 모달 -->
+    <div id="promptModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('promptModal')">&times;</span>
+            <h2>📝 프롬프트 관리</h2>
+            <div id="promptContent">
+                <div class="form-group">
+                    <label class="form-label">AI 선택:</label>
+                    <select class="form-input" id="aiSelect">
+                        <option value="ai1">AI 1</option>
+                        <option value="ai2">AI 2</option>
+                        <option value="ai3">AI 3</option>
+                        <option value="ai4">AI 4</option>
+                        <option value="ai5">AI 5</option>
+                        <option value="ai6">AI 6</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">프롬프트 타입:</label>
+                    <select class="form-input" id="promptType">
+                        <option value="system">시스템 프롬프트</option>
+                        <option value="role">역할 프롬프트</option>
+                        <option value="guide">가이드 프롬프트</option>
+                        <option value="format">포맷 프롬프트</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">프롬프트 내용:</label>
+                    <textarea class="form-textarea" id="promptContent" rows="10"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="savePrompt()">저장</button>
+                <button class="btn btn-secondary" onclick="loadPrompt()">불러오기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 회원 관리 모달 -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('userModal')">&times;</span>
+            <h2>👥 회원 관리</h2>
+            <div id="userContent">
+                <div class="form-group">
+                    <label class="form-label">사용자 검색:</label>
+                    <input type="text" class="form-input" id="userSearch" placeholder="이메일 또는 사용자 ID로 검색">
+                </div>
+                <table class="table" id="userTable">
+                    <thead>
+                        <tr>
+                            <th>사용자 ID</th>
+                            <th>이메일</th>
+                            <th>포인트</th>
+                            <th>가입일</th>
+                            <th>마지막 로그인</th>
+                            <th>상태</th>
+                            <th>액션</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 저장소 관리 모달 -->
+    <div id="storageModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('storageModal')">&times;</span>
+            <h2>💾 저장소 관리</h2>
+            <div id="storageContent">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="db-size">0 MB</div>
+                        <div class="stat-label">데이터베이스 크기</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="file-size">0 MB</div>
+                        <div class="stat-label">파일 저장소</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="backup-size">0 MB</div>
+                        <div class="stat-label">백업 크기</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">백업 생성:</label>
+                    <button class="btn btn-success" onclick="createBackup()">백업 생성</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">데이터 정리:</label>
+                    <button class="btn btn-warning" onclick="cleanupData()">오래된 데이터 정리</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 포인트 관리 모달 -->
+    <div id="pointModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('pointModal')">&times;</span>
+            <h2>⭐ 포인트 관리</h2>
+            <div id="pointContent">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-sold-points">0</div>
+                        <div class="stat-label">총 판매 포인트</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-used-points">0</div>
+                        <div class="stat-label">총 사용 포인트</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="remaining-points">0</div>
+                        <div class="stat-label">잔여 포인트</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">사용자 포인트 조정:</label>
+                    <input type="text" class="form-input" id="pointUserId" placeholder="사용자 ID">
+                    <input type="number" class="form-input" id="pointAmount" placeholder="포인트 수량">
+                    <select class="form-input" id="pointAction">
+                        <option value="add">포인트 추가</option>
+                        <option value="subtract">포인트 차감</option>
+                        <option value="set">포인트 설정</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="adjustUserPoints()">적용</button>
+                </div>
+                <table class="table" id="pointTable">
+                    <thead>
+                        <tr>
+                            <th>사용자 ID</th>
+                            <th>현재 포인트</th>
+                            <th>총 사용 포인트</th>
+                            <th>마지막 업데이트</th>
+                            <th>액션</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pointTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 시스템 모니터링 모달 -->
+    <div id="monitoringModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('monitoringModal')">&times;</span>
+            <h2>📊 시스템 모니터링</h2>
+            <div id="monitoringContent">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="concurrent-users">0</div>
+                        <div class="stat-label">동시 접속자</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="api-calls">0</div>
+                        <div class="stat-label">API 호출 수</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="response-time">0ms</div>
+                        <div class="stat-label">평균 응답시간</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="usageChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 자원 관리 모달 -->
+    <div id="resourceModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('resourceModal')">&times;</span>
+            <h2>🔧 자원 관리</h2>
+            <div id="resourceContent">
+                <div class="form-group">
+                    <label class="form-label">CPU 사용률:</label>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="cpuProgress" style="width: 0%"></div>
+                    </div>
+                    <span id="cpuText">0%</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">메모리 사용률:</label>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="memoryProgress" style="width: 0%"></div>
+                    </div>
+                    <span id="memoryText">0%</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">디스크 사용률:</label>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="diskProgress" style="width: 0%"></div>
+                    </div>
+                    <span id="diskText">0%</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">네트워크 사용량:</label>
+                    <div id="networkStats">
+                        <p>업로드: <span id="uploadSpeed">0 KB/s</span></p>
+                        <p>다운로드: <span id="downloadSpeed">0 KB/s</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function () {
+            checkLogin();
+            loadSystemStats();
+            setInterval(loadSystemStats, 30000); // 30초마다 업데이트
+        });
+
+        // 로그인 상태 체크
+        function checkLogin() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!user.email || !user.role || user.role !== 'admin') {
+                alert('관리자 로그인이 필요합니다.');
+                window.location.href = '/login';
+                return false;
+            }
+            return true;
+        }
+
+        // 시스템 통계 로드
+        async function loadSystemStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('total-users').textContent = data.stats.total_users || 0;
+                    document.getElementById('active-sessions').textContent = data.stats.active_sessions || 0;
+                    document.getElementById('total-chats').textContent = data.stats.total_chats || 0;
+                    document.getElementById('total-points').textContent = data.stats.total_points || 0;
+                    document.getElementById('cpu-usage').textContent = (data.stats.cpu_usage || 0) + '%';
+                    document.getElementById('memory-usage').textContent = (data.stats.memory_usage || 0) + '%';
+                }
+            } catch (error) {
+                console.error('통계 로드 오류:', error);
+            }
+        }
+
+        // 모달 열기
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        // 모달 닫기
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // 프롬프트 관리
+        function openPromptManagement() {
+            window.location.href = '/admin/prompt-management';
+        }
+
+        async function loadPrompt() {
+            const aiSelect = document.getElementById('aiSelect').value;
+            const promptType = document.getElementById('promptType').value;
+
+            try {
+                const response = await fetch(`/api/admin/prompts/${aiSelect}/${promptType}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('promptContent').value = data.prompt || '';
+                }
+            } catch (error) {
+                console.error('프롬프트 로드 오류:', error);
+            }
+        }
+
+        async function savePrompt() {
+            const aiSelect = document.getElementById('aiSelect').value;
+            const promptType = document.getElementById('promptType').value;
+            const content = document.getElementById('promptContent').value;
+
+            try {
+                const response = await fetch('/api/admin/prompts/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ai: aiSelect,
+                        type: promptType,
+                        content: content
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('프롬프트가 저장되었습니다.');
+                } else {
+                    alert('프롬프트 저장에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('프롬프트 저장 오류:', error);
+                alert('프롬프트 저장 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 회원 관리
+        function openUserManagement() {
+            openModal('userModal');
+            loadUsers();
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users');
+                const data = await response.json();
+
+                if (data.success) {
+                    const tbody = document.getElementById('userTableBody');
+                    tbody.innerHTML = '';
+
+                    data.users.forEach(user => {
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td>${user.user_id}</td>
+                            <td>${user.email || 'N/A'}</td>
+                            <td>${user.points || 0}</td>
+                            <td>${user.created_at || 'N/A'}</td>
+                            <td>${user.last_login || 'N/A'}</td>
+                            <td>${user.status || '활성'}</td>
+                            <td>
+                                <button class="action-btn edit" onclick="editUser('${user.user_id}')">편집</button>
+                                <button class="action-btn delete" onclick="deleteUser('${user.user_id}')">삭제</button>
+                            </td>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('사용자 로드 오류:', error);
+            }
+        }
+
+        // 저장소 관리
+        function openStorageManagement() {
+            openModal('storageModal');
+            loadStorageStats();
+        }
+
+        async function loadStorageStats() {
+            try {
+                const response = await fetch('/api/admin/storage');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('db-size').textContent = data.storage.db_size + ' MB';
+                    document.getElementById('file-size').textContent = data.storage.file_size + ' MB';
+                    document.getElementById('backup-size').textContent = data.storage.backup_size + ' MB';
+                }
+            } catch (error) {
+                console.error('저장소 통계 로드 오류:', error);
+            }
+        }
+
+        async function createBackup() {
+            try {
+                const response = await fetch('/api/admin/backup', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('백업이 생성되었습니다.');
+                    loadStorageStats();
+                } else {
+                    alert('백업 생성에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('백업 생성 오류:', error);
+                alert('백업 생성 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 포인트 관리
+        function openPointManagement() {
+            openModal('pointModal');
+            loadPointStats();
+            loadPointUsers();
+        }
+
+        async function loadPointStats() {
+            try {
+                const response = await fetch('/api/admin/points/stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('total-sold-points').textContent = data.stats.total_sold || 0;
+                    document.getElementById('total-used-points').textContent = data.stats.total_used || 0;
+                    document.getElementById('remaining-points').textContent = data.stats.remaining || 0;
+                }
+            } catch (error) {
+                console.error('포인트 통계 로드 오류:', error);
+            }
+        }
+
+        async function loadPointUsers() {
+            try {
+                const response = await fetch('/api/admin/points/users');
+                const data = await response.json();
+
+                if (data.success) {
+                    const tbody = document.getElementById('pointTableBody');
+                    tbody.innerHTML = '';
+
+                    data.users.forEach(user => {
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td>${user.user_id}</td>
+                            <td>${user.current_points || 0}</td>
+                            <td>${user.total_used || 0}</td>
+                            <td>${user.last_updated || 'N/A'}</td>
+                            <td>
+                                <button class="action-btn edit" onclick="editUserPoints('${user.user_id}')">편집</button>
+                                <button class="action-btn view" onclick="viewPointHistory('${user.user_id}')">내역</button>
+                            </td>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('포인트 사용자 로드 오류:', error);
+            }
+        }
+
+        async function adjustUserPoints() {
+            const userId = document.getElementById('pointUserId').value;
+            const amount = parseInt(document.getElementById('pointAmount').value);
+            const action = document.getElementById('pointAction').value;
+
+            if (!userId || !amount) {
+                alert('사용자 ID와 포인트 수량을 입력해주세요.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/points/adjust', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        amount: amount,
+                        action: action
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('포인트가 조정되었습니다.');
+                    loadPointStats();
+                    loadPointUsers();
+                } else {
+                    alert('포인트 조정에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('포인트 조정 오류:', error);
+                alert('포인트 조정 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 시스템 모니터링
+        function openSystemMonitoring() {
+            openModal('monitoringModal');
+            loadMonitoringStats();
+        }
+
+        async function loadMonitoringStats() {
+            try {
+                const response = await fetch('/api/admin/monitoring');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('concurrent-users').textContent = data.monitoring.concurrent_users || 0;
+                    document.getElementById('api-calls').textContent = data.monitoring.api_calls || 0;
+                    document.getElementById('response-time').textContent = (data.monitoring.avg_response_time || 0) + 'ms';
+                }
+            } catch (error) {
+                console.error('모니터링 통계 로드 오류:', error);
+            }
+        }
+
+        // 자원 관리
+        function openResourceManagement() {
+            openModal('resourceModal');
+            loadResourceStats();
+            setInterval(loadResourceStats, 5000); // 5초마다 업데이트
+        }
+
+        async function loadResourceStats() {
+            try {
+                const response = await fetch('/api/admin/resources');
+                const data = await response.json();
+
+                if (data.success) {
+                    const cpu = data.resources.cpu_usage || 0;
+                    const memory = data.resources.memory_usage || 0;
+                    const disk = data.resources.disk_usage || 0;
+
+                    document.getElementById('cpuProgress').style.width = cpu + '%';
+                    document.getElementById('cpuText').textContent = cpu + '%';
+
+                    document.getElementById('memoryProgress').style.width = memory + '%';
+                    document.getElementById('memoryText').textContent = memory + '%';
+
+                    document.getElementById('diskProgress').style.width = disk + '%';
+                    document.getElementById('diskText').textContent = disk + '%';
+
+                    document.getElementById('uploadSpeed').textContent = (data.resources.upload_speed || 0) + ' KB/s';
+                    document.getElementById('downloadSpeed').textContent = (data.resources.download_speed || 0) + ' KB/s';
+                }
+            } catch (error) {
+                console.error('자원 통계 로드 오류:', error);
+            }
+        }
+
+        // 로그아웃
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+
+        // 이벤트 리스너 추가
+        document.getElementById('aiSelect').addEventListener('change', loadPrompt);
+        document.getElementById('promptType').addEventListener('change', loadPrompt);
+    </script>
+</body>
+
+</html>

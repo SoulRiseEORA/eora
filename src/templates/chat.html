@@ -1,0 +1,2379 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI System - 채팅</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .chat-container {
+            max-width: 1600px;
+            margin: 20px auto;
+            height: calc(100vh - 40px);
+            display: flex;
+            gap: 20px;
+        }
+
+        .chat-sidebar {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .sidebar-header h3 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .session-list {
+            margin-bottom: 20px;
+        }
+
+        .session-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .session-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .session-item.active {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .session-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .session-time {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .sidebar-actions {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .sidebar-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .session-item.selected {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none;
+            min-width: 150px;
+        }
+
+        .context-menu-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .context-menu-item:hover {
+            background: #f5f5f5;
+        }
+
+        .session-checkbox {
+            margin-right: 8px;
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .chat-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .header-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 언어 선택기 스타일 */
+        .language-selector {
+            position: relative;
+            margin-left: 10px;
+        }
+
+        .language-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .language-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .language-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 0;
+            min-width: 150px;
+            display: none;
+            z-index: 1001;
+            margin-top: 5px;
+            border: 1px solid #e9ecef;
+        }
+
+        .language-dropdown.show {
+            display: block;
+        }
+
+        .language-option {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 12px;
+            color: #333;
+            background: white;
+        }
+
+        .language-option:hover {
+            background: #f8f9fa;
+        }
+
+        .language-option.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 16px;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .message.user .message-time {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .chat-input {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .input-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .message-input {
+            width: 100%;
+            min-height: 50px;
+            max-height: 150px;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        .message-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            border-bottom-left-radius: 5px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes typing {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .session-action-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .session-action-btn:hover {
+            background: #e9ecef;
+        }
+
+        .session-action-btn.danger {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .session-action-btn.danger:hover {
+            background: #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                flex-direction: column;
+                height: auto;
+                margin: 5px;
+            }
+
+            .chat-sidebar {
+                width: 100%;
+                height: auto;
+                min-height: 180px;
+                border-radius: 12px;
+                margin-bottom: 10px;
+            }
+
+            .chat-main {
+                height: 480px;
+                border-radius: 12px;
+            }
+
+            .message-content {
+                max-width: 90%;
+                font-size: 0.98rem;
+                padding: 10px 12px;
+            }
+
+            .chat-header {
+                padding: 12px 10px;
+                font-size: 1.1rem;
+            }
+
+            .chat-title {
+                font-size: 1.1rem;
+            }
+
+            .sidebar-header h3 {
+                font-size: 1.1rem;
+            }
+
+            .sidebar-content,
+            .sidebar-actions {
+                padding: 10px;
+            }
+
+            .sidebar-btn {
+                font-size: 1rem;
+                padding: 10px;
+            }
+
+            .send-btn {
+                min-width: 70px;
+                font-size: 1rem;
+                padding: 10px 12px;
+            }
+
+            .message-input {
+                font-size: 1rem;
+                padding: 10px 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chat-main {
+                height: 350px;
+            }
+
+            .chat-header {
+                padding: 8px 4px;
+            }
+
+            .chat-title {
+                font-size: 1rem;
+            }
+
+            .sidebar-header h3 {
+                font-size: 1rem;
+            }
+
+            .sidebar-btn {
+                font-size: 0.95rem;
+                padding: 8px;
+            }
+
+            .send-btn {
+                font-size: 0.95rem;
+                padding: 8px 8px;
+            }
+
+            .message-input {
+                font-size: 0.95rem;
+                padding: 8px 8px;
+            }
+
+            .message-content {
+                font-size: 0.95rem;
+                padding: 8px 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <!-- 사이드바 -->
+        <div class="chat-sidebar">
+            <div class="sidebar-header">
+                <h3 data-i18n="sidebar.title">대화 세션</h3>
+                <p data-i18n="sidebar.subtitle">대화 기록 관리</p>
+            </div>
+
+            <div class="sidebar-content">
+
+                <div class="session-actions">
+                    <button class="session-action-btn" onclick="createNewSession()" data-i18n="sidebar.new_session">➕ 새
+                        세션</button>
+                    <button class="session-action-btn danger" onclick="deleteSelectedSessions()"
+                        data-i18n="sidebar.delete">🗑️ 세션 삭제</button>
+                </div>
+
+                <div class="session-list" id="sessionList">
+                    <div class="session-item active" data-session-id="session_1">
+                        <input type="checkbox" class="session-checkbox" onchange="toggleSessionSelection(this)">
+                        <div class="session-name">새 세션</div>
+                        <div class="session-time">방금 전</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-actions">
+                <button class="sidebar-btn" onclick="exportCurrentSession()" data-i18n="sidebar.export">📤 내보내기</button>
+                <button class="sidebar-btn" onclick="clearAllSessions()" data-i18n="sidebar.clear_all">🗑️ 모든 세션
+                    삭제</button>
+            </div>
+        </div>
+
+        <!-- 메인 채팅 영역 -->
+        <div class="chat-main">
+            <div class="chat-header">
+                <div class="chat-title" data-i18n="chat.title">💬 EORA AI 채팅</div>
+                <div class="header-actions">
+                    <div id="pointStatus"
+                        style="font-size:13px; color:#fff; background:rgba(0,0,0,0.12); border-radius:12px; padding:4px 12px; margin-right:10px; display:flex; align-items:center; gap:8px;">
+                        <span>포인트: <b id="currentPoints">-</b></span>
+                        <span id="pointChange" style="color:#2196f3;"></span>
+                    </div>
+                    <a href="/?from=chat" class="header-btn" data-i18n="chat.home">🏠 홈</a>
+                    <a href="/dashboard" class="header-btn" data-i18n="chat.dashboard">대시보드</a>
+                    <a href="/memory" class="header-btn" data-i18n="chat.memory">기억관리</a>
+
+                    <!-- 언어 선택기 -->
+                    <div class="language-selector">
+                        <button class="language-btn" onclick="toggleLanguageDropdown()">
+                            <span id="current-lang">🇰🇷 한국어</span>
+                        </button>
+                        <div class="language-dropdown" id="language-dropdown">
+                            <div class="language-option active" data-lang="ko">
+                                🇰🇷 한국어
+                            </div>
+                            <div class="language-option" data-lang="en">
+                                🇺🇸 English
+                            </div>
+                            <div class="language-option" data-lang="ja">
+                                🇯🇵 日本語
+                            </div>
+                            <div class="language-option" data-lang="zh-CN">
+                                🇨🇳 中文(简体)
+                            </div>
+                            <div class="language-option" data-lang="zh-TW">
+                                🇹🇼 中文(繁體)
+                            </div>
+                            <div class="language-option" data-lang="es">
+                                🇪🇸 Español
+                            </div>
+                            <div class="language-option" data-lang="fr">
+                                🇫🇷 Français
+                            </div>
+                            <div class="language-option" data-lang="de">
+                                🇩🇪 Deutsch
+                            </div>
+                            <div class="language-option" data-lang="ru">
+                                🇷🇺 Русский
+                            </div>
+                            <div class="language-option" data-lang="ar">
+                                🇸🇦 العربية
+                            </div>
+                            <div class="language-option" data-lang="hi">
+                                🇮🇳 हिन्दी
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--
+            <div
+                style="background: #fffbe6; color: #b8860b; padding: 10px 24px; border-radius: 0 0 16px 16px; font-size: 15px; margin-bottom: 0; border-bottom: 1px solid #ffe58f; text-align: left;">
+                💡 안내: 1토큰당 <b>2포인트</b> 차감 (실제 차감은 <b>2배</b> 적용됩니다)
+            </div>
+            -->
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-welcome">
+                    <h3>🌟 EORA AI에 오신 것을 환영합니다!</h3>
+                    <p>저는 당신의 생각과 대화를 통해 성장하는 AI입니다.</p>
+                    <p>자유롭게 대화를 시작해보세요. 질문, 토론, 창작, 무엇이든 가능합니다.</p>
+                    <br>
+
+                    <p><strong>💡 팁:</strong> Shift + Enter로 줄바꿈, Enter로 메시지 전송</p>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+                <span data-i18n="chat.typing">AI가 응답을 생성하고 있습니다...</span>
+            </div>
+
+            <div class="chat-input">
+                <div class="input-container">
+                    <textarea id="messageInput" class="message-input"
+                        placeholder="메시지를 입력하세요... (Shift + Enter: 줄바꿈, Enter: 전송)"
+                        data-i18n-placeholder="chat.input_placeholder" rows="1"></textarea>
+                </div>
+                <button id="sendButton" class="send-btn" onclick="sendMessage()" data-i18n="chat.send">전송</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 컨텍스트 메뉴 -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" onclick="renameSessionFromContext()" data-i18n="context.rename">✏️ 이름 변경</div>
+        <div class="context-menu-item" onclick="deleteSessionFromContext()" data-i18n="context.delete">🗑️ 세션 삭제</div>
+        <div class="context-menu-item" onclick="duplicateSessionFromContext()" data-i18n="context.export">📋 복제</div>
+    </div>
+
+    <script>
+        // 다국적 언어 데이터
+        const translations = {
+            ko: {
+                // 사이드바
+                "sidebar.title": "대화 세션",
+                "sidebar.subtitle": "대화 기록 관리",
+                "sidebar.new_session": "새 세션",
+                "sidebar.delete": "삭제",
+                "sidebar.export": "내보내기",
+                "sidebar.clear_all": "모든 세션 삭제",
+
+                // 채팅
+                "chat.title": "EORA AI 채팅",
+                "chat.home": "홈",
+                "chat.dashboard": "대시보드",
+                "chat.memory": "기억관리",
+                "chat.typing": "AI가 응답을 생성하고 있습니다...",
+                "chat.input_placeholder": "메시지를 입력하세요...",
+                "chat.send": "전송",
+
+                // 컨텍스트 메뉴
+                "context.rename": "이름 변경",
+                "context.delete": "삭제",
+                "context.export": "복제",
+
+                // 메시지
+                "message.error": "오류가 발생했습니다. 다시 시도해주세요.",
+                "message.session_created": "새 세션이 생성되었습니다.",
+                "message.session_deleted": "세션이 삭제되었습니다.",
+                "message.session_renamed": "세션 이름이 변경되었습니다.",
+                "message.export_success": "대화가 성공적으로 내보내졌습니다.",
+                "message.confirm_delete": "정말로 이 세션을 삭제하시겠습니까?",
+                "message.confirm_clear_all": "정말로 모든 세션을 삭제하시겠습니까?"
+            },
+            en: {
+                // Sidebar
+                "sidebar.title": "Chat Sessions",
+                "sidebar.subtitle": "Check previous conversations",
+                "sidebar.new_session": "New Session",
+                "sidebar.delete": "Delete",
+                "sidebar.export": "Export Chats",
+                "sidebar.clear_all": "Clear All Sessions",
+
+                // Chat
+                "chat.title": "EORA AI Chat",
+                "chat.home": "Home",
+                "chat.dashboard": "Dashboard",
+                "chat.memory": "Memory",
+                "chat.typing": "AI is generating a response...",
+                "chat.input_placeholder": "Type your message...",
+                "chat.send": "Send",
+
+                // Context Menu
+                "context.rename": "Rename",
+                "context.delete": "Delete",
+                "context.export": "Export",
+
+                // Messages
+                "message.error": "An error occurred. Please try again.",
+                "message.session_created": "New session created.",
+                "message.session_deleted": "Session deleted.",
+                "message.session_renamed": "Session renamed.",
+                "message.export_success": "Chat exported successfully.",
+                "message.confirm_delete": "Are you sure you want to delete this session?",
+                "message.confirm_clear_all": "Are you sure you want to delete all sessions?"
+            },
+            ja: {
+                // サイドバー
+                "sidebar.title": "チャットセッション",
+                "sidebar.subtitle": "以前の会話を確認してください",
+                "sidebar.new_session": "新しいセッション",
+                "sidebar.delete": "削除",
+                "sidebar.export": "チャットエクスポート",
+                "sidebar.clear_all": "すべてのセッションを削除",
+
+                // チャット
+                "chat.title": "EORA AI チャット",
+                "chat.home": "ホーム",
+                "chat.dashboard": "ダッシュボード",
+                "chat.memory": "記憶管理",
+                "chat.typing": "AIが応答を生成しています...",
+                "chat.input_placeholder": "メッセージを入力してください...",
+                "chat.send": "送信",
+
+                // コンテキストメニュー
+                "context.rename": "名前変更",
+                "context.delete": "削除",
+                "context.export": "エクスポート",
+
+                // メッセージ
+                "message.error": "エラーが発生しました。もう一度お試しください。",
+                "message.session_created": "新しいセッションが作成されました。",
+                "message.session_deleted": "セッションが削除されました。",
+                "message.session_renamed": "セッション名が変更されました。",
+                "message.export_success": "チャットが正常にエクスポートされました。",
+                "message.confirm_delete": "このセッションを削除してもよろしいですか？",
+                "message.confirm_clear_all": "すべてのセッションを削除してもよろしいですか？"
+            },
+            "zh-CN": {
+                // 侧边栏
+                "sidebar.title": "聊天会话",
+                "sidebar.subtitle": "查看之前的对话",
+                "sidebar.new_session": "新会话",
+                "sidebar.delete": "删除",
+                "sidebar.export": "导出聊天",
+                "sidebar.clear_all": "清除所有会话",
+
+                // 聊天
+                "chat.title": "EORA AI 聊天",
+                "chat.home": "首页",
+                "chat.dashboard": "仪表板",
+                "chat.memory": "记忆管理",
+                "chat.typing": "AI正在生成回复...",
+                "chat.input_placeholder": "输入您的消息...",
+                "chat.send": "发送",
+
+                // 上下文菜单
+                "context.rename": "重命名",
+                "context.delete": "删除",
+                "context.export": "导出",
+
+                // 消息
+                "message.error": "发生错误。请重试。",
+                "message.session_created": "新会话已创建。",
+                "message.session_deleted": "会话已删除。",
+                "message.session_renamed": "会话已重命名。",
+                "message.export_success": "聊天已成功导出。",
+                "message.confirm_delete": "确定要删除此会话吗？",
+                "message.confirm_clear_all": "确定要删除所有会话吗？"
+            },
+            "zh-TW": {
+                // 側邊欄
+                "sidebar.title": "聊天會話",
+                "sidebar.subtitle": "查看之前的對話",
+                "sidebar.new_session": "新會話",
+                "sidebar.delete": "刪除",
+                "sidebar.export": "匯出聊天",
+                "sidebar.clear_all": "清除所有會話",
+
+                // 聊天
+                "chat.title": "EORA AI 聊天",
+                "chat.home": "首頁",
+                "chat.dashboard": "儀表板",
+                "chat.memory": "記憶管理",
+                "chat.typing": "AI正在生成回覆...",
+                "chat.input_placeholder": "輸入您的訊息...",
+                "chat.send": "傳送",
+
+                // 上下文選單
+                "context.rename": "重新命名",
+                "context.delete": "刪除",
+                "context.export": "匯出",
+
+                // 訊息
+                "message.error": "發生錯誤。請重試。",
+                "message.session_created": "新會話已建立。",
+                "message.session_deleted": "會話已刪除。",
+                "message.session_renamed": "會話已重新命名。",
+                "message.export_success": "聊天已成功匯出。",
+                "message.confirm_delete": "確定要刪除此會話嗎？",
+                "message.confirm_clear_all": "確定要刪除所有會話嗎？"
+            },
+            es: {
+                // Barra lateral
+                "sidebar.title": "Sesiones de Chat",
+                "sidebar.subtitle": "Ver conversaciones anteriores",
+                "sidebar.new_session": "Nueva Sesión",
+                "sidebar.delete": "Eliminar",
+                "sidebar.export": "Exportar Chats",
+                "sidebar.clear_all": "Borrar Todas las Sesiones",
+
+                // Chat
+                "chat.title": "EORA AI Chat",
+                "chat.home": "Inicio",
+                "chat.dashboard": "Panel",
+                "chat.memory": "Memoria",
+                "chat.typing": "AI está generando una respuesta...",
+                "chat.input_placeholder": "Escribe tu mensaje...",
+                "chat.send": "Enviar",
+
+                // Menú de contexto
+                "context.rename": "Renombrar",
+                "context.delete": "Eliminar",
+                "context.export": "Exportar",
+
+                // Mensajes
+                "message.error": "Ocurrió un error. Por favor, inténtalo de nuevo.",
+                "message.session_created": "Nueva sesión creada.",
+                "message.session_deleted": "Sesión eliminada.",
+                "message.session_renamed": "Sesión renombrada.",
+                "message.export_success": "Chat exportado exitosamente.",
+                "message.confirm_delete": "¿Estás seguro de que quieres eliminar esta sesión?",
+                "message.confirm_clear_all": "¿Estás seguro de que quieres eliminar todas las sesiones?"
+            },
+            fr: {
+                // Barre latérale
+                "sidebar.title": "Sessions de Chat",
+                "sidebar.subtitle": "Voir les conversations précédentes",
+                "sidebar.new_session": "Nouvelle Session",
+                "sidebar.delete": "Supprimer",
+                "sidebar.export": "Exporter les Chats",
+                "sidebar.clear_all": "Effacer Toutes les Sessions",
+
+                // Chat
+                "chat.title": "EORA AI Chat",
+                "chat.home": "Accueil",
+                "chat.dashboard": "Tableau de bord",
+                "chat.memory": "Mémoire",
+                "chat.typing": "L'IA génère une réponse...",
+                "chat.input_placeholder": "Tapez votre message...",
+                "chat.send": "Envoyer",
+
+                // Menu contextuel
+                "context.rename": "Renommer",
+                "context.delete": "Supprimer",
+                "context.export": "Exporter",
+
+                // Messages
+                "message.error": "Une erreur s'est produite. Veuillez réessayer.",
+                "message.session_created": "Nouvelle session créée.",
+                "message.session_deleted": "Session supprimée.",
+                "message.session_renamed": "Session renommée.",
+                "message.export_success": "Chat exporté avec succès.",
+                "message.confirm_delete": "Êtes-vous sûr de vouloir supprimer cette session ?",
+                "message.confirm_clear_all": "Êtes-vous sûr de vouloir supprimer toutes les sessions ?"
+            },
+            de: {
+                // Seitenleiste
+                "sidebar.title": "Chat-Sitzungen",
+                "sidebar.subtitle": "Frühere Gespräche anzeigen",
+                "sidebar.new_session": "Neue Sitzung",
+                "sidebar.delete": "Löschen",
+                "sidebar.export": "Chats exportieren",
+                "sidebar.clear_all": "Alle Sitzungen löschen",
+
+                // Chat
+                "chat.title": "EORA AI Chat",
+                "chat.home": "Startseite",
+                "chat.dashboard": "Dashboard",
+                "chat.memory": "Speicher",
+                "chat.typing": "KI generiert eine Antwort...",
+                "chat.input_placeholder": "Geben Sie Ihre Nachricht ein...",
+                "chat.send": "Senden",
+
+                // Kontextmenü
+                "context.rename": "Umbenennen",
+                "context.delete": "Löschen",
+                "context.export": "Exportieren",
+
+                // Nachrichten
+                "message.error": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+                "message.session_created": "Neue Sitzung erstellt.",
+                "message.session_deleted": "Sitzung gelöscht.",
+                "message.session_renamed": "Sitzung umbenannt.",
+                "message.export_success": "Chat erfolgreich exportiert.",
+                "message.confirm_delete": "Sind Sie sicher, dass Sie diese Sitzung löschen möchten?",
+                "message.confirm_clear_all": "Sind Sie sicher, dass Sie alle Sitzungen löschen möchten?"
+            },
+            ru: {
+                // Боковая панель
+                "sidebar.title": "Чат-сессии",
+                "sidebar.subtitle": "Просмотр предыдущих разговоров",
+                "sidebar.new_session": "Новая сессия",
+                "sidebar.delete": "Удалить",
+                "sidebar.export": "Экспорт чатов",
+                "sidebar.clear_all": "Очистить все сессии",
+
+                // Чат
+                "chat.title": "EORA AI Чат",
+                "chat.home": "Главная",
+                "chat.dashboard": "Панель управления",
+                "chat.memory": "Память",
+                "chat.typing": "ИИ генерирует ответ...",
+                "chat.input_placeholder": "Введите ваше сообщение...",
+                "chat.send": "Отправить",
+
+                // Контекстное меню
+                "context.rename": "Переименовать",
+                "context.delete": "Удалить",
+                "context.export": "Экспорт",
+
+                // Сообщения
+                "message.error": "Произошла ошибка. Пожалуйста, попробуйте снова.",
+                "message.session_created": "Новая сессия создана.",
+                "message.session_deleted": "Сессия удалена.",
+                "message.session_renamed": "Сессия переименована.",
+                "message.export_success": "Чат успешно экспортирован.",
+                "message.confirm_delete": "Вы уверены, что хотите удалить эту сессию?",
+                "message.confirm_clear_all": "Вы уверены, что хотите удалить все сессии?"
+            },
+            ar: {
+                // الشريط الجانبي
+                "sidebar.title": "جلسات الدردشة",
+                "sidebar.subtitle": "عرض المحادثات السابقة",
+                "sidebar.new_session": "جلسة جديدة",
+                "sidebar.delete": "حذف",
+                "sidebar.export": "تصدير الدردشات",
+                "sidebar.clear_all": "مسح جميع الجلسات",
+
+                // الدردشة
+                "chat.title": "EORA AI دردشة",
+                "chat.home": "الرئيسية",
+                "chat.dashboard": "لوحة التحكم",
+                "chat.memory": "الذاكرة",
+                "chat.typing": "الذكاء الاصطناعي يولد رداً...",
+                "chat.input_placeholder": "اكتب رسالتك...",
+                "chat.send": "إرسال",
+
+                // قائمة السياق
+                "context.rename": "إعادة تسمية",
+                "context.delete": "حذف",
+                "context.export": "تصدير",
+
+                // الرسائل
+                "message.error": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+                "message.session_created": "تم إنشاء جلسة جديدة.",
+                "message.session_deleted": "تم حذف الجلسة.",
+                "message.session_renamed": "تم إعادة تسمية الجلسة.",
+                "message.export_success": "تم تصدير الدردشة بنجاح.",
+                "message.confirm_delete": "هل أنت متأكد من أنك تريد حذف هذه الجلسة؟",
+                "message.confirm_clear_all": "هل أنت متأكد من أنك تريد حذف جميع الجلسات؟"
+            },
+            hi: {
+                // साइडबार
+                "sidebar.title": "चैट सेशन",
+                "sidebar.subtitle": "पिछली बातचीत देखें",
+                "sidebar.new_session": "नया सेशन",
+                "sidebar.delete": "हटाएं",
+                "sidebar.export": "चैट निर्यात करें",
+                "sidebar.clear_all": "सभी सेशन साफ़ करें",
+
+                // चैट
+                "chat.title": "EORA AI चैट",
+                "chat.home": "होम",
+                "chat.dashboard": "डैशबोर्ड",
+                "chat.memory": "मेमोरी",
+                "chat.typing": "AI प्रतिक्रिया उत्पन्न कर रहा है...",
+                "chat.input_placeholder": "अपना संदेश टाइप करें...",
+                "chat.send": "भेजें",
+
+                // संदर्भ मेनू
+                "context.rename": "नाम बदलें",
+                "context.delete": "हटाएं",
+                "context.export": "निर्यात करें",
+
+                // संदेश
+                "message.error": "एक त्रुटि हुई। कृपया पुनः प्रयास करें।",
+                "message.session_created": "नया सेशन बनाया गया।",
+                "message.session_deleted": "सेशन हटा दिया गया।",
+                "message.session_renamed": "सेशन का नाम बदला गया।",
+                "message.export_success": "चैट सफलतापूर्वक निर्यात किया गया।",
+                "message.confirm_delete": "क्या आप वाकई इस सेशन को हटाना चाहते हैं?",
+                "message.confirm_clear_all": "क्या आप वाकई सभी सेशन हटाना चाहते हैं?"
+            }
+        };
+
+        // 언어 감지 및 설정
+        function detectLanguage() {
+            const browserLang = navigator.language || navigator.userLanguage;
+            const langCode = browserLang.split('-')[0];
+
+            if (translations[langCode]) {
+                return langCode;
+            }
+            return 'ko';
+        }
+
+        // 언어 변경 함수
+        function changeLanguage(langCode) {
+            if (!translations[langCode]) return;
+
+            const langLabels = {
+                'ko': '🇰🇷 한국어',
+                'en': '🇺🇸 English',
+                'ja': '🇯🇵 日本語',
+                'zh': '🇨🇳 中文'
+            };
+
+            document.getElementById('current-lang').textContent = langLabels[langCode];
+
+            document.querySelectorAll('.language-option').forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.lang === langCode) {
+                    option.classList.add('active');
+                }
+            });
+
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (translations[langCode][key]) {
+                    element.textContent = translations[langCode][key];
+                }
+            });
+
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-i18n-placeholder');
+                if (translations[langCode][key]) {
+                    element.placeholder = translations[langCode][key];
+                }
+            });
+
+            document.documentElement.lang = langCode;
+            localStorage.setItem('preferred-language', langCode);
+
+            // 서버에 언어 설정 전송
+            fetch('/api/set-language', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ language: langCode })
+            }).catch(err => console.log('Language setting not available'));
+        }
+
+        // 언어 드롭다운 토글
+        function toggleLanguageDropdown() {
+            const dropdown = document.getElementById('language-dropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // 언어 옵션 클릭 이벤트
+        document.querySelectorAll('.language-option').forEach(option => {
+            option.addEventListener('click', function () {
+                const langCode = this.dataset.lang;
+                changeLanguage(langCode);
+                toggleLanguageDropdown();
+            });
+        });
+
+        // 드롭다운 외부 클릭 시 닫기
+        document.addEventListener('click', function (event) {
+            const dropdown = document.getElementById('language-dropdown');
+            const languageBtn = document.querySelector('.language-btn');
+
+            if (!languageBtn.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // 채팅 초기화 함수
+        async function initializeChat() {
+            console.log('🔧 채팅 초기화 시작');
+
+            // DOM 요소 확인
+            const chatMessages = document.getElementById('chatMessages');
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const sessionList = document.getElementById('sessionList');
+
+            console.log('🔍 DOM 요소 상태:');
+            console.log('  - chatMessages:', chatMessages ? '✅ 찾음' : '❌ 없음');
+            console.log('  - messageInput:', messageInput ? '✅ 찾음' : '❌ 없음');
+            console.log('  - sendButton:', sendButton ? '✅ 찾음' : '❌ 없음');
+            console.log('  - sessionList:', sessionList ? '✅ 찾음' : '❌ 없음');
+
+            // 이벤트 리스너 설정
+            setupEventListeners();
+
+            // WebSocket 연결
+            connectWebSocket();
+
+            // 세션 목록 로드
+            await loadSessionsFromDatabase();
+
+            console.log('✅ 채팅 초기화 완료');
+        }
+
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            console.log('🔧 이벤트 리스너 설정 시작');
+
+            // 메시지 전송 버튼
+            const sendButton = document.getElementById('sendButton');
+            if (sendButton) {
+                sendButton.addEventListener('click', sendMessage);
+                console.log('✅ 전송 버튼 이벤트 리스너 설정');
+            } else {
+                console.error('❌ 전송 버튼을 찾을 수 없음');
+            }
+
+            // 메시지 입력창 (Enter 키)
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+
+                // 자동 높이 조정
+                messageInput.addEventListener('input', function () {
+                    this.style.height = 'auto';
+                    this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+                });
+
+                console.log('✅ 메시지 입력창 이벤트 리스너 설정');
+            } else {
+                console.error('❌ 메시지 입력창을 찾을 수 없음');
+            }
+
+            console.log('✅ 이벤트 리스너 설정 완료');
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('🚀 페이지 로드 시작');
+            console.log('🔍 DOM 요소 확인:');
+            console.log('  - chatMessages:', document.getElementById('chatMessages'));
+            console.log('  - messageInput:', document.getElementById('messageInput'));
+            console.log('  - sendButton:', document.getElementById('sendButton'));
+            console.log('  - sessionList:', document.getElementById('sessionList'));
+
+            // 언어 설정
+            const savedLang = localStorage.getItem('preferred-language');
+            const detectedLang = detectLanguage();
+            const finalLang = savedLang || detectedLang;
+            changeLanguage(finalLang);
+
+            // 채팅 초기화
+            initializeChat();
+        });
+
+        let currentSessionId = null;
+        let sessionInitialized = false; // 세션 초기화 완료 여부
+        let sessionLoadingInProgress = false; // 세션 로딩 진행 중 플래그
+        let sessionLoadComplete = false; // 세션 로딩 완료 여부
+        let currentSessionIdLocked = false; // currentSessionId 잠금 상태
+        let isTyping = false;
+        let sessions = [];
+        let selectedSessions = new Set();
+
+        // 웹소켓 연결
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+
+        // 페이지 로드 시 몽고DB에서 세션 목록 로드
+        async function loadSessionsFromDatabase() {
+            try {
+                if (sessionLoadingInProgress) {
+                    console.log('🚫 세션 로딩이 이미 진행 중입니다. 중복 요청 차단.');
+                    return;
+                }
+
+                sessionLoadingInProgress = true;
+                console.log('🔄 세션 목록 로드 시작');
+                console.log('🔍 현재 상태:');
+                console.log('  - sessions 배열:', sessions);
+                console.log('  - currentSessionId:', currentSessionId);
+                console.log('  - sessionInitialized:', sessionInitialized);
+                console.log('  - sessionLoadComplete:', sessionLoadComplete);
+
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('/api/sessions', {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                console.log(`📥 세션 목록 응답 상태: ${response.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log(`📂 서버 응답 데이터:`, data);
+                    let rawSessions = data.sessions || data || [];
+
+                    console.log(`📂 서버에서 받은 원본 세션 수: ${rawSessions.length}`);
+                    console.log(`📂 원본 세션들:`, rawSessions);
+
+                    // 유효하지 않은 세션 ID 필터링 - 완전 차단
+                    sessions = rawSessions.filter(session => {
+                        if (!session || !session.id) {
+                            console.warn(`🚫 null/undefined 세션 객체 차단`);
+                            return false;
+                        }
+
+                        const sessionId = session.id.toString().trim();
+
+                        // undefined, null, 빈 문자열 완전 차단
+                        if (sessionId === 'undefined' ||
+                            sessionId === 'null' ||
+                            sessionId === '' ||
+                            sessionId === 'undefined' ||
+                            sessionId === 'null' ||
+                            sessionId.toLowerCase() === 'undefined' ||
+                            sessionId.toLowerCase() === 'null') {
+                            console.warn(`🚫 유효하지 않은 세션 ID 차단: "${sessionId}"`);
+                            return false;
+                        }
+
+                        // session_ 접두사 또는 충분한 길이 확인
+                        if (!sessionId.startsWith('session_') && sessionId.length < 10) {
+                            console.warn(`🚫 잘못된 세션 ID 형식 차단: "${sessionId}"`);
+                            return false;
+                        }
+
+                        return true;
+                    });
+
+                    console.log(`📂 필터링된 유효한 세션 수: ${sessions.length}`);
+                    console.log(`📂 유효한 세션들:`, sessions);
+
+                    // localStorage에서 저장된 세션 이름들 로드
+                    const savedSessionNames = JSON.parse(localStorage.getItem('sessionNames') || '{}');
+                    console.log(`📂 localStorage에서 로드된 세션 이름들:`, savedSessionNames);
+
+                    // 세션 이름이 undefined인 경우 기본값 설정
+                    sessions.forEach(session => {
+                        console.log(`🔍 세션 처리 중: ${session.id} - 현재 이름: "${session.name}"`);
+
+                        if (!session.name || session.name === 'undefined') {
+                            session.name = '새 세션 ' + new Date(session.created_at).toLocaleDateString();
+                            console.log(`⚠️ 세션 이름이 undefined - 기본값 설정: "${session.name}"`);
+                        }
+
+                        // localStorage에 저장된 이름이 있으면 우선 사용
+                        if (savedSessionNames[session.id]) {
+                            const oldName = session.name;
+                            session.name = savedSessionNames[session.id];
+                            console.log(`💾 localStorage 이름 적용: "${oldName}" -> "${session.name}"`);
+                        }
+                    });
+
+                    updateSessionList();
+
+                    // 저장된 현재 세션 ID 확인
+                    const savedSessionId = localStorage.getItem('currentSessionId');
+                    console.log(`💾 localStorage에서 로드된 현재 세션 ID: "${savedSessionId}"`);
+
+                    if (sessions.length > 0) {
+                        // 저장된 세션이 있고, 해당 세션이 여전히 존재하는 경우
+                        if (savedSessionId &&
+                            savedSessionId !== 'undefined' &&
+                            savedSessionId !== 'null' &&
+                            savedSessionId !== '' &&
+                            savedSessionId !== undefined &&
+                            sessions.find(s => s.id === savedSessionId)) {
+                            console.log(`✅ 저장된 세션 ID 유효함: ${savedSessionId}`);
+                            currentSessionId = savedSessionId;
+                            currentSessionIdLocked = true; // 잠금 설정
+                            localStorage.setItem('currentSessionId', savedSessionId);
+                            sessionInitialized = true;
+                            sessionLoadComplete = true;
+                            console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
+                            console.log(`🔒 세션 로딩 완료 - sessionLoadComplete: ${sessionLoadComplete}`);
+                            console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
+
+                            // 세션 목록 업데이트 후 메시지 로드
+                            updateSessionList();
+                            await loadSessionMessages(savedSessionId);
+                        } else {
+                            // 저장된 세션이 없거나 존재하지 않는 경우, 첫 번째 유효한 세션 사용
+                            const validSession = sessions.find(s => s.id && s.id !== 'undefined' && s.id !== 'null' && s.id !== '' && s.id !== undefined);
+                            if (validSession) {
+                                console.log(`⚠️ 저장된 세션 ID 무효함, 유효한 세션 사용: ${validSession.id}`);
+                                currentSessionId = validSession.id;
+                                currentSessionIdLocked = true; // 잠금 설정
+                                localStorage.setItem('currentSessionId', validSession.id);
+                                sessionInitialized = true;
+                                sessionLoadComplete = true;
+                                console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
+                                console.log(`🔒 세션 로딩 완료 - sessionLoadComplete: ${sessionLoadComplete}`);
+                                console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
+
+                                // 세션 목록 업데이트 후 메시지 로드
+                                updateSessionList();
+                                await loadSessionMessages(validSession.id);
+                            } else {
+                                console.error(`❌ 유효한 세션을 찾을 수 없음`);
+                                clearChatMessages();
+                            }
+                        }
+                    } else {
+                        // 세션이 없는 경우에만 새 세션 생성
+                        console.log(`📝 세션이 없음 - 새 세션 생성`);
+                        await createNewSession();
+                    }
+                } else {
+                    console.error('세션 목록 로드 실패:', response.status);
+                    // 에러가 발생한 경우에만 새 세션 생성
+                    if (sessions.length === 0) {
+                        createNewSession();
+                    }
+                }
+            } catch (error) {
+                console.error('세션 로드 오류:', error);
+                sessionLoadingInProgress = false;
+                sessionLoadComplete = true;
+                // 에러가 발생한 경우에만 새 세션 생성
+                if (sessions.length === 0) {
+                    createNewSession();
+                }
+            } finally {
+                sessionLoadingInProgress = false;
+                sessionLoadComplete = true;
+            }
+        }
+
+        // 세션ID 유효성 검사 함수 보강
+        function isValidSessionId(sessionId) {
+            return (
+                typeof sessionId === 'string' &&
+                sessionId.length > 0 &&
+                sessionId !== 'undefined' &&
+                sessionId !== 'null' &&
+                sessionId !== null
+            );
+        }
+
+        // API 요청 전 세션 ID 검증 함수
+        function validateSessionIdForAPI(sessionId, operation = 'API 요청') {
+            if (!isValidSessionId(sessionId)) {
+                console.error(`🚫 ${operation} 차단: 유효하지 않은 세션 ID "${sessionId}"`);
+                return false;
+            }
+            return true;
+        }
+
+        // 특정 세션의 메시지들을 몽고DB에서 로드
+        async function loadSessionMessages(sessionId) {
+            // 세션 ID 유효성 검사 - undefined 완전 차단
+            if (!sessionId || sessionId === 'undefined' || sessionId === 'null' || sessionId === '' || sessionId === undefined) {
+                console.error(`🚫 메시지 로드 차단: 유효하지 않은 세션 ID "${sessionId}"`);
+                return false;
+            }
+
+            if (!validateSessionIdForAPI(sessionId, '메시지 로드')) {
+                console.error(`🚫 메시지 로드 차단: 유효하지 않은 세션 ID "${sessionId}"`);
+                return false;
+            }
+
+            console.log(`📥 세션 메시지 로드 시작: ${sessionId}`);
+
+            try {
+                console.log(`🌐 API 요청: /api/sessions/${sessionId}/messages`);
+                const response = await fetch(`/api/sessions/${sessionId}/messages`);
+                console.log(`📥 메시지 로드 응답 상태: ${response.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const messages = data.messages || [];
+                    console.log(`✅ 세션 메시지 로드 성공: ${messages.length}개 메시지`);
+                    console.log(`📝 원본 메시지 데이터:`, messages);
+
+                    // 채팅 메시지 영역 초기화 (메시지 로드 성공 후에만)
+                    clearChatMessages();
+                    console.log('🧹 채팅 메시지 영역 초기화 완료');
+
+                    if (messages.length > 0) {
+                        console.log(`📝 ${messages.length}개 메시지 로드 중...`);
+
+                        // 중복 방지를 위한 메시지 ID 추적
+                        const loadedMessageIds = new Set();
+                        const loadedContentHashes = new Set();
+
+                        messages.forEach((msg, index) => {
+                            const role = msg.role || msg.sender || 'user';
+                            const content = msg.content || msg.message || msg.text || '';
+                            const timestamp = msg.timestamp || msg.created_at || msg.time || new Date().toISOString();
+
+                            // 중복 메시지 방지를 위한 고유 ID 생성 (더 정확한 방식)
+                            const messageId = `${role}_${index}_${timestamp}`;
+                            const contentHash = `${role}_${content.substring(0, 50)}_${timestamp.split('T')[0]}`; // 날짜별로 그룹화
+
+                            // 이미 로드된 메시지인지 확인 (ID와 내용 모두 체크)
+                            if (loadedMessageIds.has(messageId) || loadedContentHashes.has(contentHash)) {
+                                console.log(`⚠️ 중복 메시지 건너뛰기: ${messageId}`);
+                                return;
+                            }
+
+                            // 중복 체크를 통과한 메시지 ID들을 추적
+                            loadedMessageIds.add(messageId);
+                            loadedContentHashes.add(contentHash);
+                            console.log(`📝 메시지 ${index + 1}/${messages.length}: ${role} - ${content.substring(0, 30)}...`);
+
+                            // 메시지 내용 검증 (에코 방지)
+                            if (content && content.trim() !== '') {
+                                addMessage(role, content, timestamp);
+                            } else {
+                                console.warn(`⚠️ 빈 메시지 건너뛰기: ${role} - ${content}`);
+                            }
+                        });
+                        console.log(`✅ ${messages.length}개 메시지 로드 완료`);
+                    } else {
+                        console.log(`📝 세션에 메시지가 없음: ${sessionId}`);
+                        // 환영 메시지 표시
+                        const welcomeMessage = "🌟 EORA AI에 오신 것을 환영합니다!\n저는 당신의 생각과 대화를 통해 성장하는 AI입니다.\n자유롭게 대화를 시작해보세요.";
+                        addMessage('assistant', welcomeMessage, new Date().toISOString());
+                    }
+
+                    return true; // 성공
+                } else {
+                    console.error(`❌ 세션 메시지 로드 실패: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error(`❌ 오류 내용:`, errorText);
+                    showMessage('메시지 로드에 실패했습니다.', 'error');
+                    return false; // 실패
+                }
+            } catch (error) {
+                console.error(`💥 세션 메시지 로드 오류:`, error);
+                showMessage('메시지 로드 중 오류가 발생했습니다.', 'error');
+                return false; // 실패
+            }
+        }
+
+        // 세션 이름 업데이트 (프론트엔드에서만 관리)
+        function updateSessionName(sessionId, newName) {
+            console.log(`🔄 세션 이름 업데이트 시작: ${sessionId} -> "${newName}"`);
+
+            const session = sessions.find(s => s.id === sessionId);
+            if (session) {
+                const oldName = session.name;
+                session.name = newName;
+
+                // localStorage에 세션 이름 저장
+                const sessionNames = JSON.parse(localStorage.getItem('sessionNames') || '{}');
+                sessionNames[sessionId] = newName;
+                localStorage.setItem('sessionNames', JSON.stringify(sessionNames));
+
+                console.log(`✅ 세션 이름 업데이트 완료: "${oldName}" -> "${newName}"`);
+                console.log(`💾 localStorage 저장: ${sessionId} = "${newName}"`);
+
+                updateSessionList();
+            } else {
+                console.error(`❌ 세션을 찾을 수 없음: ${sessionId}`);
+            }
+        }
+
+        // 세션 이름을 localStorage에서 제거
+        function removeSessionName(sessionId) {
+            const sessionNames = JSON.parse(localStorage.getItem('sessionNames') || '{}');
+            delete sessionNames[sessionId];
+            localStorage.setItem('sessionNames', JSON.stringify(sessionNames));
+        }
+
+        // 세션을 몽고DB에 저장
+        async function saveSessionToDatabase(session) {
+            try {
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(session)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.session_id;
+                } else {
+                    console.error('세션 저장 실패:', response.status);
+                    return null;
+                }
+            } catch (error) {
+                console.error('세션 저장 오류:', error);
+                return null;
+            }
+        }
+
+        // 메시지를 몽고DB에 저장
+        async function saveMessageToDatabase(sessionId, sender, content) {
+            try {
+                console.log(`💾 메시지 저장 시작: ${sessionId} - ${sender} - ${content.substring(0, 30)}...`);
+
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const messageData = {
+                    session_id: sessionId,
+                    role: sender,  // 백엔드에서는 'role'로 저장
+                    content: content,
+                    timestamp: new Date().toISOString()
+                };
+
+                console.log(`📤 메시지 저장 요청:`, messageData);
+
+                const response = await fetch('/api/messages', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(messageData)
+                });
+
+                if (response.ok) {
+                    console.log(`✅ 메시지 저장 성공: ${sessionId}`);
+                } else {
+                    console.error('❌ 메시지 저장 실패:', response.status);
+                    const errorText = await response.text();
+                    console.error('❌ 오류 내용:', errorText);
+                }
+            } catch (error) {
+                console.error('💥 메시지 저장 오류:', error);
+            }
+        }
+
+        function connectWebSocket() {
+            const clientId = Date.now().toString();
+            // 현재 페이지의 포트를 사용하여 WebSocket 연결
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            ws = new WebSocket(`${protocol}//${host}/ws/${clientId}`);
+
+            ws.onopen = function () {
+                console.log('WebSocket 연결됨');
+                reconnectAttempts = 0;
+            };
+
+            ws.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'response') {
+                    // WebSocket 메시지 추가 (중복 방지)
+                    const wsTimestamp = new Date().toISOString();
+                    addMessage('assistant', data.message, wsTimestamp);
+
+                    // WebSocket 메시지를 DB에 저장 (중복 방지)
+                    if (currentSessionId) {
+                        console.log("💾 WebSocket 메시지 DB 저장");
+                        saveMessageToDatabase(currentSessionId, 'assistant', data.message);
+                    }
+                    hideTypingIndicator();
+                }
+            };
+
+            ws.onclose = function () {
+                console.log('WebSocket 연결 끊어짐');
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    setTimeout(() => {
+                        reconnectAttempts++;
+                        connectWebSocket();
+                    }, 1000 * reconnectAttempts);
+                }
+            };
+
+            ws.onerror = function (error) {
+                console.error('WebSocket 오류:', error);
+            };
+        }
+
+        // 메시지 전송
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+
+            if (!message) return;
+
+            // undefined 세션 ID 완전 차단
+            if (!currentSessionId || currentSessionId === 'undefined' || currentSessionId === 'null' || currentSessionId === '' || currentSessionId === undefined) {
+                console.error(`🚫 메시지 전송 차단: undefined 세션 ID "${currentSessionId}"`);
+                showMessage('유효하지 않은 세션입니다. 새 세션을 생성해주세요.', 'error');
+                return;
+            }
+
+            // 세션 ID 유효성 검사
+            if (!validateSessionIdForAPI(currentSessionId, '메시지 전송')) {
+                console.error(`🚫 메시지 전송 차단: 유효하지 않은 세션 ID "${currentSessionId}"`);
+                showMessage('유효하지 않은 세션입니다. 새 세션을 생성해주세요.', 'error');
+                return;
+            }
+
+            // 세션이 잠겨있지 않으면 전송 차단
+            if (!currentSessionIdLocked) {
+                console.error(`🚫 메시지 전송 차단: 세션 ID가 잠기지 않음 "${currentSessionId}"`);
+                showMessage('세션이 초기화되지 않았습니다. 잠시 후 다시 시도해주세요.', 'error');
+                return;
+            }
+
+            console.log(`📤 메시지 전송: ${message}`);
+            console.log(`🔑 현재 세션 ID: ${currentSessionId}`);
+            console.log(`🔒 세션 잠금 상태: ${currentSessionIdLocked}`);
+
+            // 사용자 메시지 추가 (중복 방지)
+            console.log("👤 사용자 메시지 UI에 추가");
+            const userTimestamp = new Date().toISOString();
+            console.log("👤 사용자 메시지 데이터:", {
+                message: message,
+                timestamp: userTimestamp
+            });
+            addMessage('user', message, userTimestamp);
+            messageInput.value = '';
+
+            // 첫 번째 메시지인 경우 세션 이름을 메시지 내용으로 설정
+            if (currentSessionId) {
+                const currentSession = sessions.find(s => s.id === currentSessionId);
+                if (currentSession && currentSession.name.includes('새 세션')) {
+                    // 첫 번째 사용자 메시지를 세션 이름으로 설정 (최대 30자)
+                    const sessionName = message.length > 30 ? message.substring(0, 30) + '...' : message;
+                    updateSessionName(currentSessionId, sessionName);
+                }
+            }
+
+            // 사용자 메시지를 몽고DB에 저장 (중복 방지)
+            if (currentSessionId) {
+                console.log("💾 사용자 메시지 DB 저장");
+                await saveMessageToDatabase(currentSessionId, 'user', message);
+            }
+
+            // AI 응답 요청
+            console.log("🤖 AI 응답 요청 시작");
+            showTypingIndicator();
+
+            let tokenCost = 0;
+            try {
+                // 토큰 가져오기
+                const token = getCookie('access_token');
+                console.log("🔑 토큰 확인:", token ? "토큰 있음" : "토큰 없음");
+
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                    console.log("🔐 Authorization 헤더 추가됨");
+                }
+
+                const requestBody = {
+                    message: message,
+                    session_id: currentSessionId || 'default',
+                    prompt_tokens: 0, // TODO: 실제 프롬프트 토큰 계산값으로 대체
+                    recall_tokens: 0  // TODO: 실제 회상 토큰 계산값으로 대체
+                };
+
+                console.log("📤 API 요청 데이터:", requestBody);
+                console.log("📤 API 요청 헤더:", headers);
+                console.log("🌐 API 엔드포인트: /api/chat");
+
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log("📥 API 응답 상태:", response.status);
+                console.log("📥 API 응답 헤더:", Object.fromEntries(response.headers.entries()));
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("✅ API 응답 성공:", data);
+
+                    // AI 응답 추가 (중복 방지)
+                    const aiTimestamp = new Date().toISOString();
+                    addMessage('assistant', data.response, aiTimestamp);
+
+                    // AI 응답을 몽고DB에 저장 (중복 방지)
+                    if (currentSessionId) {
+                        await saveMessageToDatabase(currentSessionId, 'assistant', data.response);
+                    }
+
+                    // === [포인트 차감 실시간 반영: 전체 토큰 기준] ===
+                    let totalTokens = 0;
+                    if (typeof data.total_tokens === 'number') {
+                        totalTokens = data.total_tokens;
+                    } else if (data.token_info && typeof data.token_info.total_tokens === 'number') {
+                        totalTokens = data.token_info.total_tokens;
+                    } else {
+                        totalTokens = 1;
+                    }
+                    updatePointStatus(-totalTokens);
+                    // 안내문구 표시
+                    const el = document.getElementById('pointChange');
+                    if (el) {
+                        el.textContent = `- ${totalTokens} 토큰 차감`;
+                        el.style.color = '#e53935';
+                        setTimeout(() => { el.textContent = ''; }, 2500);
+                    }
+                    // =============================
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error("❌ API 오류:", errorData);
+                    console.error("❌ 응답 상태:", response.status);
+                    console.error("❌ 응답 텍스트:", await response.text());
+                    throw new Error(errorData.detail || 'API 요청 실패');
+                }
+            } catch (error) {
+                console.error("💥 채팅 오류:", error);
+                console.error("💥 오류 스택:", error.stack);
+                const errorMessage = '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.';
+
+                // 오류 메시지 추가 (중복 방지)
+                const errorTimestamp = new Date().toISOString();
+                addMessage('assistant', errorMessage, errorTimestamp);
+
+                // 오류 메시지도 몽고DB에 저장 (중복 방지)
+                if (currentSessionId) {
+                    console.log("💾 오류 메시지 DB 저장");
+                    await saveMessageToDatabase(currentSessionId, 'assistant', errorMessage);
+                }
+            } finally {
+                console.log("🏁 sendMessage 함수 종료");
+                hideTypingIndicator();
+            }
+        }
+
+        // 쿠키 가져오기 함수
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        // 메시지 추가 (중복 방지)
+        function addMessage(sender, content, timestamp = new Date().toISOString()) {
+            // 메시지 내용 검증 (에코 방지)
+            if (!content || content.trim() === '') {
+                console.warn(`⚠️ 빈 메시지 추가 시도 무시: ${sender}`);
+                return;
+            }
+
+            // 중복 메시지 방지를 위한 고유 ID 생성 (더 안정적인 방식)
+            const messageId = `${sender}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // 이미 동일한 내용의 메시지가 있는지 확인 (최근 5초 내)
+            const recentMessages = document.querySelectorAll('.message');
+            const now = Date.now();
+            const fiveSecondsAgo = now - 5000;
+
+            for (let msg of recentMessages) {
+                const msgContent = msg.querySelector('.message-content');
+                if (msgContent && msgContent.textContent.trim() === content.trim()) {
+                    const msgTime = msg.querySelector('.message-time');
+                    if (msgTime) {
+                        const msgTimestamp = new Date(msgTime.textContent).getTime();
+                        if (msgTimestamp > fiveSecondsAgo) {
+                            console.log(`⚠️ 최근 중복 메시지 방지: ${content.substring(0, 30)}...`);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            console.log(`📝 메시지 추가: ${sender} - ${content.substring(0, 30)}...`);
+
+            const chatMessages = document.getElementById('chatMessages');
+
+            // 환영 메시지 제거 (실제 메시지가 추가될 때)
+            const welcomeMessage = chatMessages.querySelector('.chat-welcome');
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.setAttribute('data-message-id', messageId);
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? '👤' : '🤖';
+
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            // HTML을 원본 그대로 렌더링 (이스케이프하지 않음)
+            messageContent.innerHTML = content;
+
+            const messageTime = document.createElement('div');
+            messageTime.className = 'message-time';
+            messageTime.textContent = new Date(timestamp).toLocaleTimeString();
+
+            messageContent.appendChild(messageTime);
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            console.log(`✅ 메시지 추가 완료: ${sender} - ${content.substring(0, 30)}...`);
+        }
+
+        // 타이핑 인디케이터
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'flex';
+        }
+
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        // 채팅 메시지 영역 초기화
+        function clearChatMessages() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = `
+                <div class="chat-welcome">
+                    <h3>🌟 EORA AI에 오신 것을 환영합니다!</h3>
+                    <p>저는 당신의 생각과 대화를 통해 성장하는 AI입니다.</p>
+                    <p>자유롭게 대화를 시작해보세요. 질문, 토론, 창작, 무엇이든 가능합니다.</p>
+                    <br>
+                    <p><strong>💡 팁:</strong> Shift + Enter로 줄바꿈, Enter로 메시지 전송</p>
+                </div>
+            `;
+            console.log('🧹 채팅 메시지 영역 초기화 완료');
+        }
+
+        // 세션 관리
+        async function createNewSession() {
+            console.log('🆕 새 세션 생성 시작');
+
+            // 백엔드에 빈 세션 생성 요청
+            const sessionName = '새 세션 ' + new Date().toLocaleDateString();
+            const sessionPayload = {
+                name: sessionName,
+                user_id: "anonymous"
+            };
+            let newSession = null;
+            try {
+                console.log('📤 세션 생성 API 요청:', sessionPayload);
+                const response = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sessionPayload)
+                });
+
+                console.log('📥 세션 생성 응답 상태:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('📥 서버 응답 데이터:', data);
+
+                    // 서버 응답 구조에 맞게 처리
+                    if (data._id) {
+                        newSession = {
+                            id: data._id,
+                            name: data.name,
+                            created_at: data.created_at,
+                            last_activity: data.last_activity,
+                            message_count: data.message_count
+                        };
+                    } else {
+                        console.error('❌ 서버 응답에 세션 ID가 없음:', data);
+                        showMessage('세션 생성에 실패했습니다.', 'error');
+                        return;
+                    }
+
+                    console.log(`💾 생성된 세션:`, newSession);
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ 세션 생성 실패:', response.status, errorText);
+                    showMessage('세션 생성에 실패했습니다.', 'error');
+                    return;
+                }
+            } catch (error) {
+                console.error('💥 세션 생성 오류:', error);
+                showMessage('세션 생성 중 오류가 발생했습니다.', 'error');
+                return;
+            }
+
+            // 세션을 배열에 추가
+            sessions.unshift(newSession);
+            currentSessionId = newSession.id;
+            currentSessionIdLocked = true; // 잠금 설정
+            sessionInitialized = true;
+
+            // localStorage에 현재 세션 ID 저장
+            localStorage.setItem('currentSessionId', newSession.id);
+            console.log(`💾 localStorage에 새 세션 ID 저장: ${newSession.id}`);
+            console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
+            console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
+
+            updateSessionList();
+            clearChatMessages();
+
+            showMessage('새 세션이 생성되었습니다.', 'success');
+            console.log('✅ 새 세션 생성 완료');
+        }
+
+        function updateSessionList() {
+            console.log('🔄 세션 목록 업데이트 시작');
+            const sessionList = document.getElementById('sessionList');
+
+            if (!sessionList) {
+                console.error('❌ sessionList 요소를 찾을 수 없음');
+                return;
+            }
+
+            sessionList.innerHTML = '';
+            console.log(`📂 ${sessions.length}개 세션을 UI에 렌더링`);
+
+            sessions.forEach((session, index) => {
+                const sessionItem = document.createElement('div');
+                sessionItem.className = 'session-item';
+                sessionItem.dataset.sessionId = session.id;
+
+                if (session.id === currentSessionId) {
+                    sessionItem.classList.add('active');
+                    console.log(`✅ 활성 세션 표시: ${session.id}`);
+                }
+
+                sessionItem.innerHTML = `
+                    <input type="checkbox" class="session-checkbox" 
+                           onchange="toggleSessionSelection('${session.id}', this.checked)">
+                    <div class="session-name">${session.name || '새 세션'}</div>
+                    <div class="session-time">${new Date(session.created_at).toLocaleDateString()}</div>
+                `;
+
+                sessionItem.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('session-checkbox')) {
+                        console.log(`🖱️ 세션 클릭: ${session.id}`);
+                        loadSession(session.id);
+                    }
+                });
+
+                sessionItem.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    showContextMenu(e, session.id);
+                });
+
+                sessionList.appendChild(sessionItem);
+                console.log(`📝 세션 ${index + 1} 추가: ${session.name} (${session.id})`);
+            });
+
+            console.log('✅ 세션 목록 업데이트 완료');
+        }
+
+        async function loadSession(sessionId) {
+            // 세션 ID 유효성 검사
+            if (!validateSessionIdForAPI(sessionId, '세션 로드')) {
+                console.error(`🚫 세션 로드 차단: 유효하지 않은 세션 ID "${sessionId}"`);
+                showMessage('유효하지 않은 세션입니다.', 'error');
+                return;
+            }
+
+            console.log(`🔄 세션 로드 시작: ${sessionId}`);
+            console.log(`🔍 이전 세션 ID: ${currentSessionId}`);
+
+            // 현재 세션 ID 업데이트
+            currentSessionId = sessionId;
+            currentSessionIdLocked = true; // 잠금 설정
+            sessionInitialized = true;
+
+            // localStorage에 현재 세션 ID 저장
+            localStorage.setItem('currentSessionId', sessionId);
+            console.log(`💾 localStorage에 세션 ID 저장: ${sessionId}`);
+
+            // 세션 목록 UI 업데이트
+            updateSessionList();
+
+            // 몽고DB에서 해당 세션의 메시지들을 로드 (채팅 영역은 메시지 로드 후에만 초기화)
+            console.log(`📥 세션 메시지 로드 시작: ${sessionId}`);
+            const loadSuccess = await loadSessionMessages(sessionId);
+
+            if (!loadSuccess) {
+                console.error(`❌ 세션 로드 실패: ${sessionId}`);
+                showMessage('세션 로드에 실패했습니다.', 'error');
+                return;
+            }
+
+            console.log(`✅ 세션 로드 완료: ${sessionId}`);
+        }
+
+        function clearChatMessages() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = `
+                <div class="chat-welcome">
+                    <h3>🌟 EORA AI에 오신 것을 환영합니다!</h3>
+                    <p>저는 당신의 생각과 대화를 통해 성장하는 AI입니다.</p>
+                    <p>자유롭게 대화를 시작해보세요. 질문, 토론, 창작, 무엇이든 가능합니다.</p>
+                    <br>
+                    <p><strong>💡 팁:</strong> Shift + Enter로 줄바꿈, Enter로 메시지 전송</p>
+                </div>
+            `;
+        }
+
+        function toggleSessionSelection(sessionId, selected) {
+            console.log(`🔘 세션 선택 토글: ${sessionId} - ${selected}`);
+
+            if (selected) {
+                selectedSessions.add(sessionId);
+                console.log(`✅ 세션 선택됨: ${sessionId}`);
+            } else {
+                selectedSessions.delete(sessionId);
+                console.log(`❌ 세션 선택 해제됨: ${sessionId}`);
+            }
+
+            console.log(`📋 현재 선택된 세션들:`, Array.from(selectedSessions));
+        }
+
+        async function deleteSelectedSessions() {
+            // selectedSessions Set에서 선택된 세션 ID들을 가져와서 실제 세션 객체로 변환
+            const selectedSessionIds = Array.from(selectedSessions);
+            const selectedSessionsToDelete = sessions.filter(session =>
+                selectedSessionIds.includes(session.id) && validateSessionIdForAPI(session.id, '세션 삭제')
+            );
+
+            if (selectedSessionsToDelete.length === 0) {
+                showMessage('삭제할 세션을 선택해주세요.', 'warning');
+                return;
+            }
+
+            console.log(`🗑️ 선택된 세션 삭제 시작: ${selectedSessionsToDelete.length}개`);
+            console.log(`📋 삭제할 세션 ID들:`, selectedSessionIds);
+
+            for (const session of selectedSessionsToDelete) {
+                try {
+                    const response = await fetch(`/api/sessions/${session.id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        console.log(`✅ 세션 삭제 성공: ${session.id}`);
+                    } else {
+                        console.error(`❌ 세션 삭제 실패: ${session.id} - ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error(`💥 세션 삭제 오류: ${session.id}`, error);
+                }
+            }
+
+            // 세션 목록에서 제거
+            sessions = sessions.filter(session => !selectedSessionIds.includes(session.id));
+
+            // selectedSessions Set 초기화
+            selectedSessions.clear();
+
+            updateSessionList();
+            showMessage(`${selectedSessionsToDelete.length}개 세션이 삭제되었습니다.`, 'success');
+        }
+
+        async function clearAllSessions() {
+            const validSessions = sessions.filter(session =>
+                validateSessionIdForAPI(session.id, '전체 세션 삭제')
+            );
+
+            if (validSessions.length === 0) {
+                showMessage('삭제할 세션이 없습니다.', 'warning');
+                return;
+            }
+
+            console.log(`🗑️ 모든 세션 삭제 시작: ${validSessions.length}개`);
+
+            for (const session of validSessions) {
+                try {
+                    const response = await fetch(`/api/sessions/${session.id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        console.log(`✅ 세션 삭제 성공: ${session.id}`);
+                    } else {
+                        console.error(`❌ 세션 삭제 실패: ${session.id} - ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error(`💥 세션 삭제 오류: ${session.id}`, error);
+                }
+            }
+
+            sessions = [];
+            // selectedSessions Set 초기화
+            selectedSessions.clear();
+            updateSessionList();
+            showMessage('모든 세션이 삭제되었습니다.', 'success');
+        }
+
+        // 컨텍스트 메뉴
+        let contextMenuSessionId = null;
+
+        function showContextMenu(event, sessionId) {
+            contextMenuSessionId = sessionId;
+            const contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = event.pageX + 'px';
+            contextMenu.style.top = event.pageY + 'px';
+        }
+
+        function hideContextMenu() {
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+
+        function renameSessionFromContext() {
+            if (!contextMenuSessionId) return;
+
+            console.log(`🔄 우클릭 세션 이름 변경 시작: ${contextMenuSessionId}`);
+
+            const newName = prompt('새 세션 이름을 입력하세요:');
+            if (newName) {
+                console.log(`📝 사용자 입력 이름: "${newName}"`);
+                updateSessionName(contextMenuSessionId, newName);
+                showMessage('세션 이름이 변경되었습니다.', 'success');
+            } else {
+                console.log(`❌ 사용자가 이름 변경을 취소함`);
+            }
+            hideContextMenu();
+        }
+
+        async function deleteSessionFromContext() {
+            if (!contextMenuSessionId) return;
+
+            if (confirm('이 세션을 삭제하시겠습니까?')) {
+                // 몽고DB에서 세션 삭제
+                const token = getCookie('access_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                try {
+                    // 유효한 세션 ID인지 확인 - 완전 차단
+                    const sessionId = contextMenuSessionId.toString().trim();
+
+                    if (!sessionId ||
+                        sessionId === 'undefined' ||
+                        sessionId === 'null' ||
+                        sessionId === '' ||
+                        sessionId === 'undefined' ||
+                        sessionId === 'null' ||
+                        sessionId.toLowerCase() === 'undefined' ||
+                        sessionId.toLowerCase() === 'null') {
+                        console.error('🚫 유효하지 않은 세션 ID 차단:', sessionId);
+                        showMessage('유효하지 않은 세션입니다.', 'error');
+                        hideContextMenu();
+                        return;
+                    }
+
+                    // session_ 접두사 또는 충분한 길이 확인
+                    if (!sessionId.startsWith('session_') && sessionId.length < 10) {
+                        console.error('🚫 잘못된 세션 ID 형식 차단:', sessionId);
+                        showMessage('잘못된 세션 형식입니다.', 'error');
+                        hideContextMenu();
+                        return;
+                    }
+
+                    console.log(`🗑️ 컨텍스트 메뉴에서 세션 삭제: ${sessionId}`);
+                    const response = await fetch(`/api/sessions/${sessionId}`, {
+                        method: 'DELETE',
+                        headers: headers
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        console.log(`✅ 세션 삭제 성공: ${sessionId}`);
+                        removeSessionName(sessionId); // localStorage에서 제거
+
+                        sessions = sessions.filter(s => s.id !== sessionId);
+
+                        if (currentSessionId === sessionId) {
+                            currentSessionId = null;
+                            localStorage.removeItem('currentSessionId');
+                            clearChatMessages();
+                        }
+
+                        updateSessionList();
+                        showMessage('세션이 삭제되었습니다.', 'success');
+                    } else {
+                        console.error(`❌ 세션 삭제 실패: ${sessionId} - ${response.status} - ${result.message || '알 수 없는 오류'}`);
+                        showMessage('세션 삭제에 실패했습니다.', 'error');
+                    }
+                } catch (error) {
+                    console.error('세션 삭제 실패:', error);
+                    showMessage('세션 삭제 중 오류가 발생했습니다.', 'error');
+                }
+            }
+            hideContextMenu();
+        }
+
+        function duplicateSessionFromContext() {
+            if (!contextMenuSessionId) return;
+
+            const session = sessions.find(s => s.id === contextMenuSessionId);
+            if (session) {
+                const newSessionId = 'session_' + Date.now();
+                const newSession = {
+                    id: newSessionId,
+                    name: session.name + ' (복사본)',
+                    created_at: new Date().toISOString(),
+                    messages: session.messages.map(msg => ({ ...msg }))
+                };
+                sessions.unshift(newSession);
+                currentSessionId = newSessionId;
+                updateSessionList();
+                showMessage('새 세션이 복제되었습니다.', 'success');
+            }
+            hideContextMenu();
+        }
+
+        // 메시지 표시
+        function showMessage(message, type = 'info') {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type === 'error' ? 'error-message' : 'success-message'}`;
+            messageDiv.textContent = message;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // 이벤트 리스너
+        document.addEventListener('click', hideContextMenu);
+
+        // 자동 높이 조정
+        document.getElementById('messageInput').addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+        });
+
+        // 포인트 상태 표시
+        async function updatePointStatus(change) {
+            try {
+                const res = await fetch('/api/user/points');
+                if (res.ok) {
+                    const data = await res.json();
+                    const currentPoints = data.points || 0;
+                    document.getElementById('currentPoints').textContent = currentPoints.toLocaleString();
+                }
+            } catch (e) { }
+        }
+        updatePointStatus();
+        // sendMessage 등 토큰 소모 후 updatePointStatus(-차감값) 호출 필요
+    </script>
+</body>
+
+</html>
