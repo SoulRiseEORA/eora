@@ -1067,6 +1067,14 @@ async def admin_page(request: Request):
         return RedirectResponse("/")
     return templates.TemplateResponse("admin.html", {"request": request})
 
+@app.get("/admin/prompt-management", response_class=HTMLResponse)
+@admin_required
+async def admin_prompt_management(request: Request):
+    user = get_current_user(request)
+    if not user or not user.get("is_admin", False):
+        return RedirectResponse("/")
+    return templates.TemplateResponse("prompt_management.html", {"request": request})
+
 @app.get("/debug", response_class=HTMLResponse)
 async def debug(request: Request):
     try:
