@@ -1455,25 +1455,9 @@
                 return;
             }
 
-            // 로그인된 경우 채팅 시작
-            fetch('/api/sessions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: '게스트 세션', user_id: 'guest' })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.session_id) {
-                        const currentLang = document.documentElement.lang || 'ko';
-                        window.location.href = `/chat?lang=${currentLang}&session_id=${data.session_id}`;
-                    } else {
-                        window.location.href = '/chat';
-                    }
-                })
-                .catch(error => {
-                    console.error('게스트 세션 생성 오류:', error);
-                    window.location.href = '/chat';
-                });
+            // 로그인된 경우 채팅 페이지로 이동 (자동 세션 생성 없음)
+            const currentLang = document.documentElement.lang || 'ko';
+            window.location.href = `/chat?lang=${currentLang}`;
         }
 
         // 로그인 필요 모달 표시
@@ -1666,30 +1650,9 @@
                 return;
             }
 
-            // 로그인된 경우 사용자 정보와 함께 세션 생성
-            const userName = localStorage.getItem('user_name') || userEmail.split('@')[0];
-
-            fetch('/api/sessions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: `${userName}의 세션`,
-                    user_id: userEmail
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.session_id) {
-                        const currentLang = document.documentElement.lang || 'ko';
-                        window.location.href = `/chat?lang=${currentLang}&session_id=${data.session_id}`;
-                    } else {
-                        window.location.href = '/chat';
-                    }
-                })
-                .catch(error => {
-                    console.error('세션 생성 오류:', error);
-                    window.location.href = '/chat';
-                });
+            // 로그인된 경우 채팅 페이지로 이동 (자동 세션 생성 없음)
+            const currentLang = document.documentElement.lang || 'ko';
+            window.location.href = `/chat?lang=${currentLang}`;
         }
 
         // 체험해보기 버튼 클릭 처리
@@ -1703,30 +1666,9 @@
                 return;
             }
 
-            // 로그인된 경우 체험용 채팅 시작
-            const userName = localStorage.getItem('user_name') || userEmail.split('@')[0];
-
-            fetch('/api/sessions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: `${userName}의 체험 세션`,
-                    user_id: userEmail
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.session_id) {
-                        const currentLang = document.documentElement.lang || 'ko';
-                        window.location.href = `/chat?lang=${currentLang}&session_id=${data.session_id}`;
-                    } else {
-                        window.location.href = '/chat';
-                    }
-                })
-                .catch(error => {
-                    console.error('체험 세션 생성 오류:', error);
-                    window.location.href = '/chat';
-                });
+            // 로그인된 경우 채팅 페이지로 이동 (자동 세션 생성 없음)
+            const currentLang = document.documentElement.lang || 'ko';
+            window.location.href = `/chat?lang=${currentLang}`;
         }
 
         // 로그아웃
