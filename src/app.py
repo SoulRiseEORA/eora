@@ -13,6 +13,7 @@ import logging
 import asyncio
 import uuid
 import time
+import traceback
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from pathlib import Path
@@ -2968,18 +2969,42 @@ ADMIN_EMAIL = "admin@eora.ai"
 # 포인트 차감 함수
 
 def deduct_points(user_email, tokens_used):
-    if user_email == ADMIN_EMAIL:
-        return True  # 관리자는 무한 포인트
-    if points_collection is not None:
-        user_points = points_collection.find_one({"user_id": user_email})
-        if not user_points:
+    try:
+        if user_email == ADMIN_EMAIL:
+            return True  # 관리자는 무한 포인트
+        
+        # 사용자별 포인트 컬렉션에서 차감
+        user_points_collection = f"user_{user_email}_points"
+        if db and user_points_collection in db.list_collection_names():
+            user_points = db[user_points_collection].find_one({"user_id": user_email})
+            if not user_points:
+                logger.warning(f"사용자 포인트 정보 없음: {user_email}")
+                return False
+            
+            cost = tokens_used * POINTS_PER_TOKEN
+            current_points = user_points.get("points", 0)
+            
+            if current_points < cost:
+                logger.warning(f"포인트 부족: {user_email}, 현재: {current_points}, 필요: {cost}")
+                return False
+            
+            result = db[user_points_collection].update_one(
+                {"user_id": user_email}, 
+                {"$inc": {"points": -cost}}
+            )
+            
+            if result.modified_count > 0:
+                logger.info(f"포인트 차감 성공: {user_email}, 차감: {cost}, 남은 포인트: {current_points - cost}")
+                return True
+            else:
+                logger.error(f"포인트 차감 실패: {user_email}")
+                return False
+        else:
+            logger.warning(f"사용자 포인트 컬렉션 없음: {user_points_collection}")
             return False
-        cost = tokens_used * POINTS_PER_TOKEN
-        if user_points.get("points", 0) < cost:
-            return False
-        points_collection.update_one({"user_id": user_email}, {"$inc": {"points": -cost}})
-        return True
-    return False
+    except Exception as e:
+        logger.error(f"포인트 차감 오류: {user_email}, {e}")
+        return False
 
 def get_user_storage_usage_mb(user_id):
     """회원별 chat/points 컬렉션 용량(MB) 측정"""
@@ -3194,7 +3219,8 @@ from fastapi import Request, HTTPException, status, Depends
 import hashlib
 
 def create_admin_account():
-    admin_email = "admin@admin.com"
+    import hashlib
+    admin_email = ADMIN_EMAIL  # "admin@eora.ai"
     admin_pw = "admin1234"
     admin_name = "관리자"
     if users_collection is None:
@@ -3209,7 +3235,7 @@ def create_admin_account():
             "is_admin": True,
             "points": 100000
         })
-        print("✅ 관리자 계정 자동 생성: admin@admin.com / admin1234")
+        logger.info(f"✅ 관리자 계정 자동 생성: {admin_email} / admin1234")
 
 # FastAPI 앱 시작 시 관리자 계정 자동 생성
 @app.on_event("startup")
