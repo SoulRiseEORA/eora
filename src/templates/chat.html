@@ -1244,7 +1244,14 @@
                     userValid = true;
                 }
 
-                // 3. API 호출로 인증 상태 확인
+                // 3. 로컬스토리지 확인
+                const storedEmail = localStorage.getItem('user_email');
+                if (storedEmail && storedEmail !== 'undefined' && storedEmail !== 'null') {
+                    console.log('✅ 로컬스토리지 사용자 이메일 발견:', storedEmail);
+                    userValid = true;
+                }
+
+                // 4. API 호출로 인증 상태 확인
                 if (!userValid) {
                     try {
                         const response = await fetch('/api/user/points', {
@@ -1308,6 +1315,29 @@
             } else {
                 console.error('❌ 메시지 입력창을 찾을 수 없음');
             }
+
+            // 네비게이션 링크들 이벤트 위임 처리
+            const headerActions = document.querySelector('.header-actions');
+            if (headerActions) {
+                headerActions.addEventListener('click', function (e) {
+                    if (e.target.matches('a.header-btn[href]')) {
+                        console.log('🔗 네비게이션 링크 클릭:', e.target.href);
+                        // 기본 동작 허용 (링크 이동)
+                        return true;
+                    }
+                });
+                console.log('✅ 네비게이션 링크 이벤트 위임 설정');
+            }
+
+            // 홈버튼 특별 처리 (더블 체크)
+            const homeButtons = document.querySelectorAll('a[href="/"]');
+            homeButtons.forEach((btn, index) => {
+                btn.addEventListener('click', function (e) {
+                    console.log(`🏠 홈버튼 ${index + 1} 클릭됨`);
+                    // 기본 링크 동작 허용
+                    return true;
+                });
+            });
 
             console.log('✅ 이벤트 리스너 설정 완료');
         }
@@ -1779,12 +1809,23 @@
             // 세션이 없으면 자동으로 새 세션 생성
             if (!currentSessionId || currentSessionId === 'undefined' || currentSessionId === 'null' || currentSessionId === '' || currentSessionId === undefined) {
                 console.log('🆕 세션이 없어서 자동으로 새 세션 생성');
-                await createNewSession();
 
-                // 세션 생성 후에도 유효하지 않으면 차단
-                if (!currentSessionId || currentSessionId === 'undefined' || currentSessionId === 'null') {
-                    console.error('🚫 세션 생성 실패');
-                    showMessage('세션을 생성할 수 없습니다. 페이지를 새로고침 해주세요.', 'error');
+                try {
+                    const newSessionId = await createNewSession();
+
+                    // 세션 생성 후에도 유효하지 않으면 차단
+                    if (!newSessionId || newSessionId === 'undefined' || newSessionId === 'null') {
+                        console.error('🚫 세션 생성 실패');
+                        showMessage('세션을 생성할 수 없습니다. 페이지를 새로고침 해주세요.', 'error');
+                        return;
+                    }
+
+                    currentSessionId = newSessionId;
+                    console.log(`✅ 새 세션 생성 성공: ${currentSessionId}`);
+
+                } catch (error) {
+                    console.error('💥 세션 생성 중 오류:', error);
+                    showMessage('세션 생성 중 오류가 발생했습니다. 페이지를 새로고침 해주세요.', 'error');
                     return;
                 }
             }
@@ -1795,9 +1836,20 @@
 
                 // 세션이 유효하지 않으면 새 세션 생성 시도
                 console.log('🔄 세션이 유효하지 않아 새 세션 생성 시도');
-                await createNewSession();
 
-                if (!validateSessionIdForAPI(currentSessionId, '메시지 전송 재시도')) {
+                try {
+                    const newSessionId = await createNewSession();
+
+                    if (!validateSessionIdForAPI(newSessionId, '메시지 전송 재시도')) {
+                        showMessage('세션을 생성할 수 없습니다. 페이지를 새로고침 해주세요.', 'error');
+                        return;
+                    }
+
+                    currentSessionId = newSessionId;
+                    console.log(`✅ 재시도 세션 생성 성공: ${currentSessionId}`);
+
+                } catch (error) {
+                    console.error('💥 재시도 세션 생성 오류:', error);
                     showMessage('세션을 생성할 수 없습니다. 페이지를 새로고침 해주세요.', 'error');
                     return;
                 }
@@ -2033,23 +2085,39 @@
         async function createNewSession() {
             console.log('🆕 새 세션 생성 시작');
 
-            // 백엔드에 빈 세션 생성 요청
-            const sessionName = '새 세션 ' + new Date().toLocaleDateString();
-            const sessionPayload = {
-                name: sessionName,
-                user_id: "anonymous"
-            };
-            let newSession = null;
             try {
+                // 세션 생성 진행 중 표시
+                showMessage('새 세션을 생성하고 있습니다...', 'info');
+
+                // 백엔드에 빈 세션 생성 요청
+                const sessionName = '새 세션 ' + new Date().toLocaleDateString();
+                const sessionPayload = {
+                    name: sessionName,
+                    user_id: "anonymous"
+                };
+
                 console.log('📤 세션 생성 API 요청:', sessionPayload);
-                const response = await fetch('/api/sessions', {
+
+                const requestOptions = {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
                     body: JSON.stringify(sessionPayload)
-                });
+                };
+
+                // 토큰이 있으면 Authorization 헤더 추가
+                const token = getCookie('access_token');
+                if (token && token !== 'undefined' && token !== 'null') {
+                    requestOptions.headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('/api/sessions', requestOptions);
 
                 console.log('📥 세션 생성 응답 상태:', response.status);
 
+                let newSession = null;
                 if (response.ok) {
                     const data = await response.json();
                     console.log('📥 서버 응답 데이터:', data);
@@ -2058,47 +2126,82 @@
                     if (data._id) {
                         newSession = {
                             id: data._id,
-                            name: data.name,
-                            created_at: data.created_at,
-                            last_activity: data.last_activity,
-                            message_count: data.message_count
+                            name: data.name || sessionName,
+                            created_at: data.created_at || new Date().toISOString(),
+                            last_activity: data.last_activity || new Date().toISOString(),
+                            message_count: data.message_count || 0
+                        };
+                    } else if (data.session_id) {
+                        newSession = {
+                            id: data.session_id,
+                            name: data.name || sessionName,
+                            created_at: data.created_at || new Date().toISOString(),
+                            last_activity: data.last_activity || new Date().toISOString(),
+                            message_count: data.message_count || 0
                         };
                     } else {
                         console.error('❌ 서버 응답에 세션 ID가 없음:', data);
-                        showMessage('세션 생성에 실패했습니다.', 'error');
-                        return;
+                        throw new Error('서버 응답에 세션 ID가 없습니다.');
                     }
 
                     console.log(`💾 생성된 세션:`, newSession);
                 } else {
                     const errorText = await response.text();
                     console.error('❌ 세션 생성 실패:', response.status, errorText);
-                    showMessage('세션 생성에 실패했습니다.', 'error');
-                    return;
+                    throw new Error(`세션 생성 실패: ${response.status} - ${errorText}`);
                 }
+
+                // 세션을 배열에 추가
+                sessions.unshift(newSession);
+                currentSessionId = newSession.id;
+                currentSessionIdLocked = true; // 잠금 설정
+                sessionInitialized = true;
+
+                // localStorage에 현재 세션 ID 저장
+                localStorage.setItem('currentSessionId', newSession.id);
+                console.log(`💾 localStorage에 새 세션 ID 저장: ${newSession.id}`);
+                console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
+                console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
+
+                updateSessionList();
+                clearChatMessages();
+
+                showMessage('새 세션이 생성되었습니다.', 'success');
+                console.log('✅ 새 세션 생성 완료');
+
+                return newSession.id; // 성공한 세션 ID 반환
+
             } catch (error) {
                 console.error('💥 세션 생성 오류:', error);
-                showMessage('세션 생성 중 오류가 발생했습니다.', 'error');
-                return;
+
+                // 폴백: 로컬 세션 생성
+                console.log('🔄 폴백: 로컬 세션 생성 시도');
+
+                const fallbackSessionId = 'session_local_' + Date.now();
+                const fallbackSession = {
+                    id: fallbackSessionId,
+                    name: '로컬 세션 ' + new Date().toLocaleDateString(),
+                    created_at: new Date().toISOString(),
+                    last_activity: new Date().toISOString(),
+                    message_count: 0
+                };
+
+                sessions.unshift(fallbackSession);
+                currentSessionId = fallbackSessionId;
+                currentSessionIdLocked = true;
+                sessionInitialized = true;
+
+                localStorage.setItem('currentSessionId', fallbackSessionId);
+                console.log(`💾 폴백 세션 ID 저장: ${fallbackSessionId}`);
+
+                updateSessionList();
+                clearChatMessages();
+
+                showMessage('로컬 세션이 생성되었습니다. (서버 연결 문제)', 'warning');
+                console.log('✅ 폴백 세션 생성 완료');
+
+                return fallbackSessionId; // 폴백 세션 ID 반환
             }
-
-            // 세션을 배열에 추가
-            sessions.unshift(newSession);
-            currentSessionId = newSession.id;
-            currentSessionIdLocked = true; // 잠금 설정
-            sessionInitialized = true;
-
-            // localStorage에 현재 세션 ID 저장
-            localStorage.setItem('currentSessionId', newSession.id);
-            console.log(`💾 localStorage에 새 세션 ID 저장: ${newSession.id}`);
-            console.log(`🔑 currentSessionId 최종 설정: ${currentSessionId}`);
-            console.log(`🔒 currentSessionId 잠금 상태: ${currentSessionIdLocked}`);
-
-            updateSessionList();
-            clearChatMessages();
-
-            showMessage('새 세션이 생성되었습니다.', 'success');
-            console.log('✅ 새 세션 생성 완료');
         }
 
         function updateSessionList() {
@@ -2450,62 +2553,101 @@
             try {
                 console.log('💰 포인트 상태 업데이트 시작');
 
-                // 여러 API 엔드포인트 시도
-                const endpoints = ['/api/user/points', '/user/points?user_id=test_user'];
+                // 여러 API 엔드포인트 시도 (우선순위대로)
+                const endpoints = [
+                    '/api/user/points',
+                    '/user/points?user_id=test_user',
+                    '/api/user/points/test_user'
+                ];
+
                 let success = false;
+                let pointsData = null;
 
                 for (const endpoint of endpoints) {
                     try {
                         console.log(`🌐 포인트 API 호출: ${endpoint}`);
-                        const res = await fetch(endpoint, {
+
+                        const requestOptions = {
                             method: 'GET',
                             credentials: 'include',
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
                             }
-                        });
+                        };
+
+                        // 토큰이 있으면 Authorization 헤더 추가
+                        const token = getCookie('access_token');
+                        if (token && token !== 'undefined' && token !== 'null') {
+                            requestOptions.headers['Authorization'] = `Bearer ${token}`;
+                        }
+
+                        const res = await fetch(endpoint, requestOptions);
 
                         console.log(`📥 포인트 API 응답: ${res.status}`);
 
                         if (res.ok) {
-                            const data = await res.json();
-                            console.log('📊 포인트 데이터:', data);
-
-                            const currentPoints = data.points || data.user_points || 100000;
-                            const pointsElement = document.getElementById('currentPoints');
-
-                            if (pointsElement) {
-                                pointsElement.textContent = currentPoints.toLocaleString();
-                                console.log(`✅ 포인트 표시 업데이트: ${currentPoints.toLocaleString()}`);
-                            }
-
-                            // 변화량 표시
-                            if (change !== 0) {
-                                const changeElement = document.getElementById('pointChange');
-                                if (changeElement) {
-                                    changeElement.textContent = change > 0 ? `+${change}` : `${change}`;
-                                    changeElement.style.color = change > 0 ? '#4caf50' : '#f44336';
-                                    setTimeout(() => {
-                                        changeElement.textContent = '';
-                                    }, 3000);
-                                }
-                            }
-
+                            pointsData = await res.json();
+                            console.log('📊 포인트 데이터:', pointsData);
                             success = true;
                             break;
                         } else {
                             console.log(`⚠️ 포인트 API 실패: ${endpoint} - ${res.status}`);
+                            if (res.status === 401) {
+                                console.log('🔐 인증 필요 - 다음 엔드포인트 시도');
+                                continue;
+                            }
                         }
                     } catch (apiError) {
                         console.log(`❌ 포인트 API 오류: ${endpoint} -`, apiError);
                     }
                 }
 
-                if (!success) {
+                if (success && pointsData) {
+                    // 다양한 응답 형식에 대응
+                    let currentPoints = 100000; // 기본값
+
+                    if (typeof pointsData.points === 'number') {
+                        currentPoints = pointsData.points;
+                    } else if (typeof pointsData.current_points === 'number') {
+                        currentPoints = pointsData.current_points;
+                    } else if (typeof pointsData.user_points === 'number') {
+                        currentPoints = pointsData.user_points;
+                    }
+
+                    // 변화량 반영
+                    if (change !== 0) {
+                        currentPoints += change;
+                    }
+
+                    const pointsElement = document.getElementById('currentPoints');
+                    if (pointsElement) {
+                        pointsElement.textContent = currentPoints.toLocaleString();
+                        console.log(`✅ 포인트 표시 업데이트: ${currentPoints.toLocaleString()}`);
+                    }
+
+                    // 변화량 표시
+                    if (change !== 0) {
+                        const changeElement = document.getElementById('pointChange');
+                        if (changeElement) {
+                            changeElement.textContent = change > 0 ? `+${change}` : `${change}`;
+                            changeElement.style.color = change > 0 ? '#4caf50' : '#f44336';
+                            setTimeout(() => {
+                                changeElement.textContent = '';
+                            }, 3000);
+                        }
+                    }
+                } else {
                     console.log('❌ 모든 포인트 API 호출 실패 - 기본값 사용');
                     const pointsElement = document.getElementById('currentPoints');
                     if (pointsElement) {
                         pointsElement.textContent = '100,000';
+                        pointsElement.style.color = '#ffa726'; // 주황색으로 기본값 표시
+                    }
+
+                    // 사용자에게 알림
+                    if (change === 0) { // 초기 로드 시에만 알림
+                        showMessage('포인트 정보를 불러올 수 없어 기본값을 표시합니다.', 'warning');
                     }
                 }
 
@@ -2514,7 +2656,9 @@
                 const pointsElement = document.getElementById('currentPoints');
                 if (pointsElement) {
                     pointsElement.textContent = '오류';
+                    pointsElement.style.color = '#f44336';
                 }
+                showMessage('포인트 시스템 오류가 발생했습니다.', 'error');
             }
         }
     </script>
