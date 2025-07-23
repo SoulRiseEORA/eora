@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 학습 전용 페이지</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            padding: 32px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .section {
+            margin-bottom: 36px;
+        }
+
+        .section h2 {
+            color: #333;
+            font-size: 1.2em;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .log {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 40px;
+            margin-top: 10px;
+            font-size: 0.97em;
+        }
+
+        .back-link {
+            display: block;
+            margin-bottom: 24px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="/admin" class="back-link">← 관리자 페이지로 돌아가기</a>
+        <h1>📚 EORA AI 학습 전용 페이지</h1>
+        <div class="section">
+            <h2>문서 학습하기</h2>
+            <form id="uploadForm">
+                <div class="form-group">
+                    <label class="form-label">문서 파일 업로드 (txt, docx, md, py, xlsx, xls, pdf):</label>
+                    <input type="file" id="uploadFile" accept=".txt,.docx,.md,.py,.xlsx,.xls,.pdf" multiple required
+                        class="form-input">
+                </div>
+                <button type="submit" class="btn">업로드</button>
+            </form>
+            <div id="uploadedFilesSection" style="margin-top:20px;">
+                <h3 style="font-size:1em; color:#333; margin-bottom:8px;">업로드된 파일 목록</h3>
+                <ul id="uploadedFilesList" style="padding-left:18px;"></ul>
+                <button id="learnSelectedBtn" class="btn" style="background:#28a745; margin-top:10px;">선택 파일 학습
+                    시작</button>
+                <button id="stopLearningBtn" class="btn btn-danger"
+                    style="background:#dc3545; margin-top:10px; margin-left:8px;">학습 중지</button>
+            </div>
+            <div id="learningLog" class="log"></div>
+        </div>
+        <div class="section">
+            <h2>첨부파일학습(대화)</h2>
+            <form id="dialogUploadForm">
+                <div class="form-group">
+                    <label class="form-label">대화 파일 업로드 (txt, md, docx):</label>
+                    <input type="file" id="dialogUploadFile" accept=".txt,.md,.docx" required class="form-input">
+                </div>
+                <button type="submit" class="btn">업로드</button>
+            </form>
+            <div id="dialogUploadedFilesSection" style="margin-top:20px;">
+                <h3 style="font-size:1em; color:#333; margin-bottom:8px;">업로드된 대화 파일</h3>
+                <ul id="dialogUploadedFilesList" style="padding-left:18px;"></ul>
+                <button id="dialogLearnSelectedBtn" class="btn" style="background:#28a745; margin-top:10px;">선택 대화파일 학습
+                    시작</button>
+                <button id="dialogStopLearningBtn" class="btn btn-danger"
+                    style="background:#dc3545; margin-top:10px; margin-left:8px;">학습 중지</button>
+            </div>
+            <div id="dialogLearningLog" class="log"></div>
+        </div>
+    </div>
+    <script>
+        // 문서 파일 업로드 및 목록 관리
+        let uploadedFiles = [];
+        let stopLearning = false;
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadFileInput = document.getElementById('uploadFile');
+        const uploadedFilesList = document.getElementById('uploadedFilesList');
+        const learningLog = document.getElementById('learningLog');
+        const learnSelectedBtn = document.getElementById('learnSelectedBtn');
+        const stopLearningBtn = document.getElementById('stopLearningBtn');
+
+        uploadForm.onsubmit = function (e) {
+            e.preventDefault();
+            const files = uploadFileInput.files;
+            if (!files.length) return;
+            for (let i = 0; i < files.length; i++) {
+                uploadedFiles.push(files[i]);
+            }
+            renderUploadedFiles();
+            uploadFileInput.value = '';
+        };
+
+        function renderUploadedFiles() {
+            uploadedFilesList.innerHTML = '';
+            uploadedFiles.forEach((file, idx) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<input type='checkbox' class='file-checkbox' data-idx='${idx}' checked> ${file.name}`;
+                uploadedFilesList.appendChild(li);
+            });
+        }
+
+        learnSelectedBtn.onclick = async function () {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            const selectedIdxs = Array.from(checkboxes).filter(cb => cb.checked).map(cb => parseInt(cb.dataset.idx));
+            if (selectedIdxs.length === 0) {
+                learningLog.innerHTML = '선택된 파일이 없습니다.';
+                return;
+            }
+            learningLog.innerHTML = '학습 중...';
+            stopLearning = false;
+            stopLearningBtn.disabled = false;
+            for (const idx of selectedIdxs) {
+                if (stopLearning) {
+                    learningLog.innerHTML += '<div>⏹️ 학습이 중지되었습니다.</div>';
+                    break;
+                }
+                const file = uploadedFiles[idx];
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const res = await fetch('/api/admin/learn-file', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.success) {
+                        learningLog.innerHTML += `<div>✅ ${file.name}: ${data.chunks}개 청크 학습 완료</div>`;
+                    } else {
+                        learningLog.innerHTML += `<div>❌ ${file.name}: ${data.message || '오류'}</div>`;
+                    }
+                } catch (err) {
+                    learningLog.innerHTML += `<div>❌ ${file.name}: 네트워크 오류</div>`;
+                }
+            }
+            stopLearningBtn.disabled = true;
+        };
+
+        stopLearningBtn.onclick = function () {
+            stopLearning = true;
+            stopLearningBtn.disabled = true;
+        };
+
+        // 대화 파일 업로드 및 목록 관리
+        let dialogUploadedFiles = [];
+        let dialogStopLearning = false;
+        const dialogUploadForm = document.getElementById('dialogUploadForm');
+        const dialogUploadFileInput = document.getElementById('dialogUploadFile');
+        const dialogUploadedFilesList = document.getElementById('dialogUploadedFilesList');
+        const dialogLearningLog = document.getElementById('dialogLearningLog');
+        const dialogLearnSelectedBtn = document.getElementById('dialogLearnSelectedBtn');
+        const dialogStopLearningBtn = document.getElementById('dialogStopLearningBtn');
+
+        dialogUploadForm.onsubmit = function (e) {
+            e.preventDefault();
+            const file = dialogUploadFileInput.files[0];
+            if (!file) return;
+            dialogUploadedFiles.push(file);
+            renderDialogUploadedFiles();
+            dialogUploadFileInput.value = '';
+        };
+
+        function renderDialogUploadedFiles() {
+            dialogUploadedFilesList.innerHTML = '';
+            dialogUploadedFiles.forEach((file, idx) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<input type='checkbox' class='dialog-file-checkbox' data-idx='${idx}' checked> ${file.name}`;
+                dialogUploadedFilesList.appendChild(li);
+            });
+        }
+
+        dialogLearnSelectedBtn.onclick = async function () {
+            const checkboxes = document.querySelectorAll('.dialog-file-checkbox');
+            const selectedIdxs = Array.from(checkboxes).filter(cb => cb.checked).map(cb => parseInt(cb.dataset.idx));
+            if (selectedIdxs.length === 0) {
+                dialogLearningLog.innerHTML = '선택된 대화 파일이 없습니다.';
+                return;
+            }
+            dialogLearningLog.innerHTML = '학습 중...';
+            dialogStopLearning = false;
+            dialogStopLearningBtn.disabled = false;
+            for (const idx of selectedIdxs) {
+                if (dialogStopLearning) {
+                    dialogLearningLog.innerHTML += '<div>⏹️ 학습이 중지되었습니다.</div>';
+                    break;
+                }
+                const file = dialogUploadedFiles[idx];
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const res = await fetch('/api/admin/learn-dialog-file', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.success) {
+                        dialogLearningLog.innerHTML += `<div>✅ ${file.name}: 대화 ${data.turns}턴 학습 완료</div>`;
+                    } else {
+                        dialogLearningLog.innerHTML += `<div>❌ ${file.name}: ${data.message || '오류'}</div>`;
+                    }
+                } catch (err) {
+                    dialogLearningLog.innerHTML += `<div>❌ ${file.name}: 네트워크 오류</div>`;
+                }
+            }
+            dialogStopLearningBtn.disabled = true;
+        };
+
+        dialogStopLearningBtn.onclick = function () {
+            dialogStopLearning = true;
+            dialogStopLearningBtn.disabled = true;
+        };
+    </script>
+</body>
+
+</html>

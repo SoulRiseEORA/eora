@@ -428,6 +428,13 @@
                     <p class="card-description">CPU, 메모리, 네트워크 사용량을 모니터링하고 시스템 자원을 관리합니다.</p>
                     <button class="btn btn-warning">자원 관리</button>
                 </div>
+                <div class="admin-card" onclick="window.location.href='/learning'">
+                    <div class="card-icon">📚</div>
+                    <h3 class="card-title">학습 전용 페이지</h3>
+                    <p class="card-description">문서/대화 파일을 등록하여 아우라 메모리로 학습할 수 있는 전용 페이지로 이동합니다.<br>지원: txt, docx, md,
+                        py, xlsx, xls, pdf</p>
+                    <button class="btn btn-primary">학습 전용 페이지로 이동</button>
+                </div>
             </div>
 
             <div class="stats-section">
@@ -673,6 +680,31 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 학습하기 모달 -->
+    <div id="learningModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('learningModal')">&times;</span>
+            <h2>📚 학습하기</h2>
+            <form id="learningForm">
+                <input type="file" id="learningFile" accept=".txt,.docx,.md,.py,.xlsx,.xls,.pdf" multiple required>
+                <button type="submit" class="btn btn-primary">업로드 및 학습</button>
+            </form>
+            <div id="learningLog" style="margin-top:20px;"></div>
+        </div>
+    </div>
+    <!-- 첨부파일학습 모달 -->
+    <div id="dialogLearningModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('dialogLearningModal')">&times;</span>
+            <h2>💬 첨부파일학습(대화)</h2>
+            <form id="dialogLearningForm">
+                <input type="file" id="dialogLearningFile" accept=".txt,.md,.docx" required>
+                <button type="submit" class="btn btn-success">업로드 및 학습</button>
+            </form>
+            <div id="dialogLearningLog" style="margin-top:20px;"></div>
         </div>
     </div>
 
@@ -1001,6 +1033,57 @@
         // 이벤트 리스너 추가
         document.getElementById('aiSelect').addEventListener('change', loadPrompt);
         document.getElementById('promptType').addEventListener('change', loadPrompt);
+
+        // 학습하기 파일 업로드 및 학습
+        const learningForm = document.getElementById('learningForm');
+        if (learningForm) {
+            learningForm.onsubmit = async function (e) {
+                e.preventDefault();
+                const files = document.getElementById('learningFile').files;
+                if (!files.length) return;
+                const log = document.getElementById('learningLog');
+                log.innerHTML = '업로드 및 학습 중...';
+                for (let i = 0; i < files.length; i++) {
+                    const formData = new FormData();
+                    formData.append('file', files[i]);
+                    try {
+                        const res = await fetch('/api/admin/learn-file', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (data.success) {
+                            log.innerHTML += `<div>✅ ${files[i].name}: ${data.chunks}개 청크 학습 완료</div>`;
+                        } else {
+                            log.innerHTML += `<div>❌ ${files[i].name}: ${data.message || '오류'}</div>`;
+                        }
+                    } catch (err) {
+                        log.innerHTML += `<div>❌ ${files[i].name}: 네트워크 오류</div>`;
+                    }
+                }
+            };
+        }
+        // 첨부파일학습(대화)
+        const dialogLearningForm = document.getElementById('dialogLearningForm');
+        if (dialogLearningForm) {
+            dialogLearningForm.onsubmit = async function (e) {
+                e.preventDefault();
+                const file = document.getElementById('dialogLearningFile').files[0];
+                if (!file) return;
+                const log = document.getElementById('dialogLearningLog');
+                log.innerHTML = '업로드 및 학습 중...';
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const res = await fetch('/api/admin/learn-dialog-file', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.success) {
+                        log.innerHTML += `<div>✅ ${file.name}: 대화 ${data.turns}턴 학습 완료</div>`;
+                    } else {
+                        log.innerHTML += `<div>❌ ${file.name}: ${data.message || '오류'}</div>`;
+                    }
+                } catch (err) {
+                    log.innerHTML += `<div>❌ ${file.name}: 네트워크 오류</div>`;
+                }
+            };
+        }
     </script>
 </body>
 
