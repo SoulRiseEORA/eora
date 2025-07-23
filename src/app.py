@@ -27,7 +27,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
+# 세션 미들웨어 조건부 import (Railway 환경 대응)
+SESSION_MIDDLEWARE_AVAILABLE = False
+try:
+    from starlette.middleware.sessions import SessionMiddleware
+    SESSION_MIDDLEWARE_AVAILABLE = True
+    logger.info("✅ 세션 미들웨어 사용 가능")
+except ImportError as e:
+    logger.warning(f"⚠️ 세션 미들웨어 사용 불가 (itsdangerous 미설치): {e}")
+    logger.info("ℹ️ 쿠키 기반 인증으로 동작합니다.")
 from contextlib import asynccontextmanager
 
 from functools import wraps
@@ -107,19 +115,20 @@ def get_current_user(request: Request):
     user = None
     session_user = None
     
-    # 1. 세션에서 user 정보 시도
-    try:
-        if hasattr(request, 'session'):
-            try:
-                session_user = request.session.get('user')
-                if session_user:
-                    logger.info(f"✅ 세션에서 user 조회 성공: {session_user.get('email', 'unknown')}")
-            except Exception as e:
-                logger.warning(f"⚠️ 세션 읽기 오류: {e}")
-                session_user = None
-    except Exception as e:
-        logger.warning(f"⚠️ 세션 접근 오류: {e}")
-        session_user = None
+    # 1. 세션에서 user 정보 시도 (세션 미들웨어가 있을 때만)
+    if SESSION_MIDDLEWARE_AVAILABLE:
+        try:
+            if hasattr(request, 'session'):
+                try:
+                    session_user = request.session.get('user')
+                    if session_user:
+                        logger.info(f"✅ 세션에서 user 조회 성공: {session_user.get('email', 'unknown')}")
+                except Exception as e:
+                    logger.warning(f"⚠️ 세션 읽기 오류: {e}")
+                    session_user = None
+        except Exception as e:
+            logger.warning(f"⚠️ 세션 접근 오류: {e}")
+            session_user = None
     
     if session_user:
         user = session_user
@@ -871,15 +880,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# 세션 미들웨어 추가 (Railway 환경에서 세션 관리를 위해 중요)
-app.add_middleware(
-    SessionMiddleware,
-    secret_key="eora_railway_session_secret_key_2024_!@#",
-    session_cookie="eora_session",
-    max_age=60*60*24*7,  # 7일
-    same_site="lax",
-    https_only=False  # Railway는 자동으로 HTTPS 처리하므로 False로 설정
-)
+# 세션 미들웨어 조건부 추가 (itsdangerous 패키지가 있을 때만)
+if SESSION_MIDDLEWARE_AVAILABLE:
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key="eora_railway_session_secret_key_2024_!@#",
+        session_cookie="eora_session",
+        max_age=60*60*24*7,  # 7일
+        same_site="lax",
+        https_only=False  # Railway는 자동으로 HTTPS 처리하므로 False로 설정
+    )
+    logger.info("✅ 세션 미들웨어 활성화")
+else:
+    logger.info("ℹ️ 세션 미들웨어 비활성화 - 쿠키 기반으로만 동작")
 
 # Jinja2 템플릿 설정
 BASE_DIR = Path(__file__).resolve().parent
@@ -2363,13 +2376,16 @@ async def login(request: Request):
                 "user_id": "admin"
             }
             
-            # Railway 환경에서 세션 저장
-            try:
-                if hasattr(request, 'session'):
-                    request.session["user"] = user_info
-                    logger.info(f"✅ 관리자 세션 저장 성공: {email}")
-            except Exception as e:
-                logger.warning(f"⚠️ 관리자 세션 저장 실패: {e}")
+                        # Railway 환경에서 세션 저장 (세션 미들웨어가 있을 때만)
+            if SESSION_MIDDLEWARE_AVAILABLE:
+                try:
+                    if hasattr(request, 'session'):
+                        request.session["user"] = user_info
+                        logger.info(f"✅ 관리자 세션 저장 성공: {email}")
+                except Exception as e:
+                    logger.warning(f"⚠️ 관리자 세션 저장 실패: {e}")
+            else:
+                logger.info("ℹ️ 세션 미들웨어 없음 - 쿠키만 사용")
             
             print("[관리자 로그인 성공] email:", email)
             resp = JSONResponse({
