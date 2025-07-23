@@ -1769,52 +1769,70 @@ async def chat_endpoint(request: Request):
             # 메모리 기반 저장
             save_message_to_memory(user_msg_data)
         
-        # AI 프롬프트 로드
+        # AI 프롬프트 로드 - ai_prompts.json에서 직접 사용
         system_prompt = "당신은 EORA라는 감정 중심 인공지능입니다. 친근하고 따뜻한 톤으로 대화해주세요."
         
-        # ai_prompts.json에서 프롬프트 사용 (올바른 구조: prompts.ai1.content)
         logger.info("🔍 프롬프트 검색 시작...")
         logger.info(f"📄 prompts_data 타입: {type(prompts_data)}")
-        logger.info(f"📄 prompts_data 키: {list(prompts_data.keys()) if isinstance(prompts_data, dict) else 'Not a dict'}")
         
         if prompts_data and isinstance(prompts_data, dict):
-            if "prompts" in prompts_data:
-                prompts = prompts_data["prompts"]
-                logger.info(f"📋 사용 가능한 AI: {list(prompts.keys())}")
+            logger.info(f"📄 prompts_data 키: {list(prompts_data.keys())}")
+            
+            # ai1 프롬프트 우선 시도 (system + role + guide + format 조합)
+            if "ai1" in prompts_data and isinstance(prompts_data["ai1"], dict):
+                ai1_data = prompts_data["ai1"]
+                logger.info(f"📝 ai1 카테고리: {list(ai1_data.keys())}")
                 
-                # ai1 프롬프트 우선 시도
-                if "ai1" in prompts and isinstance(prompts["ai1"], dict):
-                    if "content" in prompts["ai1"]:
-                        system_prompt = prompts["ai1"]["content"]
-                        logger.info("✅ ai_prompts.json의 ai1 system 프롬프트 적용")
-                        logger.info(f"📝 프롬프트 미리보기: {system_prompt[:100]}...")
-                    else:
-                        logger.warning("⚠️ ai1에 content 필드가 없습니다")
-                # eora 프롬프트 시도
-                elif "eora" in prompts and isinstance(prompts["eora"], dict):
-                    if "content" in prompts["eora"]:
-                        system_prompt = prompts["eora"]["content"]
-                        logger.info("✅ ai_prompts.json의 eora system 프롬프트 적용")
-                        logger.info(f"📝 프롬프트 미리보기: {system_prompt[:100]}...")
-                    else:
-                        logger.warning("⚠️ eora에 content 필드가 없습니다")
-                # 첫 번째 사용 가능한 AI 프롬프트 사용
+                # system 프롬프트 조합
+                system_parts = []
+                if "system" in ai1_data and isinstance(ai1_data["system"], list):
+                    system_parts.extend(ai1_data["system"])
+                if "role" in ai1_data and isinstance(ai1_data["role"], list):
+                    system_parts.extend(ai1_data["role"])
+                if "guide" in ai1_data and isinstance(ai1_data["guide"], list):
+                    system_parts.extend(ai1_data["guide"])
+                if "format" in ai1_data and isinstance(ai1_data["format"], list):
+                    system_parts.extend(ai1_data["format"])
+                
+                if system_parts:
+                    system_prompt = "\n\n".join(system_parts)
+                    logger.info("✅ ai_prompts.json의 ai1 프롬프트 적용")
+                    logger.info(f"📝 프롬프트 길이: {len(system_prompt)} 문자")
+                    logger.info(f"📝 프롬프트 미리보기: {system_prompt[:200]}...")
                 else:
-                    for ai_name, ai_data in prompts.items():
-                        if isinstance(ai_data, dict) and "content" in ai_data:
-                            system_prompt = ai_data["content"]
-                            logger.info(f"✅ ai_prompts.json의 {ai_name} system 프롬프트 적용")
-                            logger.info(f"📝 프롬프트 미리보기: {system_prompt[:100]}...")
-                            break
-                    else:
-                        logger.warning("⚠️ 사용 가능한 AI 프롬프트를 찾을 수 없습니다")
+                    logger.warning("⚠️ ai1에 사용 가능한 프롬프트가 없습니다")
+            
+            # ai2 프롬프트 시도
+            elif "ai2" in prompts_data and isinstance(prompts_data["ai2"], dict):
+                ai2_data = prompts_data["ai2"]
+                system_parts = []
+                if "system" in ai2_data and isinstance(ai2_data["system"], list):
+                    system_parts.extend(ai2_data["system"])
+                if "role" in ai2_data and isinstance(ai2_data["role"], list):
+                    system_parts.extend(ai2_data["role"])
+                
+                if system_parts:
+                    system_prompt = "\n\n".join(system_parts)
+                    logger.info("✅ ai_prompts.json의 ai2 프롬프트 적용")
+                    logger.info(f"📝 프롬프트 길이: {len(system_prompt)} 문자")
+                else:
+                    logger.warning("⚠️ ai2에 사용 가능한 프롬프트가 없습니다")
+            
+            # 다른 AI 프롬프트 시도
             else:
-                logger.warning("⚠️ prompts_data에 'prompts' 키가 없습니다")
-                logger.info(f"📄 prompts_data 구조: {list(prompts_data.keys())}")
+                for ai_name, ai_data in prompts_data.items():
+                    if isinstance(ai_data, dict) and "system" in ai_data:
+                        if isinstance(ai_data["system"], list) and ai_data["system"]:
+                            system_prompt = "\n\n".join(ai_data["system"])
+                            logger.info(f"✅ ai_prompts.json의 {ai_name} 프롬프트 적용")
+                            logger.info(f"📝 프롬프트 길이: {len(system_prompt)} 문자")
+                            break
+                else:
+                    logger.warning("⚠️ 사용 가능한 AI 프롬프트를 찾을 수 없습니다")
         else:
             logger.warning("⚠️ prompts_data가 비어있거나 잘못된 형식입니다")
         
-        logger.info(f"🎯 최종 사용 프롬프트: {system_prompt[:100]}...")
+        logger.info(f"🎯 최종 사용 프롬프트 길이: {len(system_prompt)} 문자")
         
         # 4. EORA 응답 생성 - 회상된 기억과 고급 시스템 통합
         eora_response = None
