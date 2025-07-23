@@ -27,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 
 from functools import wraps
@@ -105,31 +106,54 @@ ALGORITHM = "HS256"
 def get_current_user(request: Request):
     user = None
     session_user = None
+    
+    # 1. 세션에서 user 정보 시도
     try:
         if hasattr(request, 'session'):
             try:
                 session_user = request.session.get('user')
-            except Exception:
+                if session_user:
+                    logger.info(f"✅ 세션에서 user 조회 성공: {session_user.get('email', 'unknown')}")
+            except Exception as e:
+                logger.warning(f"⚠️ 세션 읽기 오류: {e}")
                 session_user = None
-    except Exception:
+    except Exception as e:
+        logger.warning(f"⚠️ 세션 접근 오류: {e}")
         session_user = None
+    
     if session_user:
         user = session_user
-    elif 'user' in request.cookies:
-        try:
-            user = json.loads(request.cookies['user'])
-        except:
-            user = None
     else:
-        user_email = request.cookies.get('user_email')
-        if user_email:
-            user = {"email": user_email}
-    # 관리자 판별: 이메일이 admin@eora.ai면 무조건 관리자
+        # 2. 쿠키에서 user 정보 시도
+        try:
+            user_cookie = request.cookies.get('user')
+            if user_cookie:
+                user = json.loads(user_cookie)
+                logger.info(f"✅ 쿠키에서 user 조회 성공: {user.get('email', 'unknown')}")
+        except Exception as e:
+            logger.warning(f"⚠️ 쿠키 파싱 오류: {e}")
+            user = None
+        
+        # 3. 개별 쿠키에서 정보 조합
+        if not user:
+            user_email = request.cookies.get('user_email')
+            if user_email:
+                user = {"email": user_email}
+                logger.info(f"✅ 개별 쿠키에서 user 조회 성공: {user_email}")
+    
+    # 4. user 정보 보정 (관리자 판별 포함)
     if user:
-        user['email'] = user.get('email')
-        user['user_id'] = user.get('user_id') or user.get('email')
+        user['email'] = user.get('email', '')
+        user['user_id'] = user.get('user_id') or user.get('email') or 'anonymous'
         user['role'] = 'admin' if user.get('email') == 'admin@eora.ai' else 'user'
         user['is_admin'] = user.get('email') == 'admin@eora.ai'
+        
+        # 필수 필드 보정
+        if 'name' not in user:
+            user['name'] = user['email'].split('@')[0] if '@' in user['email'] else 'User'
+    else:
+        logger.warning("⚠️ 모든 방법으로 user 정보 조회 실패")
+    
     return user
 
 # Dotenv 로드 - b43dd7c 커밋의 성공적인 방식 적용
@@ -847,7 +871,22 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS 미들웨어
+# 세션 미들웨어 추가 (Railway 환경에서 세션 관리를 위해 중요)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="eora_railway_session_secret_key_2024_!@#",
+    session_cookie="eora_session",
+    max_age=60*60*24*7,  # 7일
+    same_site="lax",
+    https_only=False  # Railway는 자동으로 HTTPS 처리하므로 False로 설정
+)
+
+# Jinja2 템플릿 설정
+BASE_DIR = Path(__file__).resolve().parent
+TEMPLATES_DIR = BASE_DIR / "templates"
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+# CORS 허용
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -1514,10 +1553,19 @@ async def create_session(request: Request):
     try:
         user = get_current_user(request)
         if not user:
+            # Railway 환경에서 쿠키 기반 fallback
             user_email = request.cookies.get('user_email')
             if user_email:
-                user = {'user_id': user_email, 'role': 'user', 'is_admin': False, 'email': user_email}
+                user = {
+                    'user_id': user_email,
+                    'email': user_email,
+                    'role': 'admin' if user_email == 'admin@eora.ai' else 'user',
+                    'is_admin': user_email == 'admin@eora.ai',
+                    'name': user_email.split('@')[0] if '@' in user_email else 'User'
+                }
+                logger.info(f"✅ 쿠키 기반 user 정보 복구: {user_email}")
             else:
+                logger.warning("❌ 세션 생성 실패: 로그인 필요")
                 raise HTTPException(status_code=401, detail="로그인 필요")
         data = await request.json()
         session_name = data.get("name", "새 세션")
@@ -2303,6 +2351,7 @@ async def login(request: Request):
         email = data.get("email", "")
         password = data.get("password", "")
         print("[로그인 시도] email:", email, "password:", password)
+        
         if email == "admin@eora.ai" and password == "admin123":
             access_token = create_access_token({"user_id": "admin", "role": "admin", "email": email, "is_admin": True})
             user_info = {
@@ -2310,8 +2359,18 @@ async def login(request: Request):
                 "email": email,
                 "role": "admin",
                 "name": "EORA 관리자",
-                "is_admin": True
+                "is_admin": True,
+                "user_id": "admin"
             }
+            
+            # Railway 환경에서 세션 저장
+            try:
+                if hasattr(request, 'session'):
+                    request.session["user"] = user_info
+                    logger.info(f"✅ 관리자 세션 저장 성공: {email}")
+            except Exception as e:
+                logger.warning(f"⚠️ 관리자 세션 저장 실패: {e}")
+            
             print("[관리자 로그인 성공] email:", email)
             resp = JSONResponse({
                 "success": True,
@@ -2319,7 +2378,11 @@ async def login(request: Request):
                 "user": user_info,
                 "access_token": access_token
             })
-            resp.set_cookie(key="user_email", value=email, max_age=86400, path="/", samesite="Lax", secure=False)
+            
+            # Railway 환경에 최적화된 쿠키 설정
+            resp.set_cookie(key="user_email", value=email, max_age=86400*7, path="/", samesite="Lax", secure=False, httponly=False)
+            resp.set_cookie(key="is_admin", value="true", max_age=86400*7, path="/", samesite="Lax", secure=False, httponly=False)
+            resp.set_cookie(key="user", value=json.dumps(user_info), max_age=86400*7, path="/", samesite="Lax", secure=False, httponly=False)
             return resp
         else:
             if users_collection is None:
@@ -2331,8 +2394,19 @@ async def login(request: Request):
                     "id": str(user.get("_id", email)),
                     "email": email,
                     "role": user.get("role", "user"),
-                    "name": user.get("name", email.split('@')[0])
+                    "name": user.get("name", email.split('@')[0]),
+                    "is_admin": user.get("role") == "admin" or email == "admin@eora.ai",
+                    "user_id": str(user.get("_id", email))
                 }
+                
+                # Railway 환경에서 세션 저장
+                try:
+                    if hasattr(request, 'session'):
+                        request.session["user"] = user_info
+                        logger.info(f"✅ 일반 사용자 세션 저장 성공: {email}")
+                except Exception as e:
+                    logger.warning(f"⚠️ 일반 사용자 세션 저장 실패: {e}")
+                
                 access_token = create_access_token({"user_id": user.get("user_id"), "role": user.get("role", "user"), "email": email})
                 print("[일반 로그인 성공] email:", email)
                 resp = JSONResponse({
@@ -2341,13 +2415,17 @@ async def login(request: Request):
                     "user": user_info,
                     "access_token": access_token
                 })
-                resp.set_cookie(key="user_email", value=email, max_age=86400, path="/", samesite="Lax", secure=False)
+                
+                # Railway 환경에 최적화된 쿠키 설정
+                resp.set_cookie(key="user_email", value=email, max_age=86400*7, path="/", samesite="Lax", secure=False, httponly=False)
+                resp.set_cookie(key="is_admin", value="false", max_age=86400*7, path="/", samesite="Lax", secure=False, httponly=False)
+                resp.set_cookie(key="user", value=json.dumps(user_info), max_age=86400*7, path="/", samesite="Lax", secure=False, httponly=False)
                 return resp
             print("[로그인 실패] 이메일 또는 비밀번호 불일치:", email)
             return {"success": False, "message": "이메일 또는 비밀번호가 올바르지 않습니다."}
     except Exception as e:
         print("[로그인 예외]", e)
-        logger.error(f"로그인 오류: {e}")
+        logger.error(f"❌ 로그인 오류: {e}")
         return {"success": False, "message": "로그인 처리 중 오류가 발생했습니다."}
 
 @app.get("/api/prompts")
