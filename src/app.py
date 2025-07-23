@@ -36,6 +36,9 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ 세션 미들웨어 사용 불가 (itsdangerous 미설치): {e}")
     logger.info("ℹ️ 쿠키 기반 인증으로 동작합니다.")
+except Exception as e:
+    logger.warning(f"⚠️ 세션 미들웨어 오류: {e}")
+    logger.info("ℹ️ 쿠키 기반 인증으로 동작합니다.")
 from contextlib import asynccontextmanager
 
 from functools import wraps
@@ -61,12 +64,12 @@ import pymongo
 from pymongo import MongoClient
 from bson import ObjectId
 
-# 로깅 설정
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# 로깅 설정 (상단에서 이미 설정됨 - 중복 제거)
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s - %(name)s - %(levelname)s - %(levelname)s - %(message)s'
+# )
+# logger = logging.getLogger(__name__)
 
 # OpenAI 클라이언트
 openai_client = None
