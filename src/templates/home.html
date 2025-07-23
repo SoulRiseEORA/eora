@@ -991,6 +991,13 @@
                     <span>💬</span>
                     채팅 시작하기
                 </button>
+                {% if user and (user.role == 'admin' or user.is_admin == true or user.is_admin == 'true' or user.email
+                == 'admin@eora.ai') %}
+                <a href="/admin" class="admin-btn" id="adminBtn"
+                    style="margin-left:12px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
+                    <span>⚙️</span> 관리자 대시보드
+                </a>
+                {% endif %}
                 <div class="language-selector">
                     <span class="language-icon">🌍</span>
                     <span>언어 선택</span>
@@ -1091,10 +1098,6 @@
                         </button>
                         <button class="profile-btn" onclick="window.location.href='/profile'">
                             👤 프로필 보기
-                        </button>
-                        <button class="admin-btn" id="adminBtn" onclick="window.location.href='/admin'"
-                            style="display:none;">
-                            ⚙️ 관리자 대시보드
                         </button>
                         <button class="logout-btn-home" onclick="logoutFromHome()">
                             🚪 로그아웃

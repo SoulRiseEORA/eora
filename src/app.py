@@ -103,78 +103,34 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "eora_secret_key")
 ALGORITHM = "HS256"
 
 def get_current_user(request: Request):
+    user = None
+    session_user = None
     try:
-        # 1. JWT 토큰 확인
-        token = None
-        auth = request.headers.get("authorization")
-        if auth and auth.startswith("Bearer "):
-            token = auth[7:]
-        if not token:
-            token = request.cookies.get("access_token")
-        
-        if token:
+        if hasattr(request, 'session'):
             try:
-                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                return {
-                    "user_id": payload.get("user_id"),
-                    "role": payload.get("role", "user"),
-                    "email": payload.get("email"),
-                    "is_admin": payload.get("is_admin", False)
-                }
-            except Exception as e:
-                logger.error(f"JWT 토큰 디코딩 오류: {e}")
-        
-        # 2. 세션 기반 인증 확인
-        session = request.cookies.get("session")
-        if session:
-            try:
-                # 세션 데이터 디코딩
-                import base64
-                session_data = base64.b64decode(session).decode('utf-8')
-                import json
-                user_data = json.loads(session_data)
-                
-                if "user" in user_data:
-                    user = user_data["user"]
-                    return {
-                        "user_id": user.get("user_id", user.get("id")),
-                        "role": user.get("role", "user"),
-                        "email": user.get("email"),
-                        "is_admin": user.get("is_admin", False)
-                    }
-            except Exception as e:
-                logger.error(f"세션 디코딩 오류: {e}")
-        
-        # 3. user_info 쿠키 확인
-        user_info_cookie = request.cookies.get("user_info")
-        if user_info_cookie:
-            try:
-                import json
-                user_info = json.loads(user_info_cookie)
-                return {
-                    "user_id": user_info.get("id"),
-                    "role": user_info.get("role", "user"),
-                    "email": user_info.get("email"),
-                    "is_admin": user_info.get("role") == "admin"
-                }
-            except Exception as e:
-                logger.error(f"user_info 쿠키 파싱 오류: {e}")
-        
-        # 4. 레일웨이 환경에서 임시 사용자 생성 (개발용)
-        # 실제 운영에서는 이 부분을 제거해야 합니다
-        if os.getenv("RAILWAY_ENVIRONMENT") == "production":
-            # 레일웨이 환경에서는 기본 사용자 반환
-            return {
-                "user_id": "railway_user",
-                "role": "user",
-                "email": "user@railway.com",
-                "is_admin": False
-            }
-        
-        return None
-    except Exception as e:
-        logger.error(f"사용자 인증 오류: {e}")
-        return None
+                session_user = request.session.get('user')
+            except Exception:
+                session_user = None
+    except Exception:
+        session_user = None
+    if session_user:
+        user = session_user
+    elif 'user' in request.cookies:
+        try:
+            user = json.loads(request.cookies['user'])
+        except:
+            user = None
+    else:
+        user_email = request.cookies.get('user_email')
+        if user_email:
+            user = {"email": user_email}
+    # 관리자 판별: 이메일이 admin@eora.ai면 무조건 관리자
+    if user:
+        user['email'] = user.get('email')
+        user['user_id'] = user.get('user_id') or user.get('email')
+        user['role'] = 'admin' if user.get('email') == 'admin@eora.ai' else 'user'
+        user['is_admin'] = user.get('email') == 'admin@eora.ai'
+    return user
 
 # Dotenv 로드 - b43dd7c 커밋의 성공적인 방식 적용
 from dotenv import load_dotenv
@@ -1077,46 +1033,10 @@ async def login(request: Request):
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page(request: Request):
-    """관리자 페이지 - 레일웨이 환경 호환성 개선"""
-    try:
-        user = get_current_user(request)
-        
-        # 레일웨이 환경에서 임시 관리자 접근 허용 (개발용)
-        if os.getenv("RAILWAY_ENVIRONMENT") == "production" or os.getenv("RAILWAY_ENVIRONMENT"):
-            if not user:
-                user = {
-                    "user_id": "railway_admin",
-                    "role": "admin",
-                    "email": "admin@eora.ai",
-                    "is_admin": True
-                }
-                logger.info("🔧 레일웨이 환경에서 임시 관리자 접근 허용")
-            elif not user.get("is_admin", False):
-                # 일반 사용자도 레일웨이에서는 관리자로 승격
-                user["is_admin"] = True
-                user["role"] = "admin"
-                logger.info("🔧 레일웨이 환경에서 사용자를 관리자로 승격")
-        
-        # 로컬 환경에서도 테스트용 관리자 접근 허용
-        if not user or not user.get("is_admin", False):
-            if os.getenv("LOCAL_DEVELOPMENT") == "true":
-                user = {
-                    "user_id": "local_admin",
-                    "role": "admin",
-                    "email": "admin@localhost",
-                    "is_admin": True
-                }
-                logger.info("🔧 로컬 환경에서 테스트 관리자 접근 허용")
-            else:
-                logger.warning("⚠️ 관리자 권한 없음 - 홈으로 리다이렉트")
-                return RedirectResponse("/")
-        
-        logger.info(f"✅ 관리자 페이지 접근: {user.get('user_id')} ({user.get('role')})")
-        return templates.TemplateResponse("admin.html", {"request": request, "user": user})
-        
-    except Exception as e:
-        logger.error(f"❌ 관리자 페이지 오류: {e}")
-        return HTMLResponse(f"<h1>관리자 페이지 오류</h1><p>{str(e)}</p>", status_code=500)
+    user = get_current_user(request)
+    if not user or user.get("email") != "admin@eora.ai":
+        return RedirectResponse("/login")
+    return templates.TemplateResponse("admin.html", {"request": request, "user": user})
 
 @app.get("/admin/prompt-management", response_class=HTMLResponse)
 @admin_required
@@ -1594,31 +1514,21 @@ async def create_session(request: Request):
     try:
         user = get_current_user(request)
         if not user:
-            # 레일웨이 환경에서는 기본 사용자로 세션 생성 허용
-            if os.getenv("RAILWAY_ENVIRONMENT") == "production":
-                user = {
-                    "user_id": "railway_user",
-                    "role": "user",
-                    "email": "user@railway.com",
-                    "is_admin": False
-                }
-                logger.info("🔧 레일웨이 환경에서 기본 사용자로 세션 생성")
+            user_email = request.cookies.get('user_email')
+            if user_email:
+                user = {'user_id': user_email, 'role': 'user', 'is_admin': False, 'email': user_email}
             else:
                 raise HTTPException(status_code=401, detail="로그인 필요")
-        
         data = await request.json()
         session_name = data.get("name", "새 세션")
-        user_id = user.get("user_id")
+        user_id = user.get("user_id", user.get("email", "anonymous"))
         session_id = generate_session_id()
         session_data = {
             "name": session_name,
             "message_count": 0,
             "user_id": user_id
         }
-        
         logger.info(f"📝 새 세션 생성: {session_name} (ID: {session_id}) for user {user_id}")
-        
-        # MongoDB에 세션 저장 시도
         if sessions_collection is not None:
             session_doc = {
                 "_id": session_id,
@@ -1641,33 +1551,16 @@ async def create_session(request: Request):
                     raise Exception("MongoDB insert 실패")
             except Exception as mongo_error:
                 logger.error(f"❌ MongoDB 세션 저장 실패: {mongo_error}")
-                # MongoDB 실패 시 메모리 fallback
                 save_session_to_memory(session_id, session_data)
                 logger.info(f"✅ 메모리 세션 저장 완료 (fallback): {session_id}")
-                return {
-                    "_id": session_id,
-                    "name": session_name,
-                    "created_at": datetime.now().isoformat(),
-                    "last_activity": datetime.now().isoformat(),
-                    "message_count": 0,
-                    "user_id": user_id
-                }
+                return {"_id": session_id, **session_data}
         else:
-            # MongoDB 연결 없음 - 메모리 저장
             save_session_to_memory(session_id, session_data)
-            logger.info(f"✅ 메모리 세션 저장 완료: {session_id}")
-            return {
-                "_id": session_id,
-                "name": session_name,
-                "created_at": datetime.now().isoformat(),
-                "last_activity": datetime.now().isoformat(),
-                "message_count": 0,
-                "user_id": user_id
-            }
+            logger.info(f"✅ 메모리 세션 저장 완료 (fallback): {session_id}")
+            return {"_id": session_id, **session_data}
     except Exception as e:
-        logger.error(f"세션 생성 오류: {e}")
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.error(f"세션 생성 오류: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="세션 생성에 실패했습니다")
 
 @app.get("/api/sessions/{session_id}/messages")
 async def get_session_messages(session_id: str, request: Request):
@@ -3297,789 +3190,179 @@ async def register_user(request: Request):
         email = data.get("email", "")
         password = data.get("password", "")
         name = data.get("name", "")
-        is_admin = data.get("is_admin", False)
-        role = "admin" if is_admin else "user"
-        if not email or not password:
-            return {"success": False, "message": "이메일과 비밀번호를 입력하세요."}
-        # 1. DB 연결/컬렉션 체크 및 재시도
-        if users_collection is None or db is None:
-            logger.warning("⚠️ users_collection/db가 None입니다. 컬렉션 재연결 시도...")
-            initialize_mongodb_collections()
-        # 2. DB 정상 연결 시도
-        if users_collection is not None and db is not None:
-            if users_collection.find_one({"email": email}):
-                return {"success": False, "message": "이미 등록된 이메일입니다."}
-            user_id = str(uuid.uuid4())
-            hashed_pw = hashlib.sha256(password.encode()).hexdigest()
-            user_doc = {
-                "user_id": user_id,
-                "email": email,
-                "password": hashed_pw,
-                "name": name,
-                "role": role,
-                "is_admin": is_admin
-            }
-            try:
-                users_collection.insert_one(user_doc)
-                # 개별 컬렉션 생성 및 포인트 지급
-                for coll in [f"user_{user_id}_chat", f"user_{user_id}_points", f"user_{user_id}_storage"]:
-                    if coll not in db.list_collection_names():
-                        db.create_collection(coll)
-                db[f"user_{user_id}_points"].insert_one({"user_id": user_id, "points": 100000})
-                access_token = create_access_token({"user_id": user_id, "role": role, "email": email, "is_admin": is_admin})
-                logger.info(f"[회원가입 성공] email: {email}, user_id: {user_id}, role: {role}, is_admin: {is_admin}")
-                resp = JSONResponse({
-                    "success": True,
-                    "message": "회원가입 성공! 10만 포인트가 지급되었습니다.",
-                    "user": user_doc,
-                    "access_token": access_token
-                })
-                resp.set_cookie(key="user_email", value=email, max_age=86400, path="/", samesite="Lax", secure=False)
-                return resp
-            except Exception as db_error:
-                logger.error(f"❌ 회원가입 DB 오류: {db_error}")
-                logger.error(traceback.format_exc())
-                # DB 오류 시 fallback
-        # 3. DB 연결/컬렉션 실패 또는 insert 오류 시 메모리 기반 임시 회원가입 fallback
-        logger.warning("⚠️ DB 연결/컬렉션/insert 실패 - 메모리 기반 임시 회원가입 fallback")
-        # 메모리 임시 저장소 사용 (테스트/비상용)
-        if not hasattr(register_user, "memory_users"):  # 함수 속성으로 임시 저장
-            register_user.memory_users = {}
-        memory_users = register_user.memory_users
-        if email in memory_users:
-            return {"success": False, "message": "이미 등록된 이메일입니다. (임시)"}
+        if not all([name, email, password]):
+            logger.warning("회원가입: 필수 입력값 누락")
+            raise HTTPException(status_code=400, detail="모든 필드를 입력해주세요.")
+        if 'users_collection' not in globals() or users_collection is None:
+            logger.error("회원가입: DB(users_collection) 연결 안됨")
+            raise HTTPException(status_code=500, detail="DB 연결 실패")
+        if users_collection.find_one({"email": email}):
+            logger.warning(f"회원가입: 이미 존재하는 이메일 {email}")
+            raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다.")
+        import hashlib
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
         user_id = str(uuid.uuid4())
-        hashed_pw = hashlib.sha256(password.encode()).hexdigest()
         user_doc = {
             "user_id": user_id,
-            "email": email,
-            "password": hashed_pw,
             "name": name,
-            "role": role,
-            "is_admin": is_admin
+            "email": email,
+            "password": hashed_password,
+            "created_at": datetime.now().isoformat(),
+            "is_admin": False,
+            "storage_used": 0,
+            "max_storage": 100 * 1024 * 1024  # 100MB
         }
-        memory_users[email] = user_doc
-        logger.info(f"[임시 회원가입 성공] email: {email}, user_id: {user_id}, role: {role}, is_admin: {is_admin}")
-        return {
-            "success": True,
-            "message": "회원가입 성공! (임시 저장, DB 연결 오류)",
-            "user": user_doc,
-            "access_token": "test-token"
-        }
+        result = users_collection.insert_one(user_doc)
+        logger.info(f"✅ 새 사용자 등록: {email}")
+        # user_id별 독립 대화/저장소 구조 생성 (예: chat_logs, memories 등)
+        try:
+            db.create_collection(f"chat_{user_id}")
+            db.create_collection(f"memory_{user_id}")
+            logger.info(f"✅ {user_id} 전용 대화/저장소 컬렉션 생성 완료")
+        except Exception as e:
+            logger.warning(f"⚠️ {user_id} 전용 컬렉션 생성 실패(이미 존재할 수 있음): {e}")
+        return {"success": True, "user_id": user_id, "is_admin": False, "message": "회원가입이 완료되었습니다."}
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"회원가입 전체 오류: {e}")
-        logger.error(traceback.format_exc())
-        return {"success": False, "message": f"회원가입 오류: {str(e)}"}
+        logger.error(f"회원가입 오류: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"회원가입 중 오류가 발생했습니다: {e}")
 
 @app.post("/api/auth/login")
 async def login_user(request: Request):
-    import hashlib
-    if users_collection is None:
-        logger.error("❌ users_collection이 None (MongoDB 연결 실패)")
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="MongoDB 연결 실패. 잠시 후 다시 시도해주세요.")
     try:
         data = await request.json()
         email = data.get("email")
         password = data.get("password")
-        user = users_collection.find_one({"email": email})
-        if not user or user["password"] != hashlib.sha256(password.encode()).hexdigest():
-            return {"success": False, "message": "이메일 또는 비밀번호가 올바르지 않습니다."}
-        token = str(uuid.uuid4())
-        users_collection.update_one({"email": email}, {"$set": {"token": token}})
-        # JWT/세션/쿠키에 role, is_admin 포함
-        access_token = create_access_token({
-            "user_id": user["user_id"],
-            "role": user.get("role", "user"),
+        db = get_db()
+        user = db.users.find_one({"email": email})
+        if not user or user["password"] != password:
+            return JSONResponse({"success": False, "message": "이메일 또는 비밀번호가 올바르지 않습니다."}, status_code=401)
+        is_admin = user.get("role", "") == "admin" or user.get("is_admin", False)
+        user_info = {
             "email": user["email"],
-            "is_admin": user.get("is_admin", False)
-        })
-        resp = JSONResponse({
-            "success": True,
-            "message": "로그인 성공",
-            "is_admin": user.get("is_admin", False),
+            "name": user.get("name", ""),
             "role": user.get("role", "user"),
+            "is_admin": is_admin,
+            "user_id": user.get("email", "anonymous")
+        }
+        access_token = str(uuid.uuid4())
+        response = JSONResponse({
+            "success": True,
+            "user": user_info,
             "access_token": access_token
         })
-        resp.set_cookie(key="token", value=token)
-        return resp
+        response.set_cookie("user", json.dumps(user_info))
+        response.set_cookie("user_email", user["email"])
+        response.set_cookie("is_admin", str(is_admin).lower())
+        response.set_cookie("role", user.get("role", "user"))
+        response.set_cookie("access_token", access_token)
+        return response
     except Exception as e:
-        logger.error(f"로그인 오류: {e}")
-        return {"success": False, "message": f"로그인 오류: {str(e)}"}
+        logger.error(f"[로그인 오류] {e}\n{traceback.format_exc()}")
+        return JSONResponse({"success": False, "message": "서버 오류가 발생했습니다."}, status_code=500)
 
-def get_user_by_token(request: Request):
-    token = request.cookies.get("token")
-    if not token:
-        return None
-    user = db.users.find_one({"token": token})
-    return user
-
-@app.post("/api/chat")
-async def chat_endpoint(request: Request):
-    data = await request.json()
-    message = data.get("message", "")
-    session_id = data.get("session_id", "default")
-    user = get_user_by_token(request)
-    if not user:
-        print("[ERROR] 로그인 필요")
-        return {"success": False, "message": "로그인 필요"}
-    user_id = user["user_id"]
-    role = user.get("role", "user")
-    is_admin = user.get("is_admin", False)
-    # 채팅 로그를 user_id별로 분리 저장
-    chat_coll = db[f"user_{user_id}_chat"]
-    chat_coll.insert_one({
-        "session_id": session_id,
-        "user_id": user_id,
-        "role": role,
-        "is_admin": is_admin,
-        "message": message,
-        "timestamp": datetime.now()
-    })
-    # 포인트/저장소도 동일하게 user_id별로 분리 관리 (포인트 차감 등)
-    # ... (기존 포인트/저장소 로직에 user_id별 컬렉션 사용하도록 적용) ...
-    # 이하 기존 채팅 처리 로직 유지
-    prompt_text = "You are EORA AI."
-    recall_text = "이전 대화 내용입니다."
-    user_text = message
+@app.post("/learn")
+async def learn_text(request: Request):
     try:
-        import tiktoken
-        enc = tiktoken.encoding_for_model("gpt-4o")
-        prompt_tokens = len(enc.encode(prompt_text))
-        recall_tokens = len(enc.encode(recall_text))
-        user_tokens = len(enc.encode(user_text))
-        total_tokens = prompt_tokens + recall_tokens + user_tokens
-        print(f"[토큰 집계] prompt: {prompt_tokens}, recall: {recall_tokens}, user: {user_tokens}, total: {total_tokens}, 입력: '{user_text}'")
-        # ... 이하 기존 응답 생성 및 저장 로직 ...
-    except Exception as e:
-        print(f"[ERROR] 토큰 집계 오류: {e}")
-        # ...
-# (4) 관리자만 관리자 API/대시보드 접근, 일반회원은 본인 데이터만 접근 (admin_required 데코레이터 활용)
-# (5) 포인트/저장소 등 모든 API에서 user_id, role, is_admin 기반 분기 및 독립성 보장 로직 추가
-# (예시) 포인트 조회 API
-@app.get("/api/user/points")
-async def get_user_points(request: Request):
-    user = get_user_by_token(request)
-    if not user:
-        return {"success": False, "message": "로그인 필요"}
-    user_id = user["user_id"]
-    points_coll = db[f"user_{user_id}_points"]
-    points_doc = points_coll.find_one({"user_id": user_id})
-    if not points_doc:
-        return {"success": False, "message": "포인트 정보 없음"}
-    return {"success": True, "points": points_doc.get("points", 0)}
-
-# 중복된 관리자 페이지 정의 제거 - 1068번째 줄의 정의 사용
-
-# 1. MongoDB 연결 및 컬렉션 초기화 함수 분리
-
-def initialize_mongodb_collections():
-    global client, db, chat_logs_collection, sessions_collection, users_collection, aura_collection, system_logs_collection, points_collection
-    client = try_mongodb_connection()
-    if client is None:
-        logger.error("❌ 모든 MongoDB 연결 시도 실패 (앱 시작)")
-        # 연결 실패 시에도 서버는 계속 실행
-        logger.info("ℹ️ 메모리 기반 세션 관리로 전환합니다.")
-        chat_logs_collection = None
-        sessions_collection = None
-        users_collection = None
-        aura_collection = None
-        system_logs_collection = None
-        points_collection = None
-        return False
-    try:
-        db = client[DATABASE_NAME]
-        chat_logs_collection = db["chat_logs"]
-        sessions_collection = db["sessions"]
-        users_collection = db["users"]
-        aura_collection = db["aura"]
-        system_logs_collection = db["system_logs"]
-        points_collection = db["points"]
-        logger.info("✅ MongoDB 컬렉션 초기화 완료 (앱 시작)")
-        return True
-    except Exception as e:
-        logger.error(f"❌ MongoDB 컬렉션 초기화 실패 (앱 시작): {e}")
-        chat_logs_collection = None
-        sessions_collection = None
-        users_collection = None
-        aura_collection = None
-        system_logs_collection = None
-        points_collection = None
-        return False
-
-# 2. FastAPI 앱 시작 이벤트에서 반드시 호출
-from fastapi import status, HTTPException
-
-@app.on_event("startup")
-def on_startup():
-    logger.info("🚦 FastAPI 앱 시작: MongoDB 컬렉션 초기화 시도 및 연결 체크")
-    initialize_mongodb_collections()
-    # 연결이 안 되어 있으면 재시도
-    global db, users_collection
-    if db is None or users_collection is None:
-        logger.warning("⚠️ MongoDB 연결이 None입니다. 재연결 시도...")
-        initialize_mongodb_collections()
-        if db is None or users_collection is None:
-            logger.error("❌ MongoDB 연결 실패. 회원가입 등 DB 기능이 동작하지 않습니다.")
-
-from functools import wraps
-from fastapi import Request, HTTPException, status, Depends
-
-# 관리자 접근제어 데코레이터
-
-
-# 관리자 계정 자동 생성 함수
-import hashlib
-
-def create_admin_account():
-    import hashlib
-    admin_email = ADMIN_EMAIL  # "admin@eora.ai"
-    admin_pw = "admin1234"
-    admin_name = "관리자"
-    
-    try:
-        # MongoDB 연결 확인
-        if users_collection is None:
-            logger.warning("⚠️ MongoDB 연결 없음 - 관리자 계정 생성 건너뜀")
-            return
-        
-        # 기존 관리자 계정 확인
-        existing_admin = users_collection.find_one({"email": admin_email})
-        if existing_admin:
-            logger.info(f"✅ 관리자 계정 이미 존재: {admin_email}")
-            return
-        
-        # 새 관리자 계정 생성
-        hashed_pw = hashlib.sha256(admin_pw.encode()).hexdigest()
-        admin_doc = {
-            "user_id": "admin",
-            "email": admin_email,
-            "password": hashed_pw,
-            "name": admin_name,
-            "is_admin": True,
-            "points": 100000,
-            "created_at": datetime.now()
-        }
-        
-        result = users_collection.insert_one(admin_doc)
-        if result.inserted_id:
-            logger.info(f"✅ 관리자 계정 자동 생성 성공: {admin_email} / admin1234")
-            logger.info(f"📝 관리자 ID: {result.inserted_id}")
+        try:
+            data = await request.json()
+            text = data.get("text")
+            user_id = data.get("user_id", "test_user")
+        except Exception:
+            form = await request.form()
+            text = form.get("text")
+            user_id = form.get("user_id", "test_user")
+        logger.info(f"[학습하기] 요청: user_id={user_id}, text={str(text)[:30]}")
+        if not text:
+            logger.warning("[학습하기] 텍스트 누락")
+            raise HTTPException(status_code=400, detail="학습할 텍스트가 없습니다.")
+        # DB 연결 확인
+        if 'db' not in globals() or db is None:
+            logger.error("[학습하기] DB 연결 안됨")
+            raise HTTPException(status_code=500, detail="DB 연결 실패")
+        # 실제 학습 로직 예시: 아우라 메모리 시스템에 저장
+        if aura_memory:
+            memory_id = aura_memory.create_memory(
+                user_id=user_id,
+                session_id=str(uuid.uuid4()),
+                message=text,
+                response="학습 완료",
+                memory_type="learning",
+                importance=0.7
+            )
+            logger.info(f"[학습하기] 메모리 저장 성공: {memory_id}")
+            return {"result": "ok", "memory_id": memory_id}
         else:
-            logger.error("❌ 관리자 계정 생성 실패")
-            
+            logger.warning("[학습하기] 아우라 메모리 시스템 없음. 메모리 저장 생략.")
+            return {"result": "ok", "message": "메모리 시스템 없음. 저장 생략."}
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"❌ 관리자 계정 생성 오류: {e}")
-        logger.error(traceback.format_exc())
+        logger.error(f"[학습하기] 오류: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": f"학습하기 중 오류: {e}"})
 
-# FastAPI 앱 시작 시 관리자 계정 자동 생성
-@app.on_event("startup")
-async def startup_event():
-    initialize_mongodb_collections()
-    create_admin_account()
+# 1. 고급 회상(Advanced Chat) API
+from fastapi.responses import JSONResponse
 
-# 관리자 접근제어 적용 예시 (admin 페이지 및 API)
-from fastapi.responses import HTMLResponse
-
-# 중복된 관리자 페이지 정의 제거 - 1068번째 줄의 정의 사용
-
-# /api/admin/* 라우트에 admin_required 적용 (예시)
-@app.get("/api/admin/users")
-@admin_required
-async def admin_get_users(request: Request):
-    # ... 기존 코드 ...
-    return {"success": True, "users": list(users_collection.find({}, {"_id": 0, "password": 0}))}
-
-# ... 기존 코드 ...
-
-@app.get("/api/admin/storage")
-@admin_required
-async def admin_storage_overview():
-    """전체 회원수, 전체 데이터 용량, 회원별 용량/포인트 통계 반환"""
+@app.post("/advanced-chat")
+async def advanced_chat_api(request: Request):
     try:
-        users = list(users_collection.find({}, {"_id": 0, "user_id": 1, "email": 1, "name": 1, "points": 1}))
-        total_users = len(users)
-        total_mb = 0.0
-        user_stats = []
-        for user in users:
-            user_id = user.get("user_id")
-            usage_mb = get_user_storage_usage_mb(user_id)
-            total_mb += usage_mb
-            user_stats.append({
-                "user_id": user_id,
-                "email": user.get("email"),
-                "name": user.get("name"),
-                "points": user.get("points", 0),
-                "usage_mb": usage_mb
-            })
-        return {
-            "success": True,
-            "total_users": total_users,
-            "total_storage_mb": round(total_mb, 2),
-            "users": user_stats
-        }
+        data = await request.json()
+        user_id = data.get("user_id", "anonymous")
+        message = data.get("message")
+        if not message:
+            raise HTTPException(status_code=400, detail="메시지를 입력하세요.")
+        system = get_advanced_chat_system()
+        result = await system.process_message(message, user_id)
+        return {"result": "ok", "response": result}
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"관리자 저장소 통계 오류: {e}")
-        return {"success": False, "message": str(e)}
+        logger.error(f"[고급 회상] 오류: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": f"고급 회상 오류: {e}"})
 
-@app.get("/aura_system", response_class=HTMLResponse)
-async def aura_system_page(request: Request):
-    return templates.TemplateResponse("aura_system.html", {"request": request})
+# 2. 임베딩 기반 회상 API (faiss/sentence-transformers 필요)
+try:
+    import faiss
+    from sentence_transformers import SentenceTransformer
+    FAISS_AVAILABLE = True
+    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    logger.info("✅ FAISS 및 sentence-transformers 로드 성공")
+except ImportError as e:
+    FAISS_AVAILABLE = False
+    logger.info(f"ℹ️ FAISS 또는 sentence-transformers 미설치: {e}")
+    logger.info("ℹ️ 기본 키워드 기반 회상으로 동작합니다.")
 
-# 관리자 API 엔드포인트들
-@app.get("/api/admin/stats")
-async def get_admin_stats(request: Request):
-    """관리자 대시보드 통계"""
-    try:
-        # 기본 통계 계산
-        total_users = db.users.count_documents({})
-        active_sessions = db.sessions.count_documents({})
-        total_chats = db.chat_logs.count_documents({})
-        
-        # 총 포인트 계산
-        total_points = 0
-        for collection_name in db.list_collection_names():
-            if collection_name.endswith('_points'):
-                points_docs = db[collection_name].find({})
-                for doc in points_docs:
-                    total_points += doc.get('points', 0)
-        
-        # 시스템 자원 사용률 (간단한 추정)
-        import psutil
-        cpu_usage = psutil.cpu_percent(interval=1)
-        memory_usage = psutil.virtual_memory().percent
-        
-        return {
-            "success": True,
-            "stats": {
-                "total_users": total_users,
-                "active_sessions": active_sessions,
-                "total_chats": total_chats,
-                "total_points": total_points,
-                "cpu_usage": round(cpu_usage, 1),
-                "memory_usage": round(memory_usage, 1)
-            }
-        }
-    except Exception as e:
-        logger.error(f"관리자 통계 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.get("/api/admin/prompts/{ai}/{prompt_type}")
-async def get_prompt(request: Request, ai: str, prompt_type: str):
-    """프롬프트 조회"""
-    try:
-        # ai_prompts가 정의되지 않은 경우 기본 프롬프트 반환
-        if 'ai_prompts' not in globals() or not ai_prompts:
-            default_prompts = {
-                "ai1": {
-                    "system": "당신은 EORA AI 시스템의 AI1입니다. 사용자와 대화를 나누며 도움을 제공합니다.",
-                    "role": "AI1 역할: 친근하고 도움이 되는 AI 어시스턴트",
-                    "guide": "사용자의 질문에 정확하고 유용한 답변을 제공하세요.",
-                    "format": "답변은 명확하고 이해하기 쉽게 작성하세요."
-                },
-                "ai2": {
-                    "system": "당신은 EORA AI 시스템의 AI2입니다. 전문적인 조언을 제공합니다.",
-                    "role": "AI2 역할: 전문가 수준의 조언을 제공하는 AI",
-                    "guide": "전문적이고 정확한 정보를 제공하세요.",
-                    "format": "전문적이면서도 이해하기 쉽게 설명하세요."
-                }
-            }
-            
-            if ai in default_prompts and prompt_type in default_prompts[ai]:
-                prompt_content = default_prompts[ai][prompt_type]
-                return {"success": True, "prompt": prompt_content}
+@app.post("/embedding-recall")
+async def embedding_recall_api(user_id: str = Form(...), message: str = Form(...)):
+    if FAISS_AVAILABLE:
+        try:
+            # 예시: DB에서 해당 user_id의 모든 대화 불러오기
+            if db:
+                chat_logs = list(db.chat_logs.find({"user_id": user_id}, {"_id": 0, "message": 1, "response": 1}))
             else:
-                return {"success": False, "error": "프롬프트를 찾을 수 없습니다."}
-        
-        # 기존 로직
-        if ai in ai_prompts and prompt_type in ai_prompts[ai]:
-            prompt_content = ai_prompts[ai][prompt_type]
-            return {"success": True, "prompt": prompt_content}
-        else:
-            return {"success": False, "error": "프롬프트를 찾을 수 없습니다."}
-    except Exception as e:
-        logger.error(f"프롬프트 조회 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.post("/api/admin/prompts/save")
-async def save_prompt(request: Request):
-    """프롬프트 저장"""
-    try:
-        data = await request.json()
-        ai = data.get('ai')
-        prompt_type = data.get('type')
-        content = data.get('content')
-        
-        if not all([ai, prompt_type, content]):
-            return {"success": False, "error": "필수 파라미터가 누락되었습니다."}
-        
-        # 프롬프트 파일 업데이트 (실제 구현에서는 파일에 저장)
-        logger.info(f"프롬프트 저장: {ai}/{prompt_type}")
-        
-        return {"success": True, "message": "프롬프트가 저장되었습니다."}
-    except Exception as e:
-        logger.error(f"프롬프트 저장 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.get("/api/admin/users")
-async def get_users(request: Request):
-    """사용자 목록 조회"""
-    try:
-        users = []
-        
-        # 포인트 컬렉션에서 사용자 정보 수집
-        for collection_name in db.list_collection_names():
-            if collection_name.endswith('_points'):
-                user_id = collection_name.replace('_points', '')
-                points_doc = db[collection_name].find_one({"user_id": user_id})
-                
-                if points_doc:
-                    user_info = {
-                        "user_id": user_id,
-                        "email": f"{user_id[:8]}...",  # 간단한 표시
-                        "points": points_doc.get('points', 0),
-                        "created_at": points_doc.get('created_at', 'N/A'),
-                        "last_login": points_doc.get('last_login', 'N/A'),
-                        "status": "활성"
-                    }
-                    users.append(user_info)
-        
-        return {"success": True, "users": users}
-    except Exception as e:
-        logger.error(f"사용자 목록 조회 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.get("/api/admin/storage")
-async def get_storage_stats(request: Request):
-    """저장소 통계 - 레일웨이 환경 호환성 개선"""
-    try:
-        # 레일웨이 환경에서 임시 저장소 통계 반환
-        if os.getenv("RAILWAY_ENVIRONMENT") == "production" or os.getenv("RAILWAY_ENVIRONMENT"):
-            logger.info("🔧 레일웨이 환경에서 임시 저장소 통계 반환")
-            return {
-                "success": True,
-                "storage": {
-                    "db_size": 25,  # MB
-                    "file_size": 50,  # MB
-                    "backup_size": 10,  # MB
-                    "total_size": 85  # MB
-                }
-            }
-        
-        # 실제 데이터베이스 크기 추정
-        db_size = 0
-        try:
-            for collection_name in db.list_collection_names():
-                collection = db[collection_name]
-                db_size += collection.count_documents({}) * 0.001  # 간단한 추정
-        except Exception as db_error:
-            logger.warning(f"데이터베이스 크기 계산 오류: {db_error}")
-            db_size = 0
-        
-        logger.info(f"✅ 실제 저장소 통계: DB={round(db_size, 1)}MB")
-        return {
-            "success": True,
-            "storage": {
-                "db_size": round(db_size, 1),
-                "file_size": 0,  # 파일 저장소 크기
-                "backup_size": 0  # 백업 크기
-            }
-        }
-    except Exception as e:
-        logger.error(f"❌ 저장소 통계 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.post("/api/admin/backup")
-async def create_backup(request: Request):
-    """백업 생성"""
-    try:
-        # 간단한 백업 로직 (실제 구현에서는 실제 백업 수행)
-        logger.info("백업 생성 요청")
-        
-        return {"success": True, "message": "백업이 생성되었습니다."}
-    except Exception as e:
-        logger.error(f"백업 생성 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.get("/api/admin/points/stats")
-async def get_point_stats(request: Request):
-    """포인트 통계 - 레일웨이 환경 호환성 개선"""
-    try:
-        # 레일웨이 환경에서 임시 포인트 통계 반환
-        if os.getenv("RAILWAY_ENVIRONMENT") == "production" or os.getenv("RAILWAY_ENVIRONMENT"):
-            logger.info("🔧 레일웨이 환경에서 임시 포인트 통계 반환")
-            return {
-                "success": True,
-                "stats": {
-                    "total_sold": 15000,
-                    "total_used": 8500,
-                    "remaining": 6500
-                }
-            }
-        
-        # 실제 포인트 통계 계산
-        total_sold = 0
-        total_used = 0
-        remaining = 0
-        
-        # 모든 포인트 컬렉션에서 통계 계산
-        for collection_name in db.list_collection_names():
-            if collection_name.endswith('_points'):
-                points_docs = db[collection_name].find({})
-                for doc in points_docs:
-                    current_points = doc.get('points', 0)
-                    total_used_points = doc.get('total_used', 0)
-                    
-                    remaining += current_points
-                    total_used += total_used_points
-                    total_sold += current_points + total_used_points
-        
-        logger.info(f"✅ 실제 포인트 통계: 판매={total_sold}, 사용={total_used}, 잔여={remaining}")
-        return {
-            "success": True,
-            "stats": {
-                "total_sold": total_sold,
-                "total_used": total_used,
-                "remaining": remaining
-            }
-        }
-    except Exception as e:
-        logger.error(f"❌ 포인트 통계 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.get("/api/admin/points/users")
-async def get_point_users(request: Request):
-    """포인트 사용자 목록 - 레일웨이 환경 호환성 개선"""
-    try:
-        # 레일웨이 환경에서 임시 포인트 사용자 목록 반환
-        if os.getenv("RAILWAY_ENVIRONMENT") == "production" or os.getenv("RAILWAY_ENVIRONMENT"):
-            logger.info("🔧 레일웨이 환경에서 임시 포인트 사용자 목록 반환")
-            temp_users = [
-                {
-                    "user_id": "railway_user_1",
-                    "current_points": 1000,
-                    "total_used": 500,
-                    "last_updated": "2025-07-23T12:00:00Z"
-                },
-                {
-                    "user_id": "railway_user_2",
-                    "current_points": 500,
-                    "total_used": 300,
-                    "last_updated": "2025-07-23T11:00:00Z"
-                },
-                {
-                    "user_id": "railway_admin",
-                    "current_points": 9999,
-                    "total_used": 100,
-                    "last_updated": "2025-07-23T12:00:00Z"
-                }
-            ]
-            return {"success": True, "users": temp_users}
-        
-        # 실제 포인트 사용자 목록 조회
-        users = []
-        
-        for collection_name in db.list_collection_names():
-            if collection_name.endswith('_points'):
-                user_id = collection_name.replace('_points', '')
-                points_doc = db[collection_name].find_one({"user_id": user_id})
-                
-                if points_doc:
-                    user_info = {
-                        "user_id": user_id,
-                        "current_points": points_doc.get('points', 0),
-                        "total_used": points_doc.get('total_used', 0),
-                        "last_updated": points_doc.get('last_updated', 'N/A')
-                    }
-                    users.append(user_info)
-        
-        logger.info(f"✅ 실제 포인트 사용자 목록: {len(users)}명")
-        return {"success": True, "users": users}
-    except Exception as e:
-        logger.error(f"❌ 포인트 사용자 목록 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.post("/api/admin/points/adjust")
-async def adjust_user_points(request: Request):
-    """사용자 포인트 조정"""
-    try:
-        data = await request.json()
-        user_id = data.get('user_id')
-        amount = data.get('amount', 0)
-        action = data.get('action', 'add')
-        
-        if not user_id:
-            return {"success": False, "error": "사용자 ID가 필요합니다."}
-        
-        collection_name = f"user_{user_id}_points"
-        points_collection = db[collection_name]
-        
-        current_doc = points_collection.find_one({"user_id": user_id})
-        current_points = current_doc.get('points', 0) if current_doc else 0
-        
-        if action == 'add':
-            new_points = current_points + amount
-        elif action == 'subtract':
-            new_points = max(0, current_points - amount)
-        elif action == 'set':
-            new_points = amount
-        else:
-            return {"success": False, "error": "잘못된 액션입니다."}
-        
-        points_collection.update_one(
-            {"user_id": user_id},
-            {
-                "$set": {
-                    "points": new_points,
-                    "last_updated": datetime.now().isoformat()
-                }
-            },
-            upsert=True
-        )
-        
-        return {"success": True, "message": f"포인트가 {action}되었습니다."}
-    except Exception as e:
-        logger.error(f"포인트 조정 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.get("/api/admin/monitoring")
-async def get_monitoring_stats(request: Request):
-    """시스템 모니터링 통계 - 레일웨이 환경 호환성 개선"""
-    try:
-        # 레일웨이 환경에서 임시 모니터링 데이터 반환
-        if os.getenv("RAILWAY_ENVIRONMENT") == "production" or os.getenv("RAILWAY_ENVIRONMENT"):
-            logger.info("🔧 레일웨이 환경에서 임시 모니터링 데이터 반환")
-            return {
-                "success": True,
-                "monitoring": {
-                    "concurrent_users": 5,
-                    "api_calls": 1250,
-                    "avg_response_time": 180
-                }
-            }
-        
-        # 실제 모니터링 데이터 수집
-        active_sessions = db.sessions.count_documents({})
-        api_calls = db.chat_logs.count_documents({})
-        avg_response_time = 500  # ms
-        
-        logger.info(f"✅ 실제 모니터링 데이터: 동시사용자={active_sessions}명, API호출={api_calls}회")
-        return {
-            "success": True,
-            "monitoring": {
-                "concurrent_users": active_sessions,
-                "api_calls": api_calls,
-                "avg_response_time": avg_response_time
-            }
-        }
-    except Exception as e:
-        logger.error(f"❌ 모니터링 통계 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.get("/api/admin/resources")
-async def get_resource_stats(request: Request):
-    """시스템 자원 통계 - 레일웨이 환경 호환성 개선"""
-    try:
-        # 레일웨이 환경에서 임시 자원 통계 반환
-        if os.getenv("RAILWAY_ENVIRONMENT") == "production" or os.getenv("RAILWAY_ENVIRONMENT"):
-            logger.info("🔧 레일웨이 환경에서 임시 자원 통계 반환")
-            return {
-                "success": True,
-                "resources": {
-                    "cpu_usage": 45.2,
-                    "memory_usage": 68.5,
-                    "disk_usage": 23.1,
-                    "upload_speed": 125.5,
-                    "download_speed": 89.3
-                }
-            }
-        
-        # 실제 자원 통계 수집
-        try:
-            import psutil
-            
-            cpu_usage = psutil.cpu_percent(interval=1)
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
-            
-            # 네트워크 사용량 (간단한 추정)
-            network = psutil.net_io_counters()
-            upload_speed = network.bytes_sent / 1024  # KB
-            download_speed = network.bytes_recv / 1024  # KB
-            
-            logger.info(f"✅ 실제 자원 통계: CPU={round(cpu_usage, 1)}%, 메모리={round(memory.percent, 1)}%")
-            return {
-                "success": True,
-                "resources": {
-                    "cpu_usage": round(cpu_usage, 1),
-                    "memory_usage": round(memory.percent, 1),
-                    "disk_usage": round((disk.used / disk.total) * 100, 1),
-                    "upload_speed": round(upload_speed, 1),
-                    "download_speed": round(download_speed, 1)
-                }
-            }
-        except ImportError:
-            logger.warning("⚠️ psutil 모듈이 설치되지 않음 - 기본값 반환")
-            return {
-                "success": True,
-                "resources": {
-                    "cpu_usage": 0.0,
-                    "memory_usage": 0.0,
-                    "disk_usage": 0.0,
-                    "upload_speed": 0.0,
-                    "download_speed": 0.0
-                }
-            }
-    except Exception as e:
-        logger.error(f"❌ 자원 통계 오류: {e}")
-        return {"success": False, "error": str(e)}
-
-@app.post("/api/admin/learn-file")
-@admin_required
-async def admin_learn_file(request: Request, file: UploadFile = File(...)):
-    """관리자: 파일 학습(분할 저장)"""
-    import shutil
-    import tempfile
-    from aura_system.file_learning_utils import learn_file_to_aura_memory
-    user = get_current_user(request)
-    if not user or not user.get("is_admin", False):
-        raise HTTPException(status_code=403, detail="관리자만 접근 가능합니다.")
-    # 임시 파일로 저장
-    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[-1]) as tmp:
-        shutil.copyfileobj(file.file, tmp)
-        tmp_path = tmp.name
-    try:
-        chunk_count = await learn_file_to_aura_memory(tmp_path, user=user.get("user_id", "admin"), max_tokens=1500)
-        os.unlink(tmp_path)
-        return {"success": True, "message": f"{chunk_count}개 청크로 학습 완료", "chunks": chunk_count}
-    except Exception as e:
-        os.unlink(tmp_path)
-        return {"success": False, "message": str(e)}
-
-@app.post("/api/admin/learn-dialog-file")
-@admin_required
-async def admin_learn_dialog_file(request: Request, file: UploadFile = File(...)):
-    """관리자: 첨부파일 대화학습(턴별 저장)"""
-    import shutil
-    import tempfile
-    from aura_system.file_learning_utils import learn_dialog_file_to_aura_memory
-    user = get_current_user(request)
-    if not user or not user.get("is_admin", False):
-        raise HTTPException(status_code=403, detail="관리자만 접근 가능합니다.")
-    # 임시 파일로 저장
-    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[-1]) as tmp:
-        shutil.copyfileobj(file.file, tmp)
-        tmp_path = tmp.name
-    try:
-        turn_count = await learn_dialog_file_to_aura_memory(tmp_path, user=user.get("user_id", "admin"))
-        os.unlink(tmp_path)
-        return {"success": True, "message": "대화파일 학습 완료", "turns": turn_count}
-    except Exception as e:
-        os.unlink(tmp_path)
-        return {"success": False, "message": str(e)}
-
-@app.get("/learning", response_class=HTMLResponse)
-async def learning_page(request: Request):
-    return templates.TemplateResponse("learning.html", {"request": request})
+                chat_logs = memory_messages.get(user_id, [])
+            if not chat_logs:
+                return {"result": "ok", "response": "회상할 대화가 없습니다."}
+            # 메시지 임베딩
+            messages = [c["message"] for c in chat_logs]
+            embeddings = model.encode(messages)
+            query_emb = model.encode([message])[0]
+            # FAISS 인덱스 생성 및 검색
+            index = faiss.IndexFlatL2(embeddings.shape[1])
+            import numpy as np
+            index.add(np.array(embeddings))
+            D, I = index.search(np.array([query_emb]), k=1)
+            best_idx = int(I[0][0])
+            best_message = messages[best_idx]
+            best_response = chat_logs[best_idx]["response"]
+            return {"result": "ok", "recall_message": best_message, "recall_response": best_response}
+        except Exception as e:
+            logger.error(f"[임베딩 회상] 오류: {e}", exc_info=True)
+            return JSONResponse(status_code=500, content={"error": f"임베딩 회상 오류: {e}"})
+    else:
+        return JSONResponse(status_code=501, content={"error": "임베딩 기반 회상 기능이 활성화되어 있지 않습니다. (faiss/sentence-transformers 미설치)"})
 
 if __name__ == "__main__":
     import uvicorn
@@ -4154,3 +3437,240 @@ MONGODB_URI = os.environ.get("MONGODB_URI")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8002, reload=True)
+
+# robust 회원가입 API (프론트/테스트와 경로/포맷 일치)
+@app.post("/api/auth/register")
+async def register_user(request: Request):
+    try:
+        data = await request.json()
+        name = data.get("name")
+        email = data.get("email")
+        password = data.get("password")
+        if not all([name, email, password]):
+            logger.warning("회원가입: 필수 입력값 누락")
+            raise HTTPException(status_code=400, detail="모든 필드를 입력해주세요.")
+        # DB 연결 확인
+        if 'users_collection' not in globals() or users_collection is None:
+            logger.error("회원가입: DB(users_collection) 연결 안됨")
+            raise HTTPException(status_code=500, detail="DB 연결 실패")
+        # 중복 체크
+        if users_collection.find_one({"email": email}):
+            logger.warning(f"회원가입: 이미 존재하는 이메일 {email}")
+            raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다.")
+        # 비밀번호 해시
+        import hashlib
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        user_id = str(uuid.uuid4())
+        user_doc = {
+            "user_id": user_id,
+            "name": name,
+            "email": email,
+            "password": hashed_password,
+            "created_at": datetime.now().isoformat(),
+            "is_admin": False,
+            "storage_used": 0,
+            "max_storage": 100 * 1024 * 1024  # 100MB
+        }
+        result = users_collection.insert_one(user_doc)
+        logger.info(f"✅ 새 사용자 등록: {email}")
+        # user_id별 독립 대화/저장소 구조 생성 (예: chat_logs, memories 등)
+        try:
+            db.create_collection(f"chat_{user_id}")
+            db.create_collection(f"memory_{user_id}")
+            logger.info(f"✅ {user_id} 전용 대화/저장소 컬렉션 생성 완료")
+        except Exception as e:
+            logger.warning(f"⚠️ {user_id} 전용 컬렉션 생성 실패(이미 존재할 수 있음): {e}")
+        return {"success": True, "user_id": user_id, "is_admin": False, "message": "회원가입이 완료되었습니다."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"회원가입 오류: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"회원가입 중 오류가 발생했습니다: {e}")
+
+# robust 로그인 API (is_admin 포함, ObjectId 변환)
+@app.post("/api/auth/login")
+async def login_user(request: Request):
+    try:
+        data = await request.json()
+        email = data.get("email")
+        password = data.get("password")
+        if not all([email, password]):
+            raise HTTPException(status_code=400, detail="이메일과 비밀번호를 입력해주세요.")
+        if 'users_collection' not in globals() or users_collection is None:
+            logger.error("로그인: DB(users_collection) 연결 안됨")
+            raise HTTPException(status_code=500, detail="DB 연결 실패")
+        user = users_collection.find_one({"email": email})
+        if not user:
+            raise HTTPException(status_code=400, detail="존재하지 않는 이메일입니다.")
+        import hashlib
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        if user["password"] != hashed_password:
+            raise HTTPException(status_code=400, detail="비밀번호가 일치하지 않습니다.")
+        # ObjectId 변환/제외
+        user_info = {k: v for k, v in user.items() if k != "_id"}
+        user_info["user_id"] = user.get("user_id", str(user.get("_id", "")))
+        # 프론트엔드 안내: is_admin이 true일 때만 관리자 페이지/버튼 노출
+        # 예: if (user.is_admin) { ...관리자 UI... }
+        return {"success": True, "user": user_info, "is_admin": user.get("is_admin", False)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"로그인 오류: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"로그인 중 오류가 발생했습니다: {e}")
+
+# robust 학습하기 API (DB 연결 상태 확인)
+@app.post("/learn")
+async def learn_text(request: Request):
+    try:
+        try:
+            data = await request.json()
+            text = data.get("text")
+            user_id = data.get("user_id", "test_user")
+        except Exception:
+            form = await request.form()
+            text = form.get("text")
+            user_id = form.get("user_id", "test_user")
+        logger.info(f"[학습하기] 요청: user_id={user_id}, text={str(text)[:30]}")
+        if not text:
+            logger.warning("[학습하기] 텍스트 누락")
+            raise HTTPException(status_code=400, detail="학습할 텍스트가 없습니다.")
+        # DB 연결 확인
+        if 'db' not in globals() or db is None:
+            logger.error("[학습하기] DB 연결 안됨")
+            raise HTTPException(status_code=500, detail="DB 연결 실패")
+        # 실제 학습 로직 예시: 아우라 메모리 시스템에 저장
+        if aura_memory:
+            memory_id = aura_memory.create_memory(
+                user_id=user_id,
+                session_id=str(uuid.uuid4()),
+                message=text,
+                response="학습 완료",
+                memory_type="learning",
+                importance=0.7
+            )
+            logger.info(f"[학습하기] 메모리 저장 성공: {memory_id}")
+            return {"result": "ok", "memory_id": memory_id}
+        else:
+            logger.warning("[학습하기] 아우라 메모리 시스템 없음. 메모리 저장 생략.")
+            return {"result": "ok", "message": "메모리 시스템 없음. 저장 생략."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[학습하기] 오류: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": f"학습하기 중 오류: {e}"})
+
+# ... 기존 코드 ...
+
+# MongoDB 연결 및 users_collection 글로벌 초기화 (import문 바로 아래에 추가)
+try:
+    MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+    mongo_client = MongoClient(MONGO_URI)
+    db = mongo_client[os.environ.get("MONGO_DB", "eora_ai")]
+    users_collection = db["users"]
+    logger.info(f"✅ MongoDB 연결 성공: {MONGO_URI}")
+    logger.info(f"✅ users 컬렉션 초기화 완료 (DB: {db.name})")
+except Exception as e:
+    users_collection = None
+    logger.error(f"❌ MongoDB 연결/컬렉션 초기화 실패: {e}")
+
+# 1. 학습하기 페이지 라우터 추가
+@app.get("/learning", response_class=HTMLResponse)
+async def learning_page(request: Request):
+    user = get_current_user(request)
+    return templates.TemplateResponse("learning.html", {"request": request, "user": user})
+
+# 2. 관리자 페이지 라우트 권한 강화
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page(request: Request):
+    user = get_current_user(request)
+    if not user or user.get("email") != "admin@eora.ai":
+        return RedirectResponse("/login")
+    return templates.TemplateResponse("admin.html", {"request": request, "user": user})
+
+# 3. 채팅 저장/조회 시 user_id별 컬렉션 사용 예시 (핵심 부분만)
+def get_user_chat_collection(user_id):
+    return db[f"user_{user_id}_chat"]
+
+def get_user_points_collection(user_id):
+    return db[f"user_{user_id}_points"]
+
+@app.post("/chat")
+async def chat(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        message = data.get("message")
+        if not user_id or not message:
+            return JSONResponse({"success": False, "message": "user_id와 message가 필요합니다."}, status_code=400)
+        db = get_db()
+        collection = db[f"chat_{user_id}"]
+        chat_doc = {"user_id": user_id, "message": message, "timestamp": datetime.utcnow()}
+        result = collection.insert_one(chat_doc)
+        return JSONResponse({"success": True, "message": "대화 저장 완료", "chat_id": str(result.inserted_id)})
+    except Exception as e:
+        logger.error(f"[채팅 오류] {e}\n{traceback.format_exc()}")
+        return JSONResponse({"success": False, "message": "서버 오류가 발생했습니다."}, status_code=500)
+
+@app.get("/user/chats")
+async def get_user_chats(request: Request):
+    user_id = request.query_params.get("user_id")
+    if not user_id:
+        return JSONResponse({"error": "user_id는 필수입니다."}, status_code=400)
+    chat_collection = get_user_chat_collection(user_id)
+    chats = list(chat_collection.find({}).sort("timestamp", -1))
+    for chat in chats:
+        chat["_id"] = str(chat["_id"])
+        chat["timestamp"] = chat["timestamp"].isoformat() if hasattr(chat["timestamp"], "isoformat") else str(chat["timestamp"])
+    return {"chats": chats}
+
+@app.post("/api/admin/learn-file")
+async def learn_file(request: Request, file: UploadFile = File(...)):
+    user = get_current_user(request)
+    if not user or not (user.get("is_admin") or user.get("role") == "admin"):
+        return JSONResponse({"success": False, "message": "관리자 권한이 필요합니다."}, status_code=403)
+    try:
+        content = await file.read()
+        text = content.decode("utf-8", errors="ignore")
+        chunk_size = 5000
+        chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+        # 실제로는 DB 저장 등 추가 처리 필요
+        return {"success": True, "chunks": len(chunks)}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.post("/api/admin/learn-dialog-file")
+async def learn_dialog_file(request: Request, file: UploadFile = File(...)):
+    user = get_current_user(request)
+    if not user or not (user.get("is_admin") or user.get("role") == "admin"):
+        return JSONResponse({"success": False, "message": "관리자 권한이 필요합니다."}, status_code=403)
+    try:
+        content = await file.read()
+        text = content.decode("utf-8", errors="ignore")
+        turns = text.count("\n")  # 실제로는 대화 턴 파싱 필요
+        return {"success": True, "turns": turns}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.post("/api/advanced-chat")
+async def advanced_chat_api(request: Request):
+    """
+    EORA 고급 채팅 시스템 API 엔드포인트
+    - body: {"message": "...", "user_id": "..."}
+    """
+    if not ADVANCED_CHAT_AVAILABLE or advanced_chat_system is None:
+        return JSONResponse({"error": "고급 채팅 시스템이 활성화되어 있지 않습니다."}, status_code=503)
+    try:
+        data = await request.json()
+        user_message = data.get("message", "")
+        user_id = data.get("user_id", "anonymous")
+        if not user_message:
+            return JSONResponse({"error": "message는 필수입니다."}, status_code=400)
+        response = await advanced_chat_system.process_message(user_message, user_id)
+        return JSONResponse({
+            "result": "ok",
+            "advanced_chat": True,
+            "response": response
+        })
+    except Exception as e:
+        logger.error(f"고급 채팅 시스템 오류: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)

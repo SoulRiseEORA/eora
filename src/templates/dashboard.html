@@ -273,7 +273,7 @@
                 <a href="/chat" class="nav-link">💬 채팅</a>
                 <a href="/memory" class="nav-link">🧠 기억</a>
                 <a href="/profile" class="nav-link">👤 프로필</a>
-                {% if user and user.role == 'admin' %}
+                {% if user and (user.role == 'admin' or user.is_admin) %}
                 <a href="/admin" class="nav-link">⚙️ 관리자</a>
                 {% endif %}
             </div>
@@ -285,8 +285,8 @@
         <div class="dashboard-header">
             <div class="user-info">
                 <span id="user-email">👤 {{ user.name if user else '사용자' }}</span>
-                {% if user and user.role == 'admin' %}
-                <a href="/admin" class="action-btn">🔒 관리자</a>
+                {% if user and (user.role == 'admin' or user.is_admin) %}
+                <a href="/admin" class="action-btn">⚙️ 관리자 대시보드</a>
                 {% endif %}
                 <a href="/profile" class="action-btn">👤 프로필</a>
                 <button class="logout-btn" onclick="logout()">로그아웃</button>
@@ -363,7 +363,7 @@
                 <div class="action-description">포인트 충전 및 사용 내역을 확인하세요</div>
             </a>
 
-            {% if user and user.role == 'admin' %}
+            {% if user and (user.role == 'admin' or user.is_admin) %}
             <a href="/admin" class="action-card">
                 <div class="action-icon">⚙️</div>
                 <div class="action-title">관리자</div>
