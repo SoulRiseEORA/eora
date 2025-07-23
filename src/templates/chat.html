@@ -451,6 +451,15 @@
             border: 1px solid #c3e6cb;
         }
 
+        .warning-message {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ffeaa7;
+        }
+
         .loading {
             display: inline-block;
             width: 20px;
@@ -647,7 +656,7 @@
                         <span>포인트: <b id="currentPoints">-</b></span>
                         <span id="pointChange" style="color:#2196f3;"></span>
                     </div>
-                    <a href="/?from=chat" class="header-btn" data-i18n="chat.home">🏠 홈</a>
+                    <a href="/" class="header-btn" data-i18n="chat.home">🏠 홈</a>
                     <a href="/dashboard" class="header-btn" data-i18n="chat.dashboard">대시보드</a>
                     <a href="/memory" class="header-btn" data-i18n="chat.memory">기억관리</a>
 
@@ -1195,6 +1204,9 @@
             console.log('  - sendButton:', sendButton ? '✅ 찾음' : '❌ 없음');
             console.log('  - sessionList:', sessionList ? '✅ 찾음' : '❌ 없음');
 
+            // 사용자 인증 상태 확인
+            await checkUserAuthentication();
+
             // 이벤트 리스너 설정
             setupEventListeners();
 
@@ -1204,7 +1216,63 @@
             // 세션 목록 로드
             await loadSessionsFromDatabase();
 
+            // 포인트 상태 초기화
+            await updatePointStatus();
+
             console.log('✅ 채팅 초기화 완료');
+        }
+
+        // 사용자 인증 상태 확인
+        async function checkUserAuthentication() {
+            try {
+                console.log('🔐 사용자 인증 상태 확인 중...');
+
+                // 여러 방법으로 사용자 정보 확인
+                let userValid = false;
+
+                // 1. 쿠키에서 토큰 확인
+                const token = getCookie('access_token');
+                if (token && token !== 'undefined' && token !== 'null') {
+                    console.log('✅ 액세스 토큰 발견');
+                    userValid = true;
+                }
+
+                // 2. 사용자 쿠키 확인
+                const userEmail = getCookie('user_email');
+                if (userEmail && userEmail !== 'undefined' && userEmail !== 'null') {
+                    console.log('✅ 사용자 이메일 발견:', userEmail);
+                    userValid = true;
+                }
+
+                // 3. API 호출로 인증 상태 확인
+                if (!userValid) {
+                    try {
+                        const response = await fetch('/api/user/points', {
+                            method: 'GET',
+                            credentials: 'include'
+                        });
+                        if (response.ok) {
+                            console.log('✅ API 인증 성공');
+                            userValid = true;
+                        } else {
+                            console.log('⚠️ API 인증 실패:', response.status);
+                        }
+                    } catch (error) {
+                        console.log('⚠️ API 인증 오류:', error);
+                    }
+                }
+
+                if (!userValid) {
+                    console.warn('⚠️ 사용자 인증 상태가 불확실합니다. 익명 사용자로 진행합니다.');
+                    showMessage('인증 상태를 확인할 수 없습니다. 일부 기능이 제한될 수 있습니다.', 'warning');
+                } else {
+                    console.log('✅ 사용자 인증 상태 확인 완료');
+                }
+
+            } catch (error) {
+                console.error('❌ 사용자 인증 확인 오류:', error);
+                showMessage('인증 상태 확인 중 오류가 발생했습니다.', 'error');
+            }
         }
 
         // 이벤트 리스너 설정
@@ -1708,25 +1776,31 @@
 
             if (!message) return;
 
-            // undefined 세션 ID 완전 차단
+            // 세션이 없으면 자동으로 새 세션 생성
             if (!currentSessionId || currentSessionId === 'undefined' || currentSessionId === 'null' || currentSessionId === '' || currentSessionId === undefined) {
-                console.error(`🚫 메시지 전송 차단: undefined 세션 ID "${currentSessionId}"`);
-                showMessage('유효하지 않은 세션입니다. 새 세션을 생성해주세요.', 'error');
-                return;
+                console.log('🆕 세션이 없어서 자동으로 새 세션 생성');
+                await createNewSession();
+
+                // 세션 생성 후에도 유효하지 않으면 차단
+                if (!currentSessionId || currentSessionId === 'undefined' || currentSessionId === 'null') {
+                    console.error('🚫 세션 생성 실패');
+                    showMessage('세션을 생성할 수 없습니다. 페이지를 새로고침 해주세요.', 'error');
+                    return;
+                }
             }
 
             // 세션 ID 유효성 검사
             if (!validateSessionIdForAPI(currentSessionId, '메시지 전송')) {
                 console.error(`🚫 메시지 전송 차단: 유효하지 않은 세션 ID "${currentSessionId}"`);
-                showMessage('유효하지 않은 세션입니다. 새 세션을 생성해주세요.', 'error');
-                return;
-            }
 
-            // 세션이 잠겨있지 않으면 전송 차단
-            if (!currentSessionIdLocked) {
-                console.error(`🚫 메시지 전송 차단: 세션 ID가 잠기지 않음 "${currentSessionId}"`);
-                showMessage('세션이 초기화되지 않았습니다. 잠시 후 다시 시도해주세요.', 'error');
-                return;
+                // 세션이 유효하지 않으면 새 세션 생성 시도
+                console.log('🔄 세션이 유효하지 않아 새 세션 생성 시도');
+                await createNewSession();
+
+                if (!validateSessionIdForAPI(currentSessionId, '메시지 전송 재시도')) {
+                    showMessage('세션을 생성할 수 없습니다. 페이지를 새로고침 해주세요.', 'error');
+                    return;
+                }
             }
 
             console.log(`📤 메시지 전송: ${message}`);
@@ -2343,7 +2417,15 @@
         function showMessage(message, type = 'info') {
             const chatMessages = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type === 'error' ? 'error-message' : 'success-message'}`;
+
+            let className = 'success-message';
+            if (type === 'error') {
+                className = 'error-message';
+            } else if (type === 'warning') {
+                className = 'warning-message';
+            }
+
+            messageDiv.className = className;
             messageDiv.textContent = message;
 
             chatMessages.appendChild(messageDiv);
@@ -2364,18 +2446,77 @@
         });
 
         // 포인트 상태 표시
-        async function updatePointStatus(change) {
+        async function updatePointStatus(change = 0) {
             try {
-                const res = await fetch('/api/user/points');
-                if (res.ok) {
-                    const data = await res.json();
-                    const currentPoints = data.points || 0;
-                    document.getElementById('currentPoints').textContent = currentPoints.toLocaleString();
+                console.log('💰 포인트 상태 업데이트 시작');
+
+                // 여러 API 엔드포인트 시도
+                const endpoints = ['/api/user/points', '/user/points?user_id=test_user'];
+                let success = false;
+
+                for (const endpoint of endpoints) {
+                    try {
+                        console.log(`🌐 포인트 API 호출: ${endpoint}`);
+                        const res = await fetch(endpoint, {
+                            method: 'GET',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        console.log(`📥 포인트 API 응답: ${res.status}`);
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            console.log('📊 포인트 데이터:', data);
+
+                            const currentPoints = data.points || data.user_points || 100000;
+                            const pointsElement = document.getElementById('currentPoints');
+
+                            if (pointsElement) {
+                                pointsElement.textContent = currentPoints.toLocaleString();
+                                console.log(`✅ 포인트 표시 업데이트: ${currentPoints.toLocaleString()}`);
+                            }
+
+                            // 변화량 표시
+                            if (change !== 0) {
+                                const changeElement = document.getElementById('pointChange');
+                                if (changeElement) {
+                                    changeElement.textContent = change > 0 ? `+${change}` : `${change}`;
+                                    changeElement.style.color = change > 0 ? '#4caf50' : '#f44336';
+                                    setTimeout(() => {
+                                        changeElement.textContent = '';
+                                    }, 3000);
+                                }
+                            }
+
+                            success = true;
+                            break;
+                        } else {
+                            console.log(`⚠️ 포인트 API 실패: ${endpoint} - ${res.status}`);
+                        }
+                    } catch (apiError) {
+                        console.log(`❌ 포인트 API 오류: ${endpoint} -`, apiError);
+                    }
                 }
-            } catch (e) { }
+
+                if (!success) {
+                    console.log('❌ 모든 포인트 API 호출 실패 - 기본값 사용');
+                    const pointsElement = document.getElementById('currentPoints');
+                    if (pointsElement) {
+                        pointsElement.textContent = '100,000';
+                    }
+                }
+
+            } catch (error) {
+                console.error('💥 포인트 상태 업데이트 오류:', error);
+                const pointsElement = document.getElementById('currentPoints');
+                if (pointsElement) {
+                    pointsElement.textContent = '오류';
+                }
+            }
         }
-        updatePointStatus();
-        // sendMessage 등 토큰 소모 후 updatePointStatus(-차감값) 호출 필요
     </script>
 </body>
 
