@@ -3732,66 +3732,13 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(hours=2
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# 토큰 정보 계산 및 포인트 차감
-try:
-    import tiktoken
-    encoding = tiktoken.get_encoding("cl100k_base")
-    
-    # 토큰 계산
-    user_tokens = len(encoding.encode(user_message))
-    prompt_tokens = len(encoding.encode(prompt_text))
-    recall_tokens = len(encoding.encode(recall_text))
-    total_tokens = user_tokens + prompt_tokens + recall_tokens
-    
-    # 포인트 차감 (토큰당 2포인트)
-    points_to_deduct = total_tokens * 2
-    
-    # 사용자 포인트 업데이트
-    user_points_collection = db[f"user_{user_id}_points"]
-    user_doc = user_points_collection.find_one({"user_id": user_id})
-    
-    if user_doc:
-        current_points = user_doc.get("points", 100000)
-        new_points = max(0, current_points - points_to_deduct)
-        user_points_collection.update_one(
-            {"user_id": user_id},
-            {"$set": {"points": new_points}},
-            upsert=True
-        )
-    else:
-        # 새 사용자인 경우 100,000 포인트로 초기화
-        new_points = max(0, 100000 - points_to_deduct)
-        user_points_collection.insert_one({
-            "user_id": user_id,
-            "points": new_points
-        })
-    
-    token_info = {
-        "user_tokens": user_tokens,
-        "prompt_tokens": prompt_tokens,
-        "recall_tokens": recall_tokens,
-        "total_tokens": total_tokens,
-        "points_deducted": points_to_deduct,
-        "remaining_points": new_points
-    }
-    
-    print(f"🔢 토큰 계산: {token_info}")
-    
-except Exception as e:
-    print(f"❌ 토큰 계산 오류: {e}")
-    token_info = {
-        "user_tokens": 0,
-        "prompt_tokens": 0,
-        "recall_tokens": 0,
-        "total_tokens": 0,
-        "points_deducted": 0,
-        "remaining_points": 100000
-    }
-
 # .env 파일 로드 (로컬 개발 시)
 load_dotenv()
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 MONGODB_URI = os.environ.get("MONGODB_URI")
 
-# ... 기존 코드 ...
+# 애플리케이션 실행
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8002, reload=True)
