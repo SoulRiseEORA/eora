@@ -1,8 +1,8 @@
 import requests
 
-learn_url = "http://127.0.0.1:8001/learn"
-chat_url = "http://127.0.0.1:8001/chat"
-points_url = "http://127.0.0.1:8001/user/points"
+learn_url = "http://127.0.0.1:8002/learn"
+chat_url = "http://127.0.0.1:8002/chat"
+points_url = "http://127.0.0.1:8002/user/points"
 
 def test_learn():
     data = {

@@ -20,6 +20,13 @@ from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+# 로깅 설정 (모든 것보다 먼저)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # FastAPI 및 관련 라이브러리
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -27,6 +34,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
 # 세션 미들웨어 조건부 import (Railway 환경 대응)
 SESSION_MIDDLEWARE_AVAILABLE = False
 try:
@@ -39,7 +48,6 @@ except ImportError as e:
 except Exception as e:
     logger.warning(f"⚠️ 세션 미들웨어 오류: {e}")
     logger.info("ℹ️ 쿠키 기반 인증으로 동작합니다.")
-from contextlib import asynccontextmanager
 
 from functools import wraps
 def admin_required(func):
@@ -64,12 +72,7 @@ import pymongo
 from pymongo import MongoClient
 from bson import ObjectId
 
-# 로깅 설정 (상단에서 이미 설정됨 - 중복 제거)
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format='%(asctime)s - %(name)s - %(levelname)s - %(levelname)s - %(message)s'
-# )
-# logger = logging.getLogger(__name__)
+# 로깅은 상단에서 이미 설정됨
 
 # OpenAI 클라이언트
 openai_client = None
