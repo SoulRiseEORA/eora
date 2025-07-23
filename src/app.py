@@ -347,21 +347,25 @@ prompts_data = {}
 
 # OpenAI 클라이언트 초기화 - 최신 버전 호환성 개선
 openai_client = None
-if OPENAI_API_KEY:
-    try:
-        from openai import OpenAI
+try:
+    from openai import OpenAI
+    if OPENAI_API_KEY:
         # OpenAI 1.3.7 버전 호환 코드 - proxies 인수 제거
         openai_client = OpenAI(
             api_key=OPENAI_API_KEY,
             # proxies 인수 제거 - httpx 0.28.1 호환성
         )
         logger.info("✅ OpenAI API 키 설정 성공 (v1.3.7)")
-    except Exception as e:
-        logger.error(f"❌ OpenAI API 클라이언트 초기화 실패: {e}")
-        logger.info("ℹ️ OpenAI API 키 설정을 확인해주세요.")
-        openai_client = None
-else:
-    logger.warning("⚠️ OPENAI_API_KEY가 설정되지 않았습니다. Railway 환경변수를 확인해주세요.")
+    else:
+        logger.warning("⚠️ OPENAI_API_KEY가 설정되지 않았습니다. Railway 환경변수를 확인해주세요.")
+except ImportError as e:
+    logger.error(f"❌ OpenAI 모듈을 찾을 수 없습니다: {e}")
+    logger.info("ℹ️ pip install openai==1.3.7 명령으로 설치해주세요.")
+    openai_client = None
+except Exception as e:
+    logger.error(f"❌ OpenAI API 클라이언트 초기화 실패: {e}")
+    logger.info("ℹ️ OpenAI API 키 설정을 확인해주세요.")
+    openai_client = None
 
 
 
