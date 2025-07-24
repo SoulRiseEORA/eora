@@ -176,7 +176,7 @@ from dotenv import load_dotenv
 import os
 
 def safe_get_env(key: str, default: str = "") -> str:
-    """환경변수를 안전하게 가져오기 - Railway 호환"""
+    """환경변수를 안전하게 가져오기 - Railway 환경"""
     try:
         value = os.environ.get(key, default)
         if value:
@@ -299,39 +299,66 @@ def clean_mongodb_url(url):
         # 단순한 호스트:포트 형태인 경우
         return f"mongodb://mongo:@{url}"
 
-# MongoDB 연결 시도 함수 개선
+# MongoDB 연결 시도 함수 개선 - Railway 환경 최적화
 def try_mongodb_connection():
-    """MongoDB 연결을 시도합니다."""
+    """MongoDB 연결을 시도합니다. (Railway 환경 최적화)"""
+    
+    # Railway 환경 감지
+    is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT") or 
+                     os.getenv("RAILWAY_PROJECT_ID") or 
+                     os.getenv("RAILWAY_SERVICE_ID") or
+                     "railway.app" in os.getenv("RAILWAY_PUBLIC_DOMAIN", ""))
+    
     urls_to_try = []
-    print("[MongoDB 연결 디버깅] 환경변수 및 우선순위 점검 시작")
-    print("  - MONGODB_URL:", os.environ.get('MONGODB_URL'))
-    print("  - MONGO_PUBLIC_URL:", os.environ.get('MONGO_PUBLIC_URL'))
-    print("  - MONGO_URL:", os.environ.get('MONGO_URL'))
-    print("  - MONGODB_URI:", os.environ.get('MONGODB_URI'))
-    # Railway 환경에서 사용할 수 있는 MongoDB URL들
-    if MONGODB_URL:
-        urls_to_try.append(MONGODB_URL)
-    railway_urls = [
-        os.getenv("MONGO_PUBLIC_URL"),
-        os.getenv("MONGO_URL"),
-        os.getenv("MONGODB_URI"),
-        "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@trolley.proxy.rlwy.net:26594",
-        "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@mongodb.railway.internal:27017"
-    ]
-    for url in railway_urls:
-        if url and url not in urls_to_try:
-            urls_to_try.append(url)
-    local_urls = [
-        "mongodb://localhost:27017",
-        "mongodb://127.0.0.1:27017"
-    ]
-    for url in local_urls:
-        if url not in urls_to_try:
-            urls_to_try.append(url)
+    
+    if is_railway:
+        logger.info("🚂 Railway 환경 감지 - Railway MongoDB 우선 연결")
+        # Railway 환경: Railway MongoDB를 최우선으로
+        railway_urls = [
+            os.getenv("MONGO_PUBLIC_URL"),
+            os.getenv("MONGO_URL"),
+            "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@trolley.proxy.rlwy.net:26594",
+            "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@mongodb.railway.internal:27017",
+            os.getenv("MONGODB_URI"),
+            os.getenv("MONGODB_URL")
+        ]
+        for url in railway_urls:
+            if url and url not in urls_to_try:
+                urls_to_try.append(url)
+    else:
+        logger.info("💻 로컬 환경 감지 - 로컬 MongoDB 우선 연결")
+        # 로컬 환경: 로컬 MongoDB를 최우선으로
+        local_urls = [
+            os.getenv("MONGODB_URL", "mongodb://localhost:27017"),
+            os.getenv("MONGODB_URI", "mongodb://localhost:27017"),
+            "mongodb://localhost:27017",
+            "mongodb://127.0.0.1:27017"
+        ]
+        for url in local_urls:
+            if url and url not in urls_to_try:
+                urls_to_try.append(url)
+        
+        # 로컬에서도 Railway URL 시도 (백업용)
+        railway_urls = [
+            os.getenv("MONGO_PUBLIC_URL"),
+            os.getenv("MONGO_URL"),
+            "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@trolley.proxy.rlwy.net:26594",
+            "mongodb://mongo:HYxotmUHxMxbYAejsOxEnHwrgKpAochC@mongodb.railway.internal:27017"
+        ]
+        for url in railway_urls:
+            if url and url not in urls_to_try:
+                urls_to_try.append(url)
+    
+    print(f"[MongoDB 연결 디버깅] 환경: {'Railway' if is_railway else '로컬'}")
     print(f"[MongoDB 연결 디버깅] 연결 시도할 URL 목록:")
     for i, url in enumerate(urls_to_try, 1):
         print(f"  {i}. {url}")
+    
     logger.info(f"🔗 연결 시도할 URL 수: {len(urls_to_try)}")
+    
+    # Railway 환경에서는 더 빠른 타임아웃 사용
+    timeout = 2000 if is_railway else 5000
+    
     for i, url in enumerate(urls_to_try, 1):
         if not url:
             continue
@@ -339,17 +366,36 @@ def try_mongodb_connection():
             logger.info(f"🔗 MongoDB 연결 시도: {i}/{len(urls_to_try)}")
             logger.info(f"📝 연결 URL: {url}")
             print(f"[MongoDB 연결 디버깅] {i}/{len(urls_to_try)} 연결 시도: {url}")
+            
             clean_url = clean_mongodb_url(url)
             print(f"[MongoDB 연결 디버깅] 실제 연결에 사용되는 URL: {clean_url}")
-            client = MongoClient(clean_url, serverSelectionTimeoutMS=5000)
+            
+            # 빠른 연결 옵션
+            client = MongoClient(
+                clean_url, 
+                serverSelectionTimeoutMS=timeout,
+                connectTimeoutMS=timeout,
+                socketTimeoutMS=timeout,
+                maxPoolSize=10,
+                minPoolSize=1
+            )
+            
             client.admin.command('ping')
             logger.info(f"✅ MongoDB 연결 성공: {i}/{len(urls_to_try)}")
             print(f"[MongoDB 연결 디버깅] 연결 성공! client: {client}")
+            
+            # 연결 성공한 URL 정보 저장
+            global successful_mongodb_url
+            successful_mongodb_url = clean_url
+            
             return client
+            
         except Exception as e:
             logger.warning(f"❌ MongoDB 연결 실패 ({i}/{len(urls_to_try)}): {type(e).__name__} - {str(e)}")
-            print(f"[MongoDB 연결 디버깅] 연결 실패: {type(e).__name__} - {str(e)}")
-            continue
+            # Railway 환경에서는 빠른 실패로 다음 URL 시도
+            if is_railway and "ServerSelectionTimeoutError" in str(type(e)):
+                logger.info("⚡ Railway 환경: 빠른 다음 URL 시도")
+                continue
     logger.error("❌ 모든 MongoDB 연결 시도 실패")
     print("[MongoDB 연결 디버깅] 모든 연결 시도 실패!")
     return None
@@ -553,16 +599,9 @@ def load_prompts_data():
 # 프롬프트 데이터 초기화
 load_prompts_data()
 
-# FAISS 임베딩 시스템 (선택적)
-try:
-    from sentence_transformers import SentenceTransformer
-    import faiss
-    FAISS_AVAILABLE = True
-    logger.info("✅ FAISS 임베딩 시스템 로드 성공")
-except ImportError as e:
-    FAISS_AVAILABLE = False
-    logger.info(f"ℹ️ FAISS 또는 sentence-transformers 미설치: {e}")
-    logger.info("ℹ️ 기본 키워드 기반 회상으로 동작합니다.")
+# FAISS 임베딩 시스템 (지연 로딩으로 변경됨)
+# 성능 최적화를 위해 지연 로딩으로 변경 - init_faiss_system() 함수 참조
+logger.info("📦 FAISS 시스템을 지연 로딩으로 설정 완료")
 
 # Redis 연결 (Graceful Fallback - Railway 환경에서 선택적 사용)
 redis_client = None
@@ -838,53 +877,48 @@ manager = ConnectionManager()
 # Lifespan 이벤트 핸들러 (Railway 호환 - Deprecation 경고 해결)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 시작 시 실행
-    logger.info("🚀 EORA AI System 시작 중...")
+    # 시작 시 실행 (성능 최적화됨)
+    logger.info("🚀 EORA AI System 빠른 시작 중...")
     
-    # 프롬프트 데이터 로드
-    logger.info("📚 프롬프트 데이터 로드 중...")
+    # 필수 프롬프트 데이터만 로드 (빠른 시작)
+    logger.info("📚 필수 프롬프트 데이터 로드...")
     if load_prompts_data():
         logger.info("✅ 프롬프트 데이터 로드 완료")
     else:
         logger.warning("⚠️ 프롬프트 데이터 로드 실패 - 기본 설정으로 진행")
     
-    # MongoDB 연결 및 데이터베이스 초기화
+    # MongoDB 연결 (최적화된 연결)
     global mongo_client
     try:
-        mongo_client = MongoClient(MONGODB_URL, serverSelectionTimeoutMS=5000)
-        mongo_client.admin.command('ping')
-        logger.info("✅ MongoDB 연결 성공")
-        
-        # 데이터베이스 컬렉션 초기화
-        await initialize_database_collections()
-        
-        # MongoDB 인덱스 생성 (안전한 방식)
-        if client is not None:
+        mongo_client = try_mongodb_connection()
+        if mongo_client:
+            logger.info("✅ MongoDB 연결 성공")
+            
+            # 백그라운드에서 비동기적으로 데이터베이스 초기화
             try:
-                # 컬렉션이 존재하는지 확인 후 인덱스 생성
+                await initialize_database_collections()
+                logger.info("✅ MongoDB 컬렉션 초기화 완료")
+                
+                # 기본 인덱스만 생성 (성능상 중요한 것만)
                 if chat_logs_collection is not None:
-                    chat_logs_collection.create_index([("timestamp", pymongo.DESCENDING)])
-                    chat_logs_collection.create_index([("user_id", pymongo.ASCENDING)])
+                    chat_logs_collection.create_index([("timestamp", -1)])
                     logger.info("✅ chat_logs 인덱스 생성 완료")
                 
                 if sessions_collection is not None:
-                    sessions_collection.create_index([("user_id", pymongo.ASCENDING)])
+                    sessions_collection.create_index([("user_id", 1)])
                     logger.info("✅ sessions 인덱스 생성 완료")
                 
                 if users_collection is not None:
-                    users_collection.create_index([("email", pymongo.ASCENDING)])
+                    users_collection.create_index([("email", 1)])
                     logger.info("✅ users 인덱스 생성 완료")
-                
-                if points_collection is not None:
-                    points_collection.create_index([("user_id", pymongo.ASCENDING)])
-                    logger.info("✅ points 인덱스 생성 완료")
                 
                 logger.info("✅ MongoDB 인덱스 생성 완료")
             except Exception as e:
-                logger.warning(f"⚠️ MongoDB 인덱스 생성 실패: {e}")
-                logger.info("ℹ️ 인덱스가 이미 존재하거나 권한 문제일 수 있습니다.")
+                logger.warning(f"⚠️ MongoDB 초기화 실패: {e}")
+        else:
+            logger.warning("⚠️ MongoDB 연결 실패 - 메모리 저장소 사용")
     except Exception as e:
-        logger.warning(f"⚠️ MongoDB 연결 실패: {e}")
+        logger.warning(f"⚠️ MongoDB 연결 오류: {e}")
         mongo_client = None
     
     # 시스템 로그 저장
@@ -1916,10 +1950,15 @@ async def chat_endpoint(request: Request):
         user_id = data.get("user_id", "anonymous")
         recall_type = data.get("recall_type", "normal")
         print(f"[채팅 요청] user_id: {user_id}, session_id: {session_id}, recall_type: {recall_type}, message: {user_message}")
-        # 1. 아우라 메모리 시스템에서 관련 기억 회상
+        # 1. 아우라 메모리 시스템에서 관련 기억 회상 (FAISS 지연 로딩 적용)
         recalled_memories = []
         if AURA_MEMORY_AVAILABLE and aura_memory:
             try:
+                # FAISS가 필요한 경우에만 지연 로딩
+                if recall_type in ["semantic", "embedding"] and not FAISS_AVAILABLE:
+                    logger.info("🔄 메모리 회상을 위한 FAISS 지연 로딩 시작...")
+                    init_faiss_system()
+                
                 print(f"[회상 함수 호출] recall_type: {recall_type}")
                 recalled_memories = await recall_from_aura_memory(
                     query=user_message,
@@ -3889,3 +3928,101 @@ async def advanced_chat_api(request: Request):
     except Exception as e:
         logger.error(f"고급 채팅 시스템 오류: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
+
+# FAISS 및 임베딩 시스템 (지연 로딩 적용)
+FAISS_AVAILABLE = False
+embeddings_model = None
+vector_index = None
+
+def init_faiss_system():
+    """FAISS 시스템을 지연 로딩으로 초기화합니다."""
+    global FAISS_AVAILABLE, embeddings_model, vector_index
+    
+    if FAISS_AVAILABLE:
+        return True  # 이미 초기화됨
+    
+    try:
+        logger.info("🔄 FAISS 임베딩 시스템 지연 로딩 시작...")
+        
+        import faiss
+        from sentence_transformers import SentenceTransformer
+        import numpy as np
+        
+        # SentenceTransformer 모델 로드 (캐시 사용)
+        embeddings_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+        
+        # 간단한 벡터 인덱스 생성
+        vector_index = faiss.IndexFlatL2(384)  # MiniLM-L6-v2의 차원
+        
+        FAISS_AVAILABLE = True
+        logger.info("✅ FAISS 임베딩 시스템 지연 로딩 완료")
+        return True
+        
+    except ImportError as e:
+        logger.warning(f"⚠️ FAISS 라이브러리 없음: {e}")
+        logger.info("ℹ️ 설치 방법: pip install faiss-cpu sentence-transformers")
+        FAISS_AVAILABLE = False
+        return False
+    except Exception as e:
+        logger.error(f"❌ FAISS 초기화 실패: {e}")
+        FAISS_AVAILABLE = False
+        return False
+
+# 기존 즉시 로딩 제거
+try:
+    # 기존 코드를 주석 처리하고 지연 로딩으로 대체
+    logger.info("📦 FAISS 시스템을 지연 로딩으로 설정 (성능 최적화)")
+    # import faiss
+    # from sentence_transformers import SentenceTransformer
+    # embeddings_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    # vector_index = faiss.IndexFlatL2(384)
+    # FAISS_AVAILABLE = True
+    # logger.info("✅ FAISS 임베딩 시스템 로드 성공")
+except Exception as e:
+    logger.warning(f"⚠️ FAISS 라이브러리 로드 실패: {e}")
+    logger.info("ℹ️ 설치 방법: pip install faiss-cpu sentence-transformers")
+    # FAISS_AVAILABLE = False
+
+# MongoDB 연결 캐싱 시스템
+successful_mongodb_url = None
+mongodb_connection_cache = None
+
+def get_cached_mongodb_connection():
+    """캐싱된 MongoDB 연결을 반환하거나 새로 연결합니다."""
+    global mongodb_connection_cache, successful_mongodb_url
+    
+    # 캐시된 연결이 있고 유효한지 확인
+    if mongodb_connection_cache and successful_mongodb_url:
+        try:
+            mongodb_connection_cache.admin.command('ping')
+            logger.info("✅ 캐싱된 MongoDB 연결 재사용")
+            return mongodb_connection_cache
+        except Exception as e:
+            logger.warning(f"⚠️ 캐싱된 연결 무효화: {e}")
+            mongodb_connection_cache = None
+    
+    # 캐시된 연결이 없거나 무효한 경우
+    if successful_mongodb_url:
+        # 이전에 성공한 URL로 빠르게 재연결 시도
+        try:
+            logger.info("🔄 이전 성공 URL로 빠른 재연결 시도...")
+            client = MongoClient(
+                successful_mongodb_url,
+                serverSelectionTimeoutMS=1000,  # 매우 빠른 타임아웃
+                connectTimeoutMS=1000,
+                socketTimeoutMS=1000,
+                maxPoolSize=10,
+                minPoolSize=1
+            )
+            client.admin.command('ping')
+            mongodb_connection_cache = client
+            logger.info("✅ 이전 성공 URL로 빠른 재연결 성공")
+            return client
+        except Exception as e:
+            logger.warning(f"⚠️ 이전 성공 URL 재연결 실패: {e}")
+    
+    # 전체 연결 시도
+    client = try_mongodb_connection()
+    if client:
+        mongodb_connection_cache = client
+    return client
