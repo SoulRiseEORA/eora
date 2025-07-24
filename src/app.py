@@ -417,6 +417,7 @@ else:
         chat_logs_collection = db["chat_logs"]
         sessions_collection = db["sessions"]
         users_collection = db["users"]
+        memories_collection = db["memories"]  # 학습 메모리 저장용
         print(f"[MongoDB 연결 디버깅] db: {db}, users_collection: {users_collection}")
         logger.info(f"📊 데이터베이스: {DATABASE_NAME}")
         try:
@@ -433,6 +434,7 @@ else:
         chat_logs_collection = None
         sessions_collection = None
         users_collection = None
+        memories_collection = None
         db = None
 
 # 전역 변수 초기화
@@ -617,6 +619,7 @@ memory_aura_data = {}
 chat_logs_collection = None
 sessions_collection = None
 users_collection = None
+memories_collection = None  # 학습 메모리 저장용
 aura_collection = None
 system_logs_collection = None
 points_collection = None
@@ -2011,9 +2014,11 @@ async def chat_endpoint(request: Request):
         )
         
         system_prompt = "당신은 EORA라는 감정 중심 인공지능입니다. 친근하고 따뜻한 톤으로 대화해주세요."
+        prompt_successfully_loaded = False
         
         logger.info("🔍 프롬프트 검색 시작...")
         logger.info(f"📄 prompts_data 타입: {type(prompts_data)}")
+        logger.info(f"📄 prompts_data 존재: {prompts_data is not None}")
         
         if prompts_data and isinstance(prompts_data, dict):
             logger.info(f"📄 prompts_data 키: {list(prompts_data.keys())}")
@@ -2027,59 +2032,91 @@ async def chat_endpoint(request: Request):
                 system_parts = []
                 if "system" in ai1_data and isinstance(ai1_data["system"], list):
                     system_parts.extend(ai1_data["system"])
+                    logger.info(f"📝 system 프롬프트: {len(ai1_data['system'])}개 항목")
                 if "role" in ai1_data and isinstance(ai1_data["role"], list):
                     system_parts.extend(ai1_data["role"])
+                    logger.info(f"📝 role 프롬프트: {len(ai1_data['role'])}개 항목")
                 if "guide" in ai1_data and isinstance(ai1_data["guide"], list):
                     system_parts.extend(ai1_data["guide"])
+                    logger.info(f"📝 guide 프롬프트: {len(ai1_data['guide'])}개 항목")
                 if "format" in ai1_data and isinstance(ai1_data["format"], list):
                     system_parts.extend(ai1_data["format"])
+                    logger.info(f"📝 format 프롬프트: {len(ai1_data['format'])}개 항목")
                 
                 if system_parts:
                     # 메모리 지시사항을 맨 앞에 배치하고 기존 프롬프트 결합
-                    system_prompt = memory_instruction + "\n\n".join(system_parts)
-                    logger.info("✅ ai_prompts.json의 ai1 프롬프트 적용 (메모리 지시사항 포함)")
-                    logger.info(f"📝 프롬프트 길이: {len(system_prompt)} 문자")
-                    logger.info(f"📝 프롬프트 미리보기: {system_prompt[:200]}...")
+                    combined_prompt = "\n\n".join(system_parts)
+                    system_prompt = memory_instruction + combined_prompt
+                    prompt_successfully_loaded = True
+                    logger.info("✅ ai_prompts.json의 ai1 프롬프트 적용 성공 (메모리 지시사항 포함)")
+                    logger.info(f"📝 프롬프트 총 길이: {len(system_prompt)} 문자")
+                    logger.info(f"📝 결합된 기본 프롬프트 길이: {len(combined_prompt)} 문자")
+                    logger.info(f"📝 프롬프트 시작 부분: {system_prompt[:300]}...")
                 else:
                     logger.warning("⚠️ ai1에 사용 가능한 프롬프트가 없습니다")
             
-            # ai2 프롬프트 시도
+            # ai2 프롬프트 시도 (ai1이 실패한 경우)
             elif "ai2" in prompts_data and isinstance(prompts_data["ai2"], dict):
                 ai2_data = prompts_data["ai2"]
+                logger.info(f"📝 ai2 카테고리: {list(ai2_data.keys())}")
+                
                 system_parts = []
                 if "system" in ai2_data and isinstance(ai2_data["system"], list):
                     system_parts.extend(ai2_data["system"])
+                    logger.info(f"📝 ai2 system 프롬프트: {len(ai2_data['system'])}개 항목")
                 if "role" in ai2_data and isinstance(ai2_data["role"], list):
                     system_parts.extend(ai2_data["role"])
+                    logger.info(f"📝 ai2 role 프롬프트: {len(ai2_data['role'])}개 항목")
                 
                 if system_parts:
                     # 메모리 지시사항을 맨 앞에 배치하고 기존 프롬프트 결합
-                    system_prompt = memory_instruction + "\n\n".join(system_parts)
-                    logger.info("✅ ai_prompts.json의 ai2 프롬프트 적용 (메모리 지시사항 포함)")
-                    logger.info(f"📝 프롬프트 길이: {len(system_prompt)} 문자")
+                    combined_prompt = "\n\n".join(system_parts)
+                    system_prompt = memory_instruction + combined_prompt
+                    prompt_successfully_loaded = True
+                    logger.info("✅ ai_prompts.json의 ai2 프롬프트 적용 성공 (메모리 지시사항 포함)")
+                    logger.info(f"📝 프롬프트 총 길이: {len(system_prompt)} 문자")
+                    logger.info(f"📝 결합된 기본 프롬프트 길이: {len(combined_prompt)} 문자")
                 else:
                     logger.warning("⚠️ ai2에 사용 가능한 프롬프트가 없습니다")
             
-            # 다른 AI 프롬프트 시도
+            # 다른 AI 프롬프트 시도 (ai1, ai2가 모두 실패한 경우)
             else:
+                logger.info("📝 ai1, ai2 프롬프트를 찾을 수 없어 다른 AI 프롬프트 검색...")
                 for ai_name, ai_data in prompts_data.items():
+                    logger.info(f"📝 {ai_name} 검사 중...")
                     if isinstance(ai_data, dict) and "system" in ai_data:
                         if isinstance(ai_data["system"], list) and ai_data["system"]:
                             # 메모리 지시사항을 맨 앞에 배치하고 기존 프롬프트 결합
-                            system_prompt = memory_instruction + "\n\n".join(ai_data["system"])
-                            logger.info(f"✅ ai_prompts.json의 {ai_name} 프롬프트 적용 (메모리 지시사항 포함)")
-                            logger.info(f"📝 프롬프트 길이: {len(system_prompt)} 문자")
+                            combined_prompt = "\n\n".join(ai_data["system"])
+                            system_prompt = memory_instruction + combined_prompt
+                            prompt_successfully_loaded = True
+                            logger.info(f"✅ ai_prompts.json의 {ai_name} 프롬프트 적용 성공 (메모리 지시사항 포함)")
+                            logger.info(f"📝 프롬프트 총 길이: {len(system_prompt)} 문자")
+                            logger.info(f"📝 결합된 기본 프롬프트 길이: {len(combined_prompt)} 문자")
                             break
                 else:
                     logger.warning("⚠️ 사용 가능한 AI 프롬프트를 찾을 수 없습니다")
-                    # 기본 프롬프트에도 메모리 지시사항 추가
-                    system_prompt = memory_instruction + system_prompt
         else:
             logger.warning("⚠️ prompts_data가 비어있거나 잘못된 형식입니다")
-            # 기본 프롬프트에도 메모리 지시사항 추가
+        
+        # fallback: 기본 프롬프트에도 메모리 지시사항 추가
+        if not prompt_successfully_loaded:
+            logger.warning("⚠️ 프롬프트 로드 실패 - 기본 프롬프트 사용")
             system_prompt = memory_instruction + system_prompt
         
         logger.info(f"🎯 최종 사용 프롬프트 길이: {len(system_prompt)} 문자")
+        logger.info(f"🎯 프롬프트 로드 성공: {prompt_successfully_loaded}")
+        
+        # 프롬프트 검증: 너무 짧거나 메모리 지시사항만 있는 경우 확인
+        if len(system_prompt) < 200:
+            logger.warning(f"⚠️ 프롬프트가 너무 짧습니다 ({len(system_prompt)} 문자)")
+        
+        if system_prompt == memory_instruction:
+            logger.error("❌ 프롬프트가 메모리 지시사항만 포함하고 있습니다!")
+        
+        # 프롬프트 내용 일부 출력 (디버깅용)
+        logger.info(f"📝 최종 프롬프트 미리보기 (처음 500자):")
+        logger.info(f"{system_prompt[:500]}{'...' if len(system_prompt) > 500 else ''}")
         
         # 4. EORA 응답 생성 - 회상된 기억과 고급 시스템 통합
         eora_response = None
@@ -3223,18 +3260,18 @@ chat_history = {}
 # MongoDB 컬렉션 초기화
 sessions_collection = None
 chat_logs_collection = None
-memory_collection = None
+memories_collection = None
 
 async def initialize_database_collections():
     """데이터베이스 컬렉션 초기화"""
-    global sessions_collection, chat_logs_collection, memory_collection
+    global sessions_collection, chat_logs_collection, memories_collection
     
     try:
         if mongo_client and mongo_client.is_primary:
             db = mongo_client[DATABASE_NAME]
             sessions_collection = db["sessions"]
             chat_logs_collection = db["chat_logs"]
-            memory_collection = db["memories"]
+            memories_collection = db["memories"]
             
             # 기존 인덱스 삭제 (중복 키 오류 해결)
             try:
@@ -3277,26 +3314,93 @@ async def save_to_aura_memory(user_id: str, session_id: str, message: str, respo
         return None
 
 async def recall_from_aura_memory(query: str, user_id: str = None, limit: int = 5, recall_type: str = "normal"):
-    """아우라 메모리 시스템에서 8종 회상 분기 지원"""
+    """아우라 메모리 시스템에서 8종 회상 분기 지원 + 학습된 정보 포함"""
+    all_memories = []
+    
     try:
+        # 1. 아우라 메모리에서 회상
         if AURA_MEMORY_AVAILABLE and aura_memory:
-            # 8종 회상 분기 예시
-            if recall_type == "window":
-                memories = aura_memory.recall_window(query=query, user_id=user_id, limit=limit)
-            elif recall_type == "wisdom":
-                memories = aura_memory.recall_wisdom(query=query, user_id=user_id, limit=limit)
-            elif recall_type == "intuition":
-                memories = aura_memory.recall_intuition(query=query, user_id=user_id, limit=limit)
-            # ... 기타 회상 유형 추가 가능 ...
-            else:
-                memories = aura_memory.recall_memories(query=query, user_id=user_id, limit=limit)
-            logger.info(f"✅ 아우라 메모리 회상({recall_type}) 완료: {len(memories)}개")
-            return memories
-        else:
-            logger.warning("⚠️ 아우라 메모리 시스템을 사용할 수 없습니다")
-            return []
+            try:
+                # 8종 회상 분기 예시
+                if recall_type == "window":
+                    memories = aura_memory.recall_window(query=query, user_id=user_id, limit=limit//2)
+                elif recall_type == "wisdom":
+                    memories = aura_memory.recall_wisdom(query=query, user_id=user_id, limit=limit//2)
+                elif recall_type == "intuition":
+                    memories = aura_memory.recall_intuition(query=query, user_id=user_id, limit=limit//2)
+                # ... 기타 회상 유형 추가 가능 ...
+                else:
+                    memories = aura_memory.recall_memories(query=query, user_id=user_id, limit=limit//2)
+                
+                if memories:
+                    all_memories.extend(memories)
+                    logger.info(f"✅ 아우라 메모리 회상({recall_type}) 완료: {len(memories)}개")
+                    
+            except Exception as aura_error:
+                logger.warning(f"⚠️ 아우라 메모리 회상 실패: {aura_error}")
+        
+        # 2. 학습된 정보에서 추가 회상 (MongoDB memories_collection)
+        try:
+            if memories_collection is not None:
+                # 키워드 기반 검색
+                keywords = query.split()[:5]  # 최대 5개 키워드
+                search_conditions = []
+                
+                for keyword in keywords:
+                    if len(keyword) > 1:  # 너무 짧은 키워드 제외
+                        search_conditions.extend([
+                            {"response": {"$regex": keyword, "$options": "i"}},
+                            {"message": {"$regex": keyword, "$options": "i"}},
+                            {"tags": {"$in": [keyword]}}
+                        ])
+                
+                if search_conditions:
+                    # MongoDB에서 학습된 메모리 검색
+                    search_query = {
+                        "$or": search_conditions,
+                        "memory_type": {"$in": ["learning_material", "dialog_learning"]}
+                    }
+                    
+                    learning_memories = list(memories_collection.find(
+                        search_query,
+                        {"response": 1, "message": 1, "source_file": 1, "timestamp": 1, "_id": 0}
+                    ).sort("timestamp", -1).limit(limit//2))
+                    
+                    if learning_memories:
+                        logger.info(f"✅ 학습 메모리 회상 완료: {len(learning_memories)}개")
+                        
+                        # 아우라 메모리 형식으로 변환
+                        for memory in learning_memories:
+                            class MockMemory:
+                                def __init__(self, content, source="학습자료"):
+                                    self.content = content
+                                    self.message = content
+                                    self.response = content
+                                    self.source = source
+                            
+                            content = memory.get("response", "") or memory.get("message", "")
+                            if content and len(content) > 20:  # 의미있는 내용만
+                                source = memory.get("source_file", "학습자료")
+                                mock_memory = MockMemory(content[:1000], f"📚{source}")  # 1000자로 제한
+                                all_memories.append(mock_memory)
+                                if len(all_memories) >= limit:
+                                    break
+                    else:
+                        logger.info("ℹ️ 해당 쿼리와 관련된 학습 메모리가 없습니다")
+                        
+        except Exception as learning_error:
+            logger.warning(f"⚠️ 학습 메모리 회상 실패: {learning_error}")
+        
+        # 3. 결과 정리
+        total_found = len(all_memories)
+        if total_found > limit:
+            all_memories = all_memories[:limit]
+            
+        logger.info(f"🎯 총 회상 완료: {len(all_memories)}개 (아우라+학습)")
+        return all_memories
+        
     except Exception as e:
-        logger.error(f"❌ 아우라 메모리 회상 실패: {e}")
+        logger.error(f"❌ 전체 메모리 회상 실패: {e}")
         return []
 
 def generate_session_id():
@@ -3898,55 +4002,269 @@ async def get_user_chats(request: Request):
 
 @app.post("/api/admin/learn-file")
 async def learn_file(request: Request, file: UploadFile = File(...)):
+    """관리자 학습 기능 - 파일 업로드 및 아우라 메모리 저장"""
     user = get_current_user(request)
     if not user or not (user.get("is_admin") or user.get("role") == "admin"):
         return JSONResponse({"success": False, "message": "관리자 권한이 필요합니다."}, status_code=403)
+    
     try:
+        # 파일 내용 읽기
         content = await file.read()
         text = content.decode("utf-8", errors="ignore")
-        chunk_size = 5000
-        chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
-        # 실제로는 DB 저장 등 추가 처리 필요
-        return {"success": True, "chunks": len(chunks)}
+        
+        if not text.strip():
+            return {"success": False, "message": "파일 내용이 비어있습니다."}
+        
+        # 텍스트를 적절한 크기로 분할
+        chunk_size = 2000  # 회상에 적합한 크기
+        chunks = []
+        sentences = text.split('. ')
+        current_chunk = ""
+        
+        for sentence in sentences:
+            if len(current_chunk + sentence) < chunk_size:
+                current_chunk += sentence + ". "
+            else:
+                if current_chunk.strip():
+                    chunks.append(current_chunk.strip())
+                current_chunk = sentence + ". "
+        
+        if current_chunk.strip():
+            chunks.append(current_chunk.strip())
+        
+        logger.info(f"📚 파일 {file.filename}을 {len(chunks)}개 chunk로 분할 완료")
+        
+        # 아우라 메모리에 저장
+        saved_memories = []
+        if AURA_MEMORY_AVAILABLE and aura_memory:
+            try:
+                for i, chunk in enumerate(chunks):
+                    # 각 chunk를 개별 메모리로 저장
+                    memory_result = await save_to_aura_memory(
+                        user_id="admin",
+                        session_id=f"admin_learning_{file.filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                        message=f"[학습자료 {i+1}/{len(chunks)}] {file.filename}",
+                        response=chunk
+                    )
+                    saved_memories.append(memory_result)
+                    logger.info(f"✅ 학습 chunk {i+1}/{len(chunks)} 아우라 메모리 저장 완료")
+                
+            except Exception as aura_error:
+                logger.error(f"❌ 아우라 메모리 저장 실패: {aura_error}")
+                # fallback: MongoDB 직접 저장
+                if memories_collection:
+                    try:
+                        for i, chunk in enumerate(chunks):
+                            memory_doc = {
+                                "user_id": "admin",
+                                "session_id": f"admin_learning_{file.filename}",
+                                "message": f"[학습자료 {i+1}/{len(chunks)}] {file.filename}",
+                                "response": chunk,
+                                "timestamp": datetime.now(),
+                                "memory_type": "learning_material",
+                                "importance": 0.9,  # 높은 중요도
+                                "tags": ["학습자료", "관리자업로드", file.filename.split('.')[0]],
+                                "source_file": file.filename
+                            }
+                            result = memories_collection.insert_one(memory_doc)
+                            saved_memories.append(str(result.inserted_id))
+                            logger.info(f"✅ 학습 chunk {i+1}/{len(chunks)} MongoDB 저장 완료 (fallback)")
+                    except Exception as mongo_error:
+                        logger.error(f"❌ MongoDB 저장도 실패: {mongo_error}")
+                        return {"success": False, "message": f"메모리 저장 실패: {str(mongo_error)}"}
+        else:
+            # MongoDB 직접 저장
+            if memories_collection:
+                try:
+                    for i, chunk in enumerate(chunks):
+                        memory_doc = {
+                            "user_id": "admin", 
+                            "session_id": f"admin_learning_{file.filename}",
+                            "message": f"[학습자료 {i+1}/{len(chunks)}] {file.filename}",
+                            "response": chunk,
+                            "timestamp": datetime.now(),
+                            "memory_type": "learning_material",
+                            "importance": 0.9,  # 높은 중요도
+                            "tags": ["학습자료", "관리자업로드", file.filename.split('.')[0]],
+                            "source_file": file.filename
+                        }
+                        result = memories_collection.insert_one(memory_doc)
+                        saved_memories.append(str(result.inserted_id))
+                        logger.info(f"✅ 학습 chunk {i+1}/{len(chunks)} MongoDB 저장 완료")
+                except Exception as mongo_error:
+                    logger.error(f"❌ MongoDB 저장 실패: {mongo_error}")
+                    return {"success": False, "message": f"메모리 저장 실패: {str(mongo_error)}"}
+            else:
+                return {"success": False, "message": "메모리 저장 시스템을 사용할 수 없습니다."}
+        
+        logger.info(f"🎉 학습 완료: {file.filename} -> {len(saved_memories)}개 메모리 저장")
+        
+        return {
+            "success": True, 
+            "message": f"파일 '{file.filename}' 학습 완료!",
+            "chunks": len(chunks),
+            "saved_memories": len(saved_memories),
+            "details": {
+                "filename": file.filename,
+                "total_chunks": len(chunks),
+                "memory_system": "아우라 메모리" if AURA_MEMORY_AVAILABLE else "MongoDB",
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        
     except Exception as e:
-        return {"success": False, "message": str(e)}
+        logger.error(f"❌ 학습 파일 처리 실패: {e}")
+        return {"success": False, "message": f"학습 처리 실패: {str(e)}"}
 
 @app.post("/api/admin/learn-dialog-file")
 async def learn_dialog_file(request: Request, file: UploadFile = File(...)):
+    """관리자 대화 학습 기능 - 대화 파일 업로드 및 아우라 메모리 저장"""
     user = get_current_user(request)
     if not user or not (user.get("is_admin") or user.get("role") == "admin"):
         return JSONResponse({"success": False, "message": "관리자 권한이 필요합니다."}, status_code=403)
+    
     try:
+        # 파일 내용 읽기
         content = await file.read()
         text = content.decode("utf-8", errors="ignore")
-        turns = text.count("\n")  # 실제로는 대화 턴 파싱 필요
-        return {"success": True, "turns": turns}
+        
+        if not text.strip():
+            return {"success": False, "message": "파일 내용이 비어있습니다."}
+        
+        # 대화 턴 파싱 (간단한 형식: "질문\n답변\n\n" 또는 "Q: ... A: ...")
+        dialog_turns = []
+        lines = text.split('\n')
+        current_q = ""
+        current_a = ""
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                if current_q and current_a:
+                    dialog_turns.append({"question": current_q, "answer": current_a})
+                    current_q = ""
+                    current_a = ""
+                continue
+            
+            if line.startswith("Q:") or line.startswith("질문:") or line.startswith("사용자:"):
+                current_q = line.split(":", 1)[1].strip() if ":" in line else line
+            elif line.startswith("A:") or line.startswith("답변:") or line.startswith("AI:") or line.startswith("EORA:"):
+                current_a = line.split(":", 1)[1].strip() if ":" in line else line
+            elif not current_q:
+                current_q = line
+            elif not current_a:
+                current_a = line
+        
+        # 마지막 턴 처리
+        if current_q and current_a:
+            dialog_turns.append({"question": current_q, "answer": current_a})
+        
+        if not dialog_turns:
+            return {"success": False, "message": "대화 턴을 찾을 수 없습니다. 파일 형식을 확인해주세요."}
+        
+        logger.info(f"💬 대화 파일 {file.filename}에서 {len(dialog_turns)}개 대화 턴 추출 완료")
+        
+        # 아우라 메모리에 대화 저장
+        saved_dialogs = []
+        session_id = f"admin_dialog_{file.filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        if AURA_MEMORY_AVAILABLE and aura_memory:
+            try:
+                for i, turn in enumerate(dialog_turns):
+                    # 각 대화 턴을 개별 메모리로 저장
+                    memory_result = await save_to_aura_memory(
+                        user_id="admin",
+                        session_id=session_id,
+                        message=turn["question"],
+                        response=turn["answer"]
+                    )
+                    saved_dialogs.append(memory_result)
+                    logger.info(f"✅ 대화 턴 {i+1}/{len(dialog_turns)} 아우라 메모리 저장 완료")
+                
+            except Exception as aura_error:
+                logger.error(f"❌ 아우라 메모리 저장 실패: {aura_error}")
+                # fallback: MongoDB 직접 저장
+                if memories_collection:
+                    try:
+                        for i, turn in enumerate(dialog_turns):
+                            # 질문 저장
+                            user_doc = {
+                                "user_id": "admin",
+                                "session_id": session_id,
+                                "message": turn["question"],
+                                "response": "",
+                                "role": "user",
+                                "timestamp": datetime.now(),
+                                "memory_type": "dialog_learning",
+                                "importance": 0.8,
+                                "tags": ["학습대화", "관리자업로드", file.filename.split('.')[0]],
+                                "source_file": file.filename
+                            }
+                            # 답변 저장
+                            assistant_doc = {
+                                "user_id": "admin",
+                                "session_id": session_id, 
+                                "message": turn["question"],
+                                "response": turn["answer"],
+                                "role": "assistant",
+                                "timestamp": datetime.now(),
+                                "memory_type": "dialog_learning",
+                                "importance": 0.8,
+                                "tags": ["학습대화", "관리자업로드", file.filename.split('.')[0]],
+                                "source_file": file.filename
+                            }
+                            memories_collection.insert_one(user_doc)
+                            result = memories_collection.insert_one(assistant_doc)
+                            saved_dialogs.append(str(result.inserted_id))
+                            logger.info(f"✅ 대화 턴 {i+1}/{len(dialog_turns)} MongoDB 저장 완료 (fallback)")
+                    except Exception as mongo_error:
+                        logger.error(f"❌ MongoDB 저장도 실패: {mongo_error}")
+                        return {"success": False, "message": f"대화 저장 실패: {str(mongo_error)}"}
+        else:
+            # MongoDB 직접 저장
+            if memories_collection:
+                try:
+                    for i, turn in enumerate(dialog_turns):
+                        # 질문과 답변을 쌍으로 저장
+                        dialog_doc = {
+                            "user_id": "admin",
+                            "session_id": session_id,
+                            "message": turn["question"],
+                            "response": turn["answer"],
+                            "timestamp": datetime.now(),
+                            "memory_type": "dialog_learning",
+                            "importance": 0.8,
+                            "tags": ["학습대화", "관리자업로드", file.filename.split('.')[0]],
+                            "source_file": file.filename
+                        }
+                        result = memories_collection.insert_one(dialog_doc)
+                        saved_dialogs.append(str(result.inserted_id))
+                        logger.info(f"✅ 대화 턴 {i+1}/{len(dialog_turns)} MongoDB 저장 완료")
+                except Exception as mongo_error:
+                    logger.error(f"❌ MongoDB 저장 실패: {mongo_error}")
+                    return {"success": False, "message": f"대화 저장 실패: {str(mongo_error)}"}
+            else:
+                return {"success": False, "message": "메모리 저장 시스템을 사용할 수 없습니다."}
+        
+        logger.info(f"🎉 대화 학습 완료: {file.filename} -> {len(saved_dialogs)}개 대화 저장")
+        
+        return {
+            "success": True,
+            "message": f"대화 파일 '{file.filename}' 학습 완료!",
+            "dialog_turns": len(dialog_turns),
+            "saved_dialogs": len(saved_dialogs),
+            "details": {
+                "filename": file.filename,
+                "total_turns": len(dialog_turns),
+                "memory_system": "아우라 메모리" if AURA_MEMORY_AVAILABLE else "MongoDB",
+                "session_id": session_id,
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        
     except Exception as e:
-        return {"success": False, "message": str(e)}
-
-@app.post("/api/advanced-chat")
-async def advanced_chat_api(request: Request):
-    """
-    EORA 고급 채팅 시스템 API 엔드포인트
-    - body: {"message": "...", "user_id": "..."}
-    """
-    if not ADVANCED_CHAT_AVAILABLE or advanced_chat_system is None:
-        return JSONResponse({"error": "고급 채팅 시스템이 활성화되어 있지 않습니다."}, status_code=503)
-    try:
-        data = await request.json()
-        user_message = data.get("message", "")
-        user_id = data.get("user_id", "anonymous")
-        if not user_message:
-            return JSONResponse({"error": "message는 필수입니다."}, status_code=400)
-        response = await advanced_chat_system.process_message(user_message, user_id)
-        return JSONResponse({
-            "result": "ok",
-            "advanced_chat": True,
-            "response": response
-        })
-    except Exception as e:
-        logger.error(f"고급 채팅 시스템 오류: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
+        logger.error(f"❌ 대화 학습 파일 처리 실패: {e}")
+        return {"success": False, "message": f"대화 학습 처리 실패: {str(e)}"}
 
 # FAISS 및 임베딩 시스템 (지연 로딩 적용)
 FAISS_AVAILABLE = False
