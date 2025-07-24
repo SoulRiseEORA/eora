@@ -45,7 +45,9 @@ logs/
 
 # 채팅 로그
 chat_logs/
-*.json
+# JSON 파일들 (중요한 설정 파일은 개별 관리)
+aura_memory_db.json
+aura_system/config.json
 
 # 데이터베이스
 *.db
