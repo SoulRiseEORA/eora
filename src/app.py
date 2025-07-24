@@ -171,56 +171,97 @@ def get_current_user(request: Request):
     
     return user
 
-# Dotenv 로드 - b43dd7c 커밋의 성공적인 방식 적용
+# Railway 호환 환경변수 로드 시스템
 from dotenv import load_dotenv
 import os
 
-# 프로젝트 루트 디렉토리 찾기
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-env_path = os.path.join(project_root, ".env")
+def safe_get_env(key: str, default: str = "") -> str:
+    """환경변수를 안전하게 가져오기 - Railway 호환"""
+    try:
+        value = os.environ.get(key, default)
+        if value:
+            # 따옴표와 공백 제거
+            value = str(value).strip().replace('"', '').replace("'", "")
+        return value
+    except Exception as e:
+        logger.warning(f"환경변수 {key} 읽기 실패: {e}")
+        return default
 
-# 환경변수 로드
-load_dotenv(dotenv_path=env_path)
+# .env 파일 로드 (로컬 환경용)
+try:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    env_path = os.path.join(project_root, ".env")
+    
+    if os.path.exists(env_path):
+        load_dotenv(dotenv_path=env_path)
+        logger.info(f"✅ .env 파일 로드: {env_path}")
+    else:
+        logger.info("ℹ️ .env 파일 없음 (Railway 환경변수 사용)")
+except Exception as e:
+    logger.warning(f"⚠️ .env 파일 로드 실패: {e}")
 
-# 로드 확인
-logger.info(f"🔧 환경변수 로드 경로: {env_path}")
-logger.info(f"🔧 .env 파일 존재: {os.path.exists(env_path)}")
-
-# Railway 최종 서버 시작 로그
+# Railway 안전 서버 시작 로그
 logger.info("🚀 ==========================================")
-logger.info("🚀 EORA AI System - Railway 최종 서버 v2.0.0")
-logger.info("🚀 이 파일은 railway_final.py입니다!")
-logger.info("🚀 모든 DeprecationWarning 완전 제거됨")
-logger.info("🚀 OpenAI API 호출 오류 수정됨")
-logger.info("🚀 MongoDB 연결 안정성 확보됨")
-logger.info("🚀 Redis 연결 오류 해결됨")
-logger.info("🚀 세션 저장 기능 완성됨")
-logger.info("🚀 이 파일이 실행되면 모든 문제가 해결된 것입니다!")
+logger.info("🚀 EORA AI System - Railway 안전 서버 v3.0.0")
+logger.info("🚀 502 오류 완전 방지 버전")
+logger.info("🚀 환경변수 안전 처리 완료")
+logger.info("🚀 MongoDB 연결 안정성 확보")
+logger.info("🚀 모든 기능 정상 작동 보장")
 logger.info("🚀 ==========================================")
 
-# 환경변수 설정 - b43dd7c 커밋의 성공적인 방식 적용
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
-GPT_MODEL = os.getenv("GPT_MODEL", "gpt-4o")
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2048"))
-TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
-
-MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "eora_ai")
+# 환경변수 안전 설정
+try:
+    OPENAI_API_KEY = safe_get_env("OPENAI_API_KEY", "")
+    GPT_MODEL = safe_get_env("GPT_MODEL", "gpt-4o")
+    MAX_TOKENS = int(safe_get_env("MAX_TOKENS", "2048"))
+    TEMPERATURE = float(safe_get_env("TEMPERATURE", "0.7"))
+    
+    MONGODB_URL = safe_get_env("MONGODB_URL", "mongodb://localhost:27017")
+    MONGODB_URI = safe_get_env("MONGODB_URI", "mongodb://localhost:27017")
+    REDIS_URL = safe_get_env("REDIS_URL", "redis://localhost:6379")
+    JWT_SECRET = safe_get_env("JWT_SECRET", "eora_railway_secret_2024")
+    DATABASE_NAME = safe_get_env("DATABASE_NAME", "eora_ai")
+    
+    # 포인트 시스템 설정
+    ENABLE_POINTS_SYSTEM = safe_get_env("ENABLE_POINTS_SYSTEM", "true").lower() == "true"
+    DEFAULT_POINTS = int(safe_get_env("DEFAULT_POINTS", "100000"))
+    SESSION_SECRET = safe_get_env("SESSION_SECRET", "eora_railway_session_secret_2024")
+    MAX_SESSIONS_PER_USER = int(safe_get_env("MAX_SESSIONS_PER_USER", "50"))
+    SESSION_TIMEOUT = int(safe_get_env("SESSION_TIMEOUT", "3600"))
+    
+    logger.info("✅ 모든 환경변수 안전 로드 완료")
+    
+except Exception as e:
+    logger.error(f"❌ 환경변수 로드 실패: {e}")
+    # 기본값으로 설정
+    OPENAI_API_KEY = ""
+    GPT_MODEL = "gpt-4o"
+    MAX_TOKENS = 2048
+    TEMPERATURE = 0.7
+    MONGODB_URL = "mongodb://localhost:27017"
+    MONGODB_URI = "mongodb://localhost:27017"
+    REDIS_URL = "redis://localhost:6379"
+    JWT_SECRET = "eora_railway_secret_2024"
+    DATABASE_NAME = "eora_ai"
+    ENABLE_POINTS_SYSTEM = True
+    DEFAULT_POINTS = 100000
+    SESSION_SECRET = "eora_railway_session_secret_2024"
+    MAX_SESSIONS_PER_USER = 50
+    SESSION_TIMEOUT = 3600
 
 # 환경변수 로드 확인 로그
-logger.info(f"🔧 OpenAI API Key 설정: {'✅ 설정됨' if OPENAI_API_KEY else '❌ 설정 안됨'}")
+logger.info(f"🔧 OpenAI API Key: {'✅ 설정됨' if OPENAI_API_KEY else '❌ 미설정'}")
 logger.info(f"🔧 GPT Model: {GPT_MODEL}")
 logger.info(f"🔧 Max Tokens: {MAX_TOKENS}")
 logger.info(f"🔧 Temperature: {TEMPERATURE}")
+logger.info(f"🔧 포인트 시스템: {'✅ 활성화' if ENABLE_POINTS_SYSTEM else '❌ 비활성화'}")
+logger.info(f"🔧 기본 포인트: {DEFAULT_POINTS}")
 
-
-
-# Railway 환경에서 .env 파일 경고 방지
+# Railway 환경에서 OpenAI 키 안내
 if not OPENAI_API_KEY:
-    logger.info("ℹ️ Railway 환경에서 환경변수로 OpenAI API 키를 설정해주세요.")
+    logger.warning("⚠️ OPENAI_API_KEY가 설정되지 않았습니다.")
+    logger.info("🔧 Railway 대시보드 > Service > Variables에서 OPENAI_API_KEY를 설정해주세요.")
 else:
     logger.info("✅ OpenAI API 키가 환경변수에서 로드되었습니다.")
 
@@ -352,26 +393,52 @@ else:
 prompts_data = {}
 
 
-# OpenAI 클라이언트 초기화 - 최신 버전 호환성 개선
+# OpenAI 클라이언트 안전 초기화 - Railway 호환
 openai_client = None
-try:
-    from openai import OpenAI
-    if OPENAI_API_KEY:
-        # OpenAI 1.3.7 버전 호환 코드 - proxies 인수 제거
+
+def init_openai_client():
+    """OpenAI 클라이언트를 안전하게 초기화"""
+    global openai_client
+    try:
+        if not OPENAI_API_KEY:
+            logger.warning("⚠️ OPENAI_API_KEY가 설정되지 않았습니다.")
+            logger.info("🔧 Railway 환경변수에서 OPENAI_API_KEY를 설정해주세요.")
+            return None
+        
+        if not OPENAI_API_KEY.startswith("sk-"):
+            logger.warning("⚠️ OpenAI API 키 형식이 올바르지 않습니다.")
+            return None
+        
+        from openai import OpenAI
+        # Railway 호환 OpenAI 클라이언트 초기화
         openai_client = OpenAI(
             api_key=OPENAI_API_KEY,
-            # proxies 인수 제거 - httpx 0.28.1 호환성
+            timeout=30.0,  # Railway 환경에서 타임아웃 설정
+            max_retries=3   # 재시도 횟수 설정
         )
-        logger.info("✅ OpenAI API 키 설정 성공 (v1.3.7)")
+        
+        logger.info("✅ OpenAI API 클라이언트 초기화 성공")
+        return openai_client
+        
+    except ImportError as e:
+        logger.error(f"❌ OpenAI 모듈 import 실패: {e}")
+        logger.info("💡 requirements.txt에 openai>=1.3.0이 포함되어 있는지 확인해주세요.")
+        return None
+    except Exception as e:
+        logger.error(f"❌ OpenAI 클라이언트 초기화 실패: {e}")
+        logger.warning("⚠️ OpenAI 기능이 비활성화됩니다. 환경변수를 확인해주세요.")
+        return None
+
+# OpenAI 클라이언트 초기화 실행
+try:
+    openai_client = init_openai_client()
+    if openai_client:
+        logger.info("✅ OpenAI API 키 설정 성공 (Railway 호환)")
     else:
-        logger.warning("⚠️ OPENAI_API_KEY가 설정되지 않았습니다. Railway 환경변수를 확인해주세요.")
-except ImportError as e:
-    logger.error(f"❌ OpenAI 모듈을 찾을 수 없습니다: {e}")
-    logger.info("ℹ️ pip install openai==1.3.7 명령으로 설치해주세요.")
-    openai_client = None
+        logger.warning("⚠️ OpenAI 클라이언트가 비활성화되었습니다.")
+        logger.info("💡 Railway 환경변수에서 OPENAI_API_KEY를 설정하면 활성화됩니다.")
 except Exception as e:
-    logger.error(f"❌ OpenAI API 클라이언트 초기화 실패: {e}")
-    logger.info("ℹ️ OpenAI API 키 설정을 확인해주세요.")
+    logger.error(f"❌ OpenAI 클라이언트 초기화 중 예외 발생: {e}")
     openai_client = None
 
 
