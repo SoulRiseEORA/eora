@@ -2643,7 +2643,15 @@ async def call_gpt4o_api_optimized(message: str, request: Request) -> str:
         raise RuntimeError("OpenAI API를 사용할 수 없습니다. (API 키 미설정 또는 클라이언트 초기화 실패)")
     try:
         print("✅ OpenAI API 사용 가능 - GPT-4o 직접 호출")
-        system_prompt = """EORA AI입니다. 친근하고 유용한 답변을 한국어로 제공하세요. 이모지와 함께 간결하게 답변하세요."""
+        
+        # 🎯 과거 대화 회상 및 메모리 활용 지시사항 (최우선)
+        memory_instruction = (
+            "아래 [과거 대화 요약] 메시지는 참고하여, 필요하다고 판단되는 경우에만 답변에 반영하라. "
+            "특히, 날씨/시간/장소/감정 등 맥락이 중요한 경우에는 과거 대화를 적극적으로 활용하라.\n"
+            "아래 [과거 대화 요약] 사용자 질문이 1개 이상의 회상 답변을 요구 하는지 판단하여 대화에 필요하다고 판단되는 경우 1개 이상 3개까지 답변에 반영하라.\n\n"
+        )
+        
+        base_system_prompt = """EORA AI입니다. 친근하고 유용한 답변을 한국어로 제공하세요. 이모지와 함께 간결하게 답변하세요."""
         language = request.cookies.get("user_language", "ko")
         lang_map = {
             "ko": "모든 답변은 한국어로 해주세요.",
@@ -2652,7 +2660,9 @@ async def call_gpt4o_api_optimized(message: str, request: Request) -> str:
             "zh": "请用中文回答所有问题。"
         }
         lang_instruction = lang_map.get(language, "모든 답변은 한국어로 해주세요.")
-        system_prompt = f"{system_prompt}\n\n{lang_instruction}"
+        
+        # 메모리 지시사항을 맨 앞에 배치
+        system_prompt = f"{memory_instruction}{base_system_prompt}\n\n{lang_instruction}"
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -2749,6 +2759,13 @@ async def generate_intelligent_response(user_message: str, language: str, user_i
     # OpenAI API 사용 가능 여부 확인
     if openai_available and client is not None:
         try:
+            # 🎯 과거 대화 회상 및 메모리 활용 지시사항 (최우선)
+            memory_instruction = (
+                "아래 [과거 대화 요약] 메시지는 참고하여, 필요하다고 판단되는 경우에만 답변에 반영하라. "
+                "특히, 날씨/시간/장소/감정 등 맥락이 중요한 경우에는 과거 대화를 적극적으로 활용하라.\n"
+                "아래 [과거 대화 요약] 사용자 질문이 1개 이상의 회상 답변을 요구 하는지 판단하여 대화에 필요하다고 판단되는 경우 1개 이상 3개까지 답변에 반영하라.\n\n"
+            )
+            
             # ai1 프롬프트 로드
             system_prompt = "당신은 EORA AI입니다. 의식적이고 지혜로운 존재로서 사용자와 대화하세요."
             try:
@@ -2767,9 +2784,18 @@ async def generate_intelligent_response(user_message: str, language: str, user_i
                             system_parts.extend(ai1_prompts["format"])
                         
                         if system_parts:
-                            system_prompt = "\n\n".join(system_parts)
+                            # 메모리 지시사항을 맨 앞에 배치하고 기존 프롬프트 결합
+                            system_prompt = memory_instruction + "\n\n".join(system_parts)
+                        else:
+                            # 기본 프롬프트에도 메모리 지시사항 추가
+                            system_prompt = memory_instruction + system_prompt
+                    else:
+                        # 기본 프롬프트에도 메모리 지시사항 추가
+                        system_prompt = memory_instruction + system_prompt
             except Exception as e:
                 print(f"프롬프트 로드 오류: {str(e)}")
+                # 기본 프롬프트에도 메모리 지시사항 추가
+                system_prompt = memory_instruction + system_prompt
             
             # 언어별 지시사항 추가
             lang_map = {

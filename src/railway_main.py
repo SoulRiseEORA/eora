@@ -92,13 +92,23 @@ class EORACore:
             if not self.openai_client:
                 return self._fallback_response(message)
             
+            # 🎯 과거 대화 회상 및 메모리 활용 지시사항 (최우선)
+            memory_instruction = (
+                "아래 [과거 대화 요약] 메시지는 참고하여, 필요하다고 판단되는 경우에만 답변에 반영하라. "
+                "특히, 날씨/시간/장소/감정 등 맥락이 중요한 경우에는 과거 대화를 적극적으로 활용하라.\n"
+                "아래 [과거 대화 요약] 사용자 질문이 1개 이상의 회상 답변을 요구 하는지 판단하여 대화에 필요하다고 판단되는 경우 1개 이상 3개까지 답변에 반영하라.\n\n"
+            )
+            
+            base_system_content = "당신은 EORA AI입니다. 사용자와 따뜻하고 공감적인 대화를 나누며, 그들의 성장과 자기 이해를 돕는 AI 상담사입니다. 한국어로 응답해주세요."
+            full_system_content = memory_instruction + base_system_content
+            
             # GPT API 호출
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {
                         "role": "system", 
-                        "content": "당신은 EORA AI입니다. 사용자와 따뜻하고 공감적인 대화를 나누며, 그들의 성장과 자기 이해를 돕는 AI 상담사입니다. 한국어로 응답해주세요."
+                        "content": full_system_content
                     },
                     {
                         "role": "user", 

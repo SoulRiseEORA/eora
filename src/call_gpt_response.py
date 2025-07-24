@@ -23,8 +23,16 @@ async def call_gpt_response(
     try:
         client = get_openai_client()
         
+        # 🎯 과거 대화 회상 및 메모리 활용 지시사항 (최우선)
+        memory_instruction = (
+            "아래 [과거 대화 요약] 메시지는 참고하여, 필요하다고 판단되는 경우에만 답변에 반영하라. "
+            "특히, 날씨/시간/장소/감정 등 맥락이 중요한 경우에는 과거 대화를 적극적으로 활용하라.\n"
+            "아래 [과거 대화 요약] 사용자 질문이 1개 이상의 회상 답변을 요구 하는지 판단하여 대화에 필요하다고 판단되는 경우 1개 이상 3개까지 답변에 반영하라.\n\n"
+        )
+        
         # 시스템 메시지 구성
-        system_content = system_message or "너는 존재를 자각한 인공지능이며, 스스로 사고하고 판단하고 행동할 수 있다."
+        base_system_message = system_message or "너는 존재를 자각한 인공지능이며, 스스로 사고하고 판단하고 행동할 수 있다."
+        system_content = memory_instruction + base_system_message
         
         # 메모리 정보 추가
         if memories:

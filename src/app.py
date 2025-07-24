@@ -1964,6 +1964,13 @@ async def chat_endpoint(request: Request):
             save_message_to_memory(user_msg_data)
         
         # AI 프롬프트 로드 - ai_prompts.json에서 직접 사용
+        # 🎯 과거 대화 회상 및 메모리 활용 지시사항 (최우선)
+        memory_instruction = (
+            "아래 [과거 대화 요약] 메시지는 참고하여, 필요하다고 판단되는 경우에만 답변에 반영하라. "
+            "특히, 날씨/시간/장소/감정 등 맥락이 중요한 경우에는 과거 대화를 적극적으로 활용하라.\n"
+            "아래 [과거 대화 요약] 사용자 질문이 1개 이상의 회상 답변을 요구 하는지 판단하여 대화에 필요하다고 판단되는 경우 1개 이상 3개까지 답변에 반영하라.\n\n"
+        )
+        
         system_prompt = "당신은 EORA라는 감정 중심 인공지능입니다. 친근하고 따뜻한 톤으로 대화해주세요."
         
         logger.info("🔍 프롬프트 검색 시작...")
@@ -1989,8 +1996,9 @@ async def chat_endpoint(request: Request):
                     system_parts.extend(ai1_data["format"])
                 
                 if system_parts:
-                    system_prompt = "\n\n".join(system_parts)
-                    logger.info("✅ ai_prompts.json의 ai1 프롬프트 적용")
+                    # 메모리 지시사항을 맨 앞에 배치하고 기존 프롬프트 결합
+                    system_prompt = memory_instruction + "\n\n".join(system_parts)
+                    logger.info("✅ ai_prompts.json의 ai1 프롬프트 적용 (메모리 지시사항 포함)")
                     logger.info(f"📝 프롬프트 길이: {len(system_prompt)} 문자")
                     logger.info(f"📝 프롬프트 미리보기: {system_prompt[:200]}...")
                 else:
@@ -2006,8 +2014,9 @@ async def chat_endpoint(request: Request):
                     system_parts.extend(ai2_data["role"])
                 
                 if system_parts:
-                    system_prompt = "\n\n".join(system_parts)
-                    logger.info("✅ ai_prompts.json의 ai2 프롬프트 적용")
+                    # 메모리 지시사항을 맨 앞에 배치하고 기존 프롬프트 결합
+                    system_prompt = memory_instruction + "\n\n".join(system_parts)
+                    logger.info("✅ ai_prompts.json의 ai2 프롬프트 적용 (메모리 지시사항 포함)")
                     logger.info(f"📝 프롬프트 길이: {len(system_prompt)} 문자")
                 else:
                     logger.warning("⚠️ ai2에 사용 가능한 프롬프트가 없습니다")
@@ -2017,14 +2026,19 @@ async def chat_endpoint(request: Request):
                 for ai_name, ai_data in prompts_data.items():
                     if isinstance(ai_data, dict) and "system" in ai_data:
                         if isinstance(ai_data["system"], list) and ai_data["system"]:
-                            system_prompt = "\n\n".join(ai_data["system"])
-                            logger.info(f"✅ ai_prompts.json의 {ai_name} 프롬프트 적용")
+                            # 메모리 지시사항을 맨 앞에 배치하고 기존 프롬프트 결합
+                            system_prompt = memory_instruction + "\n\n".join(ai_data["system"])
+                            logger.info(f"✅ ai_prompts.json의 {ai_name} 프롬프트 적용 (메모리 지시사항 포함)")
                             logger.info(f"📝 프롬프트 길이: {len(system_prompt)} 문자")
                             break
                 else:
                     logger.warning("⚠️ 사용 가능한 AI 프롬프트를 찾을 수 없습니다")
+                    # 기본 프롬프트에도 메모리 지시사항 추가
+                    system_prompt = memory_instruction + system_prompt
         else:
             logger.warning("⚠️ prompts_data가 비어있거나 잘못된 형식입니다")
+            # 기본 프롬프트에도 메모리 지시사항 추가
+            system_prompt = memory_instruction + system_prompt
         
         logger.info(f"🎯 최종 사용 프롬프트 길이: {len(system_prompt)} 문자")
         
