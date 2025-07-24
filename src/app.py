@@ -3284,7 +3284,12 @@ async def initialize_database_collections():
             sessions_collection.create_index([("user_id", 1), ("created_at", -1)])
             sessions_collection.create_index([("session_id", 1)], unique=True)  # session_id는 유니크
             chat_logs_collection.create_index([("session_id", 1), ("timestamp", -1)])
-            memory_collection.create_index([("user_id", 1), ("session_id", 1)])
+            memories_collection.create_index([("user_id", 1), ("session_id", 1)])
+            memories_collection.create_index([("memory_type", 1), ("timestamp", -1)])
+            memories_collection.create_index([("tags", 1)])
+            logger.info("✅ chat_logs 인덱스 생성 완료")
+            logger.info("✅ sessions 인덱스 생성 완료") 
+            logger.info("✅ memories 인덱스 생성 완료")
             
             logger.info("✅ MongoDB 컬렉션 초기화 완료")
         else:
@@ -4007,57 +4012,100 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
     if not user or not (user.get("is_admin") or user.get("role") == "admin"):
         return JSONResponse({"success": False, "message": "관리자 권한이 필요합니다."}, status_code=403)
     
+    # 학습 시작 로그
+    logger.info("="*60)
+    logger.info(f"📚 관리자 학습 시작: {file.filename}")
+    logger.info(f"📋 파일 크기: {file.size if hasattr(file, 'size') else '알 수 없음'} bytes")
+    logger.info(f"👤 업로드 사용자: {user.get('email', user.get('user_id', '익명'))}")
+    logger.info("="*60)
+    
     try:
-        # 파일 내용 읽기
+        # 1단계: 파일 내용 읽기
+        logger.info("📖 1단계: 파일 내용 읽기 시작...")
         content = await file.read()
+        raw_size = len(content)
+        logger.info(f"✅ 원본 파일 크기: {raw_size:,} bytes")
+        
         text = content.decode("utf-8", errors="ignore")
+        text_size = len(text)
+        logger.info(f"✅ 텍스트 변환 완료: {text_size:,} 문자")
         
         if not text.strip():
+            logger.error("❌ 파일 내용이 비어있습니다")
             return {"success": False, "message": "파일 내용이 비어있습니다."}
         
-        # 텍스트를 적절한 크기로 분할
+        # 2단계: 텍스트 분할
+        logger.info("✂️ 2단계: 텍스트 분할 시작...")
         chunk_size = 2000  # 회상에 적합한 크기
+        logger.info(f"📏 설정된 chunk 크기: {chunk_size} 문자")
+        
         chunks = []
         sentences = text.split('. ')
-        current_chunk = ""
+        sentence_count = len(sentences)
+        logger.info(f"📝 문장 분할 완료: {sentence_count:,}개 문장")
         
-        for sentence in sentences:
+        current_chunk = ""
+        processed_sentences = 0
+        
+        for i, sentence in enumerate(sentences):
             if len(current_chunk + sentence) < chunk_size:
                 current_chunk += sentence + ". "
             else:
                 if current_chunk.strip():
                     chunks.append(current_chunk.strip())
+                    logger.info(f"✅ Chunk {len(chunks)} 생성 완료 ({len(current_chunk)} 문자)")
                 current_chunk = sentence + ". "
+            
+            processed_sentences += 1
+            if processed_sentences % 100 == 0:
+                logger.info(f"⏳ 문장 처리 진행률: {processed_sentences:,}/{sentence_count:,} ({processed_sentences/sentence_count*100:.1f}%)")
         
         if current_chunk.strip():
             chunks.append(current_chunk.strip())
+            logger.info(f"✅ 마지막 Chunk {len(chunks)} 생성 완료 ({len(current_chunk)} 문자)")
         
-        logger.info(f"📚 파일 {file.filename}을 {len(chunks)}개 chunk로 분할 완료")
+        logger.info(f"🎯 분할 완료: {len(chunks)}개 chunk 생성")
+        logger.info(f"📊 평균 chunk 크기: {sum(len(c) for c in chunks)/len(chunks):.0f} 문자")
         
-        # 아우라 메모리에 저장
+        # 3단계: 메모리 저장
+        logger.info("💾 3단계: 메모리 저장 시작...")
         saved_memories = []
+        session_id = f"admin_learning_{file.filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        logger.info(f"🆔 세션 ID: {session_id}")
+        
         if AURA_MEMORY_AVAILABLE and aura_memory:
+            logger.info("🌀 아우라 메모리 시스템 사용")
             try:
                 for i, chunk in enumerate(chunks):
+                    logger.info(f"💾 아우라 메모리 저장 진행: {i+1}/{len(chunks)} ({(i+1)/len(chunks)*100:.1f}%)")
+                    
                     # 각 chunk를 개별 메모리로 저장
                     memory_result = await save_to_aura_memory(
                         user_id="admin",
-                        session_id=f"admin_learning_{file.filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                        session_id=session_id,
                         message=f"[학습자료 {i+1}/{len(chunks)}] {file.filename}",
                         response=chunk
                     )
                     saved_memories.append(memory_result)
-                    logger.info(f"✅ 학습 chunk {i+1}/{len(chunks)} 아우라 메모리 저장 완료")
+                    
+                    if (i+1) % 5 == 0:  # 5개마다 로그
+                        logger.info(f"✅ 아우라 메모리 저장 진행: {i+1}/{len(chunks)} 완료")
+                
+                logger.info(f"🎉 아우라 메모리 저장 완료: {len(saved_memories)}개")
                 
             except Exception as aura_error:
                 logger.error(f"❌ 아우라 메모리 저장 실패: {aura_error}")
+                logger.info("🔄 MongoDB 직접 저장으로 대체...")
+                
                 # fallback: MongoDB 직접 저장
                 if memories_collection:
                     try:
                         for i, chunk in enumerate(chunks):
+                            logger.info(f"💾 MongoDB 저장 진행: {i+1}/{len(chunks)} ({(i+1)/len(chunks)*100:.1f}%)")
+                            
                             memory_doc = {
                                 "user_id": "admin",
-                                "session_id": f"admin_learning_{file.filename}",
+                                "session_id": session_id,
                                 "message": f"[학습자료 {i+1}/{len(chunks)}] {file.filename}",
                                 "response": chunk,
                                 "timestamp": datetime.now(),
@@ -4068,18 +4116,26 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
                             }
                             result = memories_collection.insert_one(memory_doc)
                             saved_memories.append(str(result.inserted_id))
-                            logger.info(f"✅ 학습 chunk {i+1}/{len(chunks)} MongoDB 저장 완료 (fallback)")
+                            
+                            if (i+1) % 5 == 0:
+                                logger.info(f"✅ MongoDB 저장 진행: {i+1}/{len(chunks)} 완료")
+                        
+                        logger.info(f"🎉 MongoDB 저장 완료: {len(saved_memories)}개 (fallback)")
+                        
                     except Exception as mongo_error:
                         logger.error(f"❌ MongoDB 저장도 실패: {mongo_error}")
                         return {"success": False, "message": f"메모리 저장 실패: {str(mongo_error)}"}
         else:
+            logger.info("🗄️ MongoDB 직접 저장 사용")
             # MongoDB 직접 저장
             if memories_collection:
                 try:
                     for i, chunk in enumerate(chunks):
+                        logger.info(f"💾 MongoDB 저장 진행: {i+1}/{len(chunks)} ({(i+1)/len(chunks)*100:.1f}%)")
+                        
                         memory_doc = {
                             "user_id": "admin", 
-                            "session_id": f"admin_learning_{file.filename}",
+                            "session_id": session_id,
                             "message": f"[학습자료 {i+1}/{len(chunks)}] {file.filename}",
                             "response": chunk,
                             "timestamp": datetime.now(),
@@ -4090,30 +4146,53 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
                         }
                         result = memories_collection.insert_one(memory_doc)
                         saved_memories.append(str(result.inserted_id))
-                        logger.info(f"✅ 학습 chunk {i+1}/{len(chunks)} MongoDB 저장 완료")
+                        
+                        if (i+1) % 5 == 0:
+                            logger.info(f"✅ MongoDB 저장 진행: {i+1}/{len(chunks)} 완료")
+                    
+                    logger.info(f"🎉 MongoDB 저장 완료: {len(saved_memories)}개")
+                    
                 except Exception as mongo_error:
                     logger.error(f"❌ MongoDB 저장 실패: {mongo_error}")
                     return {"success": False, "message": f"메모리 저장 실패: {str(mongo_error)}"}
             else:
+                logger.error("❌ 메모리 저장 시스템을 사용할 수 없습니다")
                 return {"success": False, "message": "메모리 저장 시스템을 사용할 수 없습니다."}
         
-        logger.info(f"🎉 학습 완료: {file.filename} -> {len(saved_memories)}개 메모리 저장")
+        # 최종 결과 로그
+        logger.info("="*60)
+        logger.info("🎉 학습 완료 요약:")
+        logger.info(f"📁 파일명: {file.filename}")
+        logger.info(f"📊 원본 크기: {raw_size:,} bytes")
+        logger.info(f"📝 텍스트 길이: {text_size:,} 문자")
+        logger.info(f"✂️ 생성된 chunk: {len(chunks)}개")
+        logger.info(f"💾 저장된 메모리: {len(saved_memories)}개")
+        logger.info(f"🆔 세션 ID: {session_id}")
+        logger.info(f"🕐 완료 시간: {datetime.now().isoformat()}")
+        logger.info("="*60)
         
         return {
             "success": True, 
-            "message": f"파일 '{file.filename}' 학습 완료!",
+            "message": f"파일 '{file.filename}' 학습 완료! {len(saved_memories)}개 메모리 생성됨",
             "chunks": len(chunks),
             "saved_memories": len(saved_memories),
             "details": {
                 "filename": file.filename,
+                "original_size": raw_size,
+                "text_length": text_size,
                 "total_chunks": len(chunks),
+                "avg_chunk_size": int(sum(len(c) for c in chunks)/len(chunks)) if chunks else 0,
                 "memory_system": "아우라 메모리" if AURA_MEMORY_AVAILABLE else "MongoDB",
+                "session_id": session_id,
                 "timestamp": datetime.now().isoformat()
             }
         }
         
     except Exception as e:
-        logger.error(f"❌ 학습 파일 처리 실패: {e}")
+        logger.error("="*60)
+        logger.error(f"❌ 학습 실패: {file.filename}")
+        logger.error(f"❌ 오류: {str(e)}")
+        logger.error("="*60)
         return {"success": False, "message": f"학습 처리 실패: {str(e)}"}
 
 @app.post("/api/admin/learn-dialog-file")
@@ -4123,54 +4202,104 @@ async def learn_dialog_file(request: Request, file: UploadFile = File(...)):
     if not user or not (user.get("is_admin") or user.get("role") == "admin"):
         return JSONResponse({"success": False, "message": "관리자 권한이 필요합니다."}, status_code=403)
     
+    # 대화 학습 시작 로그
+    logger.info("="*60)
+    logger.info(f"💬 관리자 대화 학습 시작: {file.filename}")
+    logger.info(f"📋 파일 크기: {file.size if hasattr(file, 'size') else '알 수 없음'} bytes")
+    logger.info(f"👤 업로드 사용자: {user.get('email', user.get('user_id', '익명'))}")
+    logger.info("="*60)
+    
     try:
-        # 파일 내용 읽기
+        # 1단계: 파일 내용 읽기
+        logger.info("📖 1단계: 대화 파일 내용 읽기 시작...")
         content = await file.read()
+        raw_size = len(content)
+        logger.info(f"✅ 원본 파일 크기: {raw_size:,} bytes")
+        
         text = content.decode("utf-8", errors="ignore")
+        text_size = len(text)
+        logger.info(f"✅ 텍스트 변환 완료: {text_size:,} 문자")
         
         if not text.strip():
+            logger.error("❌ 파일 내용이 비어있습니다")
             return {"success": False, "message": "파일 내용이 비어있습니다."}
         
-        # 대화 턴 파싱 (간단한 형식: "질문\n답변\n\n" 또는 "Q: ... A: ...")
+        # 2단계: 대화 턴 파싱
+        logger.info("🔍 2단계: 대화 턴 파싱 시작...")
         dialog_turns = []
         lines = text.split('\n')
+        total_lines = len(lines)
+        logger.info(f"📝 총 라인 수: {total_lines:,}개")
+        
         current_q = ""
         current_a = ""
+        processed_lines = 0
+        empty_lines = 0
         
-        for line in lines:
+        for line_num, line in enumerate(lines, 1):
             line = line.strip()
+            processed_lines += 1
+            
             if not line:
+                empty_lines += 1
                 if current_q and current_a:
                     dialog_turns.append({"question": current_q, "answer": current_a})
+                    logger.info(f"✅ 대화 턴 {len(dialog_turns)} 파싱 완료 - Q: {current_q[:50]}...")
                     current_q = ""
                     current_a = ""
                 continue
             
+            # 다양한 대화 형식 지원
             if line.startswith("Q:") or line.startswith("질문:") or line.startswith("사용자:"):
                 current_q = line.split(":", 1)[1].strip() if ":" in line else line
+                logger.info(f"🔸 라인 {line_num}: 질문 감지 - {current_q[:30]}...")
             elif line.startswith("A:") or line.startswith("답변:") or line.startswith("AI:") or line.startswith("EORA:"):
                 current_a = line.split(":", 1)[1].strip() if ":" in line else line
+                logger.info(f"🔹 라인 {line_num}: 답변 감지 - {current_a[:30]}...")
             elif not current_q:
                 current_q = line
+                logger.info(f"🔸 라인 {line_num}: 질문으로 처리 - {current_q[:30]}...")
             elif not current_a:
                 current_a = line
+                logger.info(f"🔹 라인 {line_num}: 답변으로 처리 - {current_a[:30]}...")
+            
+            # 진행률 로그 (100라인마다)
+            if processed_lines % 100 == 0:
+                logger.info(f"⏳ 라인 처리 진행률: {processed_lines:,}/{total_lines:,} ({processed_lines/total_lines*100:.1f}%)")
         
         # 마지막 턴 처리
         if current_q and current_a:
             dialog_turns.append({"question": current_q, "answer": current_a})
+            logger.info(f"✅ 마지막 대화 턴 {len(dialog_turns)} 파싱 완료")
         
         if not dialog_turns:
+            logger.error("❌ 대화 턴을 찾을 수 없습니다")
+            logger.info("💡 지원되는 형식:")
+            logger.info("   - Q: 질문 \\n A: 답변")
+            logger.info("   - 질문: 내용 \\n 답변: 내용") 
+            logger.info("   - 사용자: 질문 \\n AI: 답변")
+            logger.info("   - 줄바꿈으로 구분된 질문-답변 쌍")
             return {"success": False, "message": "대화 턴을 찾을 수 없습니다. 파일 형식을 확인해주세요."}
         
-        logger.info(f"💬 대화 파일 {file.filename}에서 {len(dialog_turns)}개 대화 턴 추출 완료")
+        logger.info(f"🎯 대화 파싱 완료:")
+        logger.info(f"   📝 처리된 라인: {processed_lines:,}개")
+        logger.info(f"   🔳 빈 라인: {empty_lines:,}개")
+        logger.info(f"   💬 대화 턴: {len(dialog_turns)}개")
+        logger.info(f"   📊 평균 질문 길이: {sum(len(t['question']) for t in dialog_turns)/len(dialog_turns):.0f} 문자")
+        logger.info(f"   📊 평균 답변 길이: {sum(len(t['answer']) for t in dialog_turns)/len(dialog_turns):.0f} 문자")
         
-        # 아우라 메모리에 대화 저장
+        # 3단계: 아우라 메모리에 대화 저장
+        logger.info("💾 3단계: 대화 메모리 저장 시작...")
         saved_dialogs = []
         session_id = f"admin_dialog_{file.filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        logger.info(f"🆔 세션 ID: {session_id}")
         
         if AURA_MEMORY_AVAILABLE and aura_memory:
+            logger.info("🌀 아우라 메모리 시스템 사용")
             try:
                 for i, turn in enumerate(dialog_turns):
+                    logger.info(f"💾 아우라 메모리 저장 진행: {i+1}/{len(dialog_turns)} ({(i+1)/len(dialog_turns)*100:.1f}%)")
+                    
                     # 각 대화 턴을 개별 메모리로 저장
                     memory_result = await save_to_aura_memory(
                         user_id="admin",
@@ -4179,14 +4308,22 @@ async def learn_dialog_file(request: Request, file: UploadFile = File(...)):
                         response=turn["answer"]
                     )
                     saved_dialogs.append(memory_result)
-                    logger.info(f"✅ 대화 턴 {i+1}/{len(dialog_turns)} 아우라 메모리 저장 완료")
+                    
+                    if (i+1) % 5 == 0:  # 5개마다 로그
+                        logger.info(f"✅ 아우라 메모리 저장 진행: {i+1}/{len(dialog_turns)} 완료")
+                
+                logger.info(f"🎉 아우라 메모리 저장 완료: {len(saved_dialogs)}개")
                 
             except Exception as aura_error:
                 logger.error(f"❌ 아우라 메모리 저장 실패: {aura_error}")
+                logger.info("🔄 MongoDB 직접 저장으로 대체...")
+                
                 # fallback: MongoDB 직접 저장
                 if memories_collection:
                     try:
                         for i, turn in enumerate(dialog_turns):
+                            logger.info(f"💾 MongoDB 저장 진행: {i+1}/{len(dialog_turns)} ({(i+1)/len(dialog_turns)*100:.1f}%)")
+                            
                             # 질문 저장
                             user_doc = {
                                 "user_id": "admin",
@@ -4216,15 +4353,23 @@ async def learn_dialog_file(request: Request, file: UploadFile = File(...)):
                             memories_collection.insert_one(user_doc)
                             result = memories_collection.insert_one(assistant_doc)
                             saved_dialogs.append(str(result.inserted_id))
-                            logger.info(f"✅ 대화 턴 {i+1}/{len(dialog_turns)} MongoDB 저장 완료 (fallback)")
+                            
+                            if (i+1) % 5 == 0:
+                                logger.info(f"✅ MongoDB 저장 진행: {i+1}/{len(dialog_turns)} 완료")
+                        
+                        logger.info(f"🎉 MongoDB 저장 완료: {len(saved_dialogs)}개 (fallback)")
+                        
                     except Exception as mongo_error:
                         logger.error(f"❌ MongoDB 저장도 실패: {mongo_error}")
                         return {"success": False, "message": f"대화 저장 실패: {str(mongo_error)}"}
         else:
+            logger.info("🗄️ MongoDB 직접 저장 사용")
             # MongoDB 직접 저장
             if memories_collection:
                 try:
                     for i, turn in enumerate(dialog_turns):
+                        logger.info(f"💾 MongoDB 저장 진행: {i+1}/{len(dialog_turns)} ({(i+1)/len(dialog_turns)*100:.1f}%)")
+                        
                         # 질문과 답변을 쌍으로 저장
                         dialog_doc = {
                             "user_id": "admin",
@@ -4239,23 +4384,45 @@ async def learn_dialog_file(request: Request, file: UploadFile = File(...)):
                         }
                         result = memories_collection.insert_one(dialog_doc)
                         saved_dialogs.append(str(result.inserted_id))
-                        logger.info(f"✅ 대화 턴 {i+1}/{len(dialog_turns)} MongoDB 저장 완료")
+                        
+                        if (i+1) % 5 == 0:
+                            logger.info(f"✅ MongoDB 저장 진행: {i+1}/{len(dialog_turns)} 완료")
+                    
+                    logger.info(f"🎉 MongoDB 저장 완료: {len(saved_dialogs)}개")
+                    
                 except Exception as mongo_error:
                     logger.error(f"❌ MongoDB 저장 실패: {mongo_error}")
                     return {"success": False, "message": f"대화 저장 실패: {str(mongo_error)}"}
             else:
+                logger.error("❌ 메모리 저장 시스템을 사용할 수 없습니다")
                 return {"success": False, "message": "메모리 저장 시스템을 사용할 수 없습니다."}
         
-        logger.info(f"🎉 대화 학습 완료: {file.filename} -> {len(saved_dialogs)}개 대화 저장")
+        # 최종 결과 로그
+        logger.info("="*60)
+        logger.info("🎉 대화 학습 완료 요약:")
+        logger.info(f"📁 파일명: {file.filename}")
+        logger.info(f"📊 원본 크기: {raw_size:,} bytes")
+        logger.info(f"📝 텍스트 길이: {text_size:,} 문자")
+        logger.info(f"📝 총 라인: {total_lines:,}개")
+        logger.info(f"💬 대화 턴: {len(dialog_turns)}개")
+        logger.info(f"💾 저장된 대화: {len(saved_dialogs)}개")
+        logger.info(f"🆔 세션 ID: {session_id}")
+        logger.info(f"🕐 완료 시간: {datetime.now().isoformat()}")
+        logger.info("="*60)
         
         return {
             "success": True,
-            "message": f"대화 파일 '{file.filename}' 학습 완료!",
+            "message": f"대화 파일 '{file.filename}' 학습 완료! {len(saved_dialogs)}개 대화 생성됨",
             "dialog_turns": len(dialog_turns),
             "saved_dialogs": len(saved_dialogs),
             "details": {
                 "filename": file.filename,
+                "original_size": raw_size,
+                "text_length": text_size,
+                "total_lines": total_lines,
                 "total_turns": len(dialog_turns),
+                "avg_question_length": int(sum(len(t['question']) for t in dialog_turns)/len(dialog_turns)) if dialog_turns else 0,
+                "avg_answer_length": int(sum(len(t['answer']) for t in dialog_turns)/len(dialog_turns)) if dialog_turns else 0,
                 "memory_system": "아우라 메모리" if AURA_MEMORY_AVAILABLE else "MongoDB",
                 "session_id": session_id,
                 "timestamp": datetime.now().isoformat()
@@ -4263,7 +4430,10 @@ async def learn_dialog_file(request: Request, file: UploadFile = File(...)):
         }
         
     except Exception as e:
-        logger.error(f"❌ 대화 학습 파일 처리 실패: {e}")
+        logger.error("="*60)
+        logger.error(f"❌ 대화 학습 실패: {file.filename}")
+        logger.error(f"❌ 오류: {str(e)}")
+        logger.error("="*60)
         return {"success": False, "message": f"대화 학습 처리 실패: {str(e)}"}
 
 # FAISS 및 임베딩 시스템 (지연 로딩 적용)
@@ -4362,4 +4532,3 @@ def get_cached_mongodb_connection():
     client = try_mongodb_connection()
     if client:
         mongodb_connection_cache = client
-    return client

@@ -1034,54 +1034,215 @@
         document.getElementById('aiSelect').addEventListener('change', loadPrompt);
         document.getElementById('promptType').addEventListener('change', loadPrompt);
 
-        // 학습하기 파일 업로드 및 학습
+        // 학습하기 파일 업로드 및 학습 (상세 로그 개선)
         const learningForm = document.getElementById('learningForm');
         if (learningForm) {
             learningForm.onsubmit = async function (e) {
                 e.preventDefault();
                 const files = document.getElementById('learningFile').files;
                 if (!files.length) return;
+
                 const log = document.getElementById('learningLog');
-                log.innerHTML = '업로드 및 학습 중...';
+                log.innerHTML = `
+                    <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">📚 파일 학습 시작</h3>
+                        <p style="margin: 0; color: #7f8c8d;">선택된 파일: ${files.length}개</p>
+                    </div>
+                    <div id="learningProgress" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fafafa;"></div>
+                `;
+
+                const progressDiv = document.getElementById('learningProgress');
+
                 for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const fileSize = (file.size / 1024).toFixed(1);
+
+                    // 파일 처리 시작 로그
+                    progressDiv.innerHTML += `
+                        <div style="border-left: 4px solid #3498db; padding-left: 10px; margin: 10px 0;">
+                            <strong>📁 ${file.name}</strong> (${fileSize} KB)<br>
+                            <span style="color: #7f8c8d;">⏳ 업로드 및 분석 시작...</span>
+                        </div>
+                    `;
+                    progressDiv.scrollTop = progressDiv.scrollHeight;
+
                     const formData = new FormData();
-                    formData.append('file', files[i]);
+                    formData.append('file', file);
+
+                    const startTime = Date.now();
+
                     try {
                         const res = await fetch('/api/admin/learn-file', { method: 'POST', body: formData });
                         const data = await res.json();
+                        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
                         if (data.success) {
-                            log.innerHTML += `<div>✅ ${files[i].name}: ${data.chunks}개 청크 학습 완료</div>`;
+                            const details = data.details || {};
+                            progressDiv.innerHTML += `
+                                <div style="border-left: 4px solid #27ae60; padding-left: 10px; margin: 10px 0; background: #f8fff8;">
+                                    <strong>✅ ${file.name} 학습 완료</strong><br>
+                                    <div style="font-size: 0.9em; color: #27ae60; margin-top: 5px;">
+                                        📊 <strong>학습 결과:</strong><br>
+                                        • 텍스트 길이: ${details.text_length?.toLocaleString() || '알 수 없음'} 문자<br>
+                                        • 생성된 청크: ${data.chunks || 0}개<br>
+                                        • 저장된 메모리: ${data.saved_memories || 0}개<br>
+                                        • 평균 청크 크기: ${details.avg_chunk_size || '알 수 없음'} 문자<br>
+                                        • 메모리 시스템: ${details.memory_system || '알 수 없음'}<br>
+                                        • 처리 시간: ${duration}초<br>
+                                        • 세션 ID: <code style="background: #eee; padding: 2px 4px; border-radius: 3px;">${details.session_id || '알 수 없음'}</code>
+                                    </div>
+                                    <div style="margin-top: 8px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 0.85em;">
+                                        💡 <strong>성공:</strong> ${data.message}
+                                    </div>
+                                </div>
+                            `;
                         } else {
-                            log.innerHTML += `<div>❌ ${files[i].name}: ${data.message || '오류'}</div>`;
+                            progressDiv.innerHTML += `
+                                <div style="border-left: 4px solid #e74c3c; padding-left: 10px; margin: 10px 0; background: #fff8f8;">
+                                    <strong>❌ ${file.name} 학습 실패</strong><br>
+                                    <div style="color: #e74c3c; margin-top: 5px; padding: 8px; background: #ffeaea; border-radius: 4px;">
+                                        <strong>오류:</strong> ${data.message || '알 수 없는 오류'}
+                                    </div>
+                                    <div style="color: #7f8c8d; margin-top: 5px;">
+                                        처리 시간: ${duration}초
+                                    </div>
+                                </div>
+                            `;
                         }
                     } catch (err) {
-                        log.innerHTML += `<div>❌ ${files[i].name}: 네트워크 오류</div>`;
+                        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                        progressDiv.innerHTML += `
+                            <div style="border-left: 4px solid #e74c3c; padding-left: 10px; margin: 10px 0; background: #fff8f8;">
+                                <strong>❌ ${file.name} 네트워크 오류</strong><br>
+                                <div style="color: #e74c3c; margin-top: 5px; padding: 8px; background: #ffeaea; border-radius: 4px;">
+                                    <strong>오류:</strong> 서버 연결 실패 - ${err.message}
+                                </div>
+                                <div style="color: #7f8c8d; margin-top: 5px;">
+                                    시도 시간: ${duration}초
+                                </div>
+                            </div>
+                        `;
                     }
+
+                    progressDiv.scrollTop = progressDiv.scrollHeight;
                 }
+
+                // 전체 완료 로그
+                progressDiv.innerHTML += `
+                    <div style="border: 2px solid #3498db; padding: 15px; margin: 15px 0; background: #f0f8ff; border-radius: 8px;">
+                        <h4 style="margin: 0 0 10px 0; color: #2c3e50;">🎉 전체 학습 완료</h4>
+                        <p style="margin: 0; color: #7f8c8d;">
+                            총 ${files.length}개 파일 처리 완료<br>
+                            💡 <strong>확인:</strong> 콘솔 로그에서 더 상세한 학습 과정을 확인할 수 있습니다.
+                        </p>
+                    </div>
+                `;
+                progressDiv.scrollTop = progressDiv.scrollHeight;
             };
         }
-        // 첨부파일학습(대화)
+        // 첨부파일학습(대화) - 상세 로그 개선
         const dialogLearningForm = document.getElementById('dialogLearningForm');
         if (dialogLearningForm) {
             dialogLearningForm.onsubmit = async function (e) {
                 e.preventDefault();
                 const file = document.getElementById('dialogLearningFile').files[0];
                 if (!file) return;
+
+                const fileSize = (file.size / 1024).toFixed(1);
                 const log = document.getElementById('dialogLearningLog');
-                log.innerHTML = '업로드 및 학습 중...';
+
+                log.innerHTML = `
+                    <div style="background: #f0fff0; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">💬 대화 학습 시작</h3>
+                        <p style="margin: 0; color: #7f8c8d;">파일: ${file.name} (${fileSize} KB)</p>
+                    </div>
+                    <div id="dialogProgress" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fafafa;">
+                        <div style="border-left: 4px solid #3498db; padding-left: 10px; margin: 10px 0;">
+                            <strong>📁 ${file.name}</strong><br>
+                            <span style="color: #7f8c8d;">⏳ 대화 파일 분석 중...</span>
+                        </div>
+                    </div>
+                `;
+
+                const progressDiv = document.getElementById('dialogProgress');
                 const formData = new FormData();
                 formData.append('file', file);
+
+                const startTime = Date.now();
+
                 try {
                     const res = await fetch('/api/admin/learn-dialog-file', { method: 'POST', body: formData });
                     const data = await res.json();
+                    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
                     if (data.success) {
-                        log.innerHTML += `<div>✅ ${file.name}: 대화 ${data.turns}턴 학습 완료</div>`;
+                        const details = data.details || {};
+                        progressDiv.innerHTML += `
+                            <div style="border-left: 4px solid #27ae60; padding-left: 10px; margin: 10px 0; background: #f8fff8;">
+                                <strong>✅ ${file.name} 대화 학습 완료</strong><br>
+                                <div style="font-size: 0.9em; color: #27ae60; margin-top: 5px;">
+                                    📊 <strong>학습 결과:</strong><br>
+                                    • 텍스트 길이: ${details.text_length?.toLocaleString() || '알 수 없음'} 문자<br>
+                                    • 총 라인: ${details.total_lines?.toLocaleString() || '알 수 없음'}개<br>
+                                    • 대화 턴: ${data.dialog_turns || 0}개<br>
+                                    • 저장된 대화: ${data.saved_dialogs || 0}개<br>
+                                    • 평균 질문 길이: ${details.avg_question_length || '알 수 없음'} 문자<br>
+                                    • 평균 답변 길이: ${details.avg_answer_length || '알 수 없음'} 문자<br>
+                                    • 메모리 시스템: ${details.memory_system || '알 수 없음'}<br>
+                                    • 처리 시간: ${duration}초<br>
+                                    • 세션 ID: <code style="background: #eee; padding: 2px 4px; border-radius: 3px;">${details.session_id || '알 수 없음'}</code>
+                                </div>
+                                <div style="margin-top: 8px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 0.85em;">
+                                    💡 <strong>성공:</strong> ${data.message}
+                                </div>
+                            </div>
+                        `;
                     } else {
-                        log.innerHTML += `<div>❌ ${file.name}: ${data.message || '오류'}</div>`;
+                        progressDiv.innerHTML += `
+                            <div style="border-left: 4px solid #e74c3c; padding-left: 10px; margin: 10px 0; background: #fff8f8;">
+                                <strong>❌ ${file.name} 대화 학습 실패</strong><br>
+                                <div style="color: #e74c3c; margin-top: 5px; padding: 8px; background: #ffeaea; border-radius: 4px;">
+                                    <strong>오류:</strong> ${data.message || '알 수 없는 오류'}
+                                </div>
+                                <div style="color: #7f8c8d; margin-top: 5px;">
+                                    처리 시간: ${duration}초
+                                </div>
+                                <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; font-size: 0.85em; color: #856404;">
+                                    💡 <strong>지원 형식:</strong><br>
+                                    • Q: 질문 \\n A: 답변<br>
+                                    • 질문: 내용 \\n 답변: 내용<br>
+                                    • 사용자: 질문 \\n AI: 답변<br>
+                                    • 줄바꿈으로 구분된 질문-답변 쌍
+                                </div>
+                            </div>
+                        `;
                     }
                 } catch (err) {
-                    log.innerHTML += `<div>❌ ${file.name}: 네트워크 오류</div>`;
+                    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                    progressDiv.innerHTML += `
+                        <div style="border-left: 4px solid #e74c3c; padding-left: 10px; margin: 10px 0; background: #fff8f8;">
+                            <strong>❌ ${file.name} 네트워크 오류</strong><br>
+                            <div style="color: #e74c3c; margin-top: 5px; padding: 8px; background: #ffeaea; border-radius: 4px;">
+                                <strong>오류:</strong> 서버 연결 실패 - ${err.message}
+                            </div>
+                            <div style="color: #7f8c8d; margin-top: 5px;">
+                                시도 시간: ${duration}초
+                            </div>
+                        </div>
+                    `;
                 }
+
+                // 완료 로그
+                progressDiv.innerHTML += `
+                    <div style="border: 2px solid #27ae60; padding: 15px; margin: 15px 0; background: #f0fff0; border-radius: 8px;">
+                        <h4 style="margin: 0 0 10px 0; color: #2c3e50;">🎉 대화 학습 완료</h4>
+                        <p style="margin: 0; color: #7f8c8d;">
+                            대화 파일 처리 완료<br>
+                            💡 <strong>확인:</strong> 콘솔 로그에서 더 상세한 대화 파싱 과정을 확인할 수 있습니다.
+                        </p>
+                    </div>
+                `;
+                progressDiv.scrollTop = progressDiv.scrollHeight;
             };
         }
     </script>
