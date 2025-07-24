@@ -1,29 +1,22 @@
 #!/bin/bash
-
-# Railway 배포용 시작 스크립트
-echo "🚀 Railway 배포 시작 스크립트 실행 중..."
+echo "🚀 Railway 안전 서버 시작"
+echo "================================================="
 
 # 환경변수 확인
-echo "🔍 환경변수 확인:"
-echo "  PORT: ${PORT:-8080}"
-echo "  OPENAI_API_KEY: ${OPENAI_API_KEY:+설정됨}"
-echo "  MONGODB_URI: ${MONGODB_URI:+설정됨}"
+echo "📍 포트: ${PORT:-8080}"
+echo "🌍 환경: ${RAILWAY_ENVIRONMENT:-production}"
 
-# app.py 파일 존재 확인
-if [ ! -f "app.py" ]; then
-    echo "❌ app.py 파일이 존재하지 않습니다!"
-    exit 1
-fi
+# Python 경로 확인
+which python3 2>/dev/null && PYTHON_CMD="python3" || PYTHON_CMD="python"
+echo "🐍 Python 명령어: $PYTHON_CMD"
 
-echo "✅ app.py 파일 확인 완료"
+# 작업 디렉토리 확인
+echo "📁 작업 디렉토리: $(pwd)"
+echo "📄 파일 목록:"
+ls -la | head -10
 
-# 포트 설정 (기본값 8080)
-PORT=${PORT:-8080}
-HOST="0.0.0.0"
+echo "================================================="
+echo "🚀 Railway 안전 서버 실행 중..."
 
-echo "📍 호스트: $HOST"
-echo "🔌 포트: $PORT"
-
-# uvicorn 서버 시작
-echo "🚀 uvicorn 서버 시작..."
-exec python -m uvicorn app:app --host $HOST --port $PORT --workers 1 
+# 안전한 서버 실행
+exec $PYTHON_CMD railway_safe_server.py 
