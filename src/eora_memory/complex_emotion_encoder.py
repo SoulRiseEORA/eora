@@ -9,6 +9,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 from pymongo import MongoClient
 import json
 
+# Railway 최적화된 MongoDB 연결
+try:
+    from mongodb_config import get_optimized_mongodb_connection
+except ImportError:
+    def get_optimized_mongodb_connection():
+        return MongoClient("mongodb://localhost:27017")
+
 # ===== 추가된 3줄 =====
 SRC_DIR  = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 kw_json  = os.path.join(SRC_DIR, "emotion_system", "emotion_keywords_map.json")
@@ -18,7 +25,7 @@ kw_json  = os.path.join(SRC_DIR, "emotion_system", "emotion_keywords_map.json")
 with open(kw_json, "r", encoding="utf-8") as f:
     EMOTION_KEYWORDS = json.load(f)
 
-mongo_client = MongoClient("mongodb://localhost:27017")
+mongo_client = get_optimized_mongodb_connection()
 db = mongo_client["aura_memory"]
 collection = db["memory_atoms"]
 
