@@ -370,15 +370,34 @@ def try_mongodb_connection():
             clean_url = clean_mongodb_url(url)
             print(f"[MongoDB 연결 디버깅] 실제 연결에 사용되는 URL: {clean_url}")
             
-            # 빠른 연결 옵션
-            client = MongoClient(
-                clean_url, 
-                serverSelectionTimeoutMS=timeout,
-                connectTimeoutMS=timeout,
-                socketTimeoutMS=timeout,
-                maxPoolSize=10,
-                minPoolSize=1
-            )
+            # Railway 환경 최적화된 연결 옵션
+            is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT") or 
+                             os.getenv("RAILWAY_PROJECT_ID") or 
+                             os.getenv("RAILWAY_SERVICE_ID"))
+            
+            # Railway 환경에서는 더 빠른 타임아웃과 작은 풀 크기 사용
+            if is_railway:
+                client = MongoClient(
+                    clean_url, 
+                    serverSelectionTimeoutMS=1000,  # 1초로 단축
+                    connectTimeoutMS=1000,
+                    socketTimeoutMS=1000,
+                    maxPoolSize=5,  # Railway에서는 작은 풀 크기
+                    minPoolSize=1,
+                    maxIdleTimeMS=30000,  # 30초 후 연결 해제
+                    waitQueueTimeoutMS=2000,  # 2초 대기
+                    retryWrites=True,
+                    retryReads=True
+                )
+            else:
+                client = MongoClient(
+                    clean_url, 
+                    serverSelectionTimeoutMS=timeout,
+                    connectTimeoutMS=timeout,
+                    socketTimeoutMS=timeout,
+                    maxPoolSize=10,
+                    minPoolSize=1
+                )
             
             client.admin.command('ping')
             logger.info(f"✅ MongoDB 연결 성공: {i}/{len(urls_to_try)}")
@@ -400,9 +419,43 @@ def try_mongodb_connection():
     print("[MongoDB 연결 디버깅] 모든 연결 시도 실패!")
     return None
 
-# MongoDB 연결 시도
+# Railway 성능 최적화 모듈 import
+try:
+    from railway_performance_optimizer import performance_optimizer, initialize_railway_optimizations
+    RAILWAY_OPTIMIZATION_AVAILABLE = True
+    logger.info("✅ Railway 성능 최적화 모듈 로드 성공")
+except ImportError:
+    RAILWAY_OPTIMIZATION_AVAILABLE = False
+    logger.warning("⚠️ Railway 성능 최적화 모듈을 찾을 수 없습니다.")
+
+# MongoDB 연결 시도 (Railway 최적화 적용)
 global db, users_collection
-client = try_mongodb_connection()
+if RAILWAY_OPTIMIZATION_AVAILABLE:
+    # Railway 최적화된 연결 사용
+    client = None
+    try:
+        # 비동기 최적화 초기화
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(initialize_railway_optimizations())
+        
+        # 최적화된 MongoDB 연결
+        client = loop.run_until_complete(performance_optimizer.optimize_mongodb_connection())
+        loop.close()
+        
+        if client:
+            logger.info("✅ Railway 최적화된 MongoDB 연결 성공")
+        else:
+            logger.warning("⚠️ Railway 최적화 연결 실패, 기본 연결 시도")
+            client = try_mongodb_connection()
+    except Exception as e:
+        logger.error(f"❌ Railway 최적화 실패: {e}")
+        client = try_mongodb_connection()
+else:
+    # 기본 연결 사용
+    client = try_mongodb_connection()
+
 if client is None:
     logger.error("❌ 모든 MongoDB 연결 시도 실패")
     print("[MongoDB 연결 디버깅] client=None, db/users_collection 모두 None으로 설정")
@@ -4513,14 +4566,33 @@ def get_cached_mongodb_connection():
         # 이전에 성공한 URL로 빠르게 재연결 시도
         try:
             logger.info("🔄 이전 성공 URL로 빠른 재연결 시도...")
-            client = MongoClient(
-                successful_mongodb_url,
-                serverSelectionTimeoutMS=1000,  # 매우 빠른 타임아웃
-                connectTimeoutMS=1000,
-                socketTimeoutMS=1000,
-                maxPoolSize=10,
-                minPoolSize=1
-            )
+            # Railway 환경 최적화된 캐시 연결
+            is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT") or 
+                             os.getenv("RAILWAY_PROJECT_ID") or 
+                             os.getenv("RAILWAY_SERVICE_ID"))
+            
+            if is_railway:
+                client = MongoClient(
+                    successful_mongodb_url,
+                    serverSelectionTimeoutMS=500,  # Railway에서는 더 빠른 타임아웃
+                    connectTimeoutMS=500,
+                    socketTimeoutMS=500,
+                    maxPoolSize=3,  # Railway에서는 더 작은 풀 크기
+                    minPoolSize=1,
+                    maxIdleTimeMS=15000,  # 15초 후 연결 해제
+                    waitQueueTimeoutMS=1000,  # 1초 대기
+                    retryWrites=True,
+                    retryReads=True
+                )
+            else:
+                client = MongoClient(
+                    successful_mongodb_url,
+                    serverSelectionTimeoutMS=1000,  # 매우 빠른 타임아웃
+                    connectTimeoutMS=1000,
+                    socketTimeoutMS=1000,
+                    maxPoolSize=10,
+                    minPoolSize=1
+                )
             client.admin.command('ping')
             mongodb_connection_cache = client
             logger.info("✅ 이전 성공 URL로 빠른 재연결 성공")

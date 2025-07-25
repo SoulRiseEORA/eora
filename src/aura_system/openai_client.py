@@ -2,7 +2,16 @@ import os
 import logging
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
-from langchain_community.vectorstores import Chroma
+
+# langchain_community 안전 import
+try:
+    from langchain_community.vectorstores import Chroma
+    CHROMA_AVAILABLE = True
+except ImportError:
+    logger = logging.getLogger(__name__)
+    logger.warning("⚠️ langchain_community 모듈을 찾을 수 없습니다. Chroma 기능이 비활성화됩니다.")
+    CHROMA_AVAILABLE = False
+    Chroma = None
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -40,10 +49,18 @@ async def get_embeddings():
 
 async def get_vector_store(embeddings):
     """Chroma 벡터 스토어 초기화"""
-    return Chroma(
-        persist_directory="./chroma_db",
-        embedding_function=embeddings
-    ) 
+    if CHROMA_AVAILABLE and Chroma:
+        try:
+            return Chroma(
+                persist_directory="./chroma_db",
+                embedding_function=embeddings
+            )
+        except Exception as e:
+            logger.warning(f"⚠️ Chroma 벡터 스토어 초기화 실패: {e}")
+            return None
+    else:
+        logger.warning("⚠️ Chroma 모듈이 사용할 수 없습니다.")
+        return None 
 
 def init_openai():
     """환경 변수에서 OpenAI API 키 설정"""

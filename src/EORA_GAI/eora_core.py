@@ -8,18 +8,47 @@ from typing import Dict, List, Optional, Any
 from pathlib import Path
 
 # Core 모듈들 import
-from core import (
-    EORAWaveCore,
-    IRCore,
-    FreeWillCore,
-    MemoryCore,
-    SelfModel,
-    EthicsEngine,
-    PainEngine,
-    StressMonitor,
-    LifeLoop,
-    LoveEngine
-)
+try:
+    from .core import (
+        EORAWaveCore,
+        IRCore,
+        FreeWillCore,
+        MemoryCore,
+        SelfModel,
+        EthicsEngine,
+        PainEngine,
+        StressMonitor,
+        LifeLoop,
+        LoveEngine
+    )
+except ImportError:
+    # 상대 경로 import 실패 시 절대 경로 시도
+    try:
+        from EORA_GAI.core import (
+            EORAWaveCore,
+            IRCore,
+            FreeWillCore,
+            MemoryCore,
+            SelfModel,
+            EthicsEngine,
+            PainEngine,
+            StressMonitor,
+            LifeLoop,
+            LoveEngine
+        )
+    except ImportError:
+        print("⚠️ Core 모듈들을 로드할 수 없습니다. 기본 기능으로 동작합니다.")
+        # 더미 클래스들 정의
+        class EORAWaveCore: pass
+        class IRCore: pass
+        class FreeWillCore: pass
+        class MemoryCore: pass
+        class SelfModel: pass
+        class EthicsEngine: pass
+        class PainEngine: pass
+        class StressMonitor: pass
+        class LifeLoop: pass
+        class LoveEngine: pass
 
 class EORACore:
     def __init__(self, config_path: str = "eora_config.json"):
