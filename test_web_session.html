@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>세션 시스템 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        button {
+            margin: 5px;
+            padding: 5px 15px;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            overflow: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 세션 저장 시스템 테스트</h1>
+
+    <div class="test-section">
+        <h2>1. API 상태 확인</h2>
+        <button onclick="testHealth()">Health 체크</button>
+        <button onclick="testSessions()">세션 목록 가져오기</button>
+        <button onclick="testChat()">채팅 테스트</button>
+        <div id="api-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 세션 테스트</h2>
+        <button onclick="createTestSession()">테스트 세션 생성</button>
+        <button onclick="loadSessions()">세션 목록 새로고침</button>
+        <div id="session-list"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 메시지 테스트</h2>
+        <select id="session-select"></select>
+        <button onclick="loadMessages()">메시지 불러오기</button>
+        <div id="message-list"></div>
+    </div>
+
+    <script>
+        async function testHealth() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                document.getElementById('api-result').innerHTML =
+                    `<pre class="success">✅ 서버 상태: ${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('api-result').innerHTML =
+                    `<pre class="error">❌ 오류: ${error}</pre>`;
+            }
+        }
+
+        async function testSessions() {
+            try {
+                const response = await fetch('/api/sessions');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                document.getElementById('api-result').innerHTML =
+                    `<pre class="success">✅ 세션 API 작동 중: ${JSON.stringify(data, null, 2)}</pre>`;
+
+                // 세션 선택 옵션 업데이트
+                const select = document.getElementById('session-select');
+                select.innerHTML = '<option value="">세션 선택...</option>';
+                if (data.sessions) {
+                    data.sessions.forEach(session => {
+                        const option = document.createElement('option');
+                        option.value = session.id;
+                        option.textContent = `${session.name} (${session.message_count}개 메시지)`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                document.getElementById('api-result').innerHTML =
+                    `<pre class="error">❌ 세션 API 오류: ${error}\n\n⚠️ API 엔드포인트가 없을 수 있습니다.</pre>`;
+            }
+        }
+
+        async function testChat() {
+            try {
+                const testMessage = "테스트 메시지 " + new Date().toLocaleTimeString();
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: testMessage,
+                        session_id: 'test_session_' + Date.now()
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('api-result').innerHTML =
+                    `<pre class="success">✅ 채팅 API 응답: ${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('api-result').innerHTML =
+                    `<pre class="error">❌ 채팅 API 오류: ${error}</pre>`;
+            }
+        }
+
+        async function createTestSession() {
+            const sessionId = 'test_session_' + Date.now();
+            const messages = [
+                "안녕하세요!",
+                "세션 테스트입니다.",
+                "이 메시지가 저장되나요?"
+            ];
+
+            for (const msg of messages) {
+                await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: msg,
+                        session_id: sessionId
+                    })
+                });
+            }
+
+            alert('테스트 세션이 생성되었습니다: ' + sessionId);
+            await loadSessions();
+        }
+
+        async function loadSessions() {
+            await testSessions();
+            const response = await fetch('/api/sessions');
+            if (response.ok) {
+                const data = await response.json();
+                const listDiv = document.getElementById('session-list');
+                if (data.sessions && data.sessions.length > 0) {
+                    listDiv.innerHTML = '<h3>세션 목록:</h3><ul>' +
+                        data.sessions.map(s =>
+                            `<li>${s.name} - ${s.message_count}개 메시지 (ID: ${s.id})</li>`
+                        ).join('') + '</ul>';
+                } else {
+                    listDiv.innerHTML = '<p>세션이 없습니다.</p>';
+                }
+            }
+        }
+
+        async function loadMessages() {
+            const sessionId = document.getElementById('session-select').value;
+            if (!sessionId) {
+                alert('세션을 선택하세요.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/sessions/${sessionId}/messages`);
+                const data = await response.json();
+                const listDiv = document.getElementById('message-list');
+
+                if (data.messages && data.messages.length > 0) {
+                    listDiv.innerHTML = '<h3>메시지:</h3>' +
+                        data.messages.map(m =>
+                            `<div style="margin: 10px 0; padding: 10px; background: ${m.role === 'user' ? '#e3f2fd' : '#f5f5f5'}">
+                                <strong>${m.role === 'user' ? '👤 사용자' : '🤖 AI'}:</strong> ${m.content}
+                            </div>`
+                        ).join('');
+                } else {
+                    listDiv.innerHTML = '<p>메시지가 없습니다.</p>';
+                }
+            } catch (error) {
+                document.getElementById('message-list').innerHTML =
+                    `<pre class="error">❌ 메시지 로드 오류: ${error}</pre>`;
+            }
+        }
+
+        // 페이지 로드 시 자동 실행
+        window.onload = () => {
+            testHealth();
+            setTimeout(loadSessions, 1000);
+        };
+    </script>
+</body>
+
+</html>

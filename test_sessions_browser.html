@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>세션 시스템 브라우저 테스트</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1,
+        h2 {
+            color: #333;
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            overflow: auto;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            max-height: 400px;
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+
+        .session-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .session-item:hover {
+            background: #e9ecef;
+        }
+
+        .message-item {
+            margin: 5px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .user-message {
+            background: #d1e7dd;
+            text-align: right;
+        }
+
+        .assistant-message {
+            background: #f8d7da;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 세션 시스템 브라우저 테스트</h1>
+
+        <div class="section">
+            <h2>1. 현재 설정</h2>
+            <div>
+                <label>User ID (localStorage):</label>
+                <input type="text" id="userId" value="" placeholder="예: admin@eora.ai">
+                <button onclick="saveUserId()">저장</button>
+                <button onclick="loadUserId()">불러오기</button>
+            </div>
+            <pre id="settings-result"></pre>
+        </div>
+
+        <div class="section">
+            <h2>2. 세션 목록</h2>
+            <button onclick="getSessionList()">세션 목록 가져오기</button>
+            <button onclick="createNewSession()">새 세션 생성</button>
+            <div id="session-list"></div>
+            <pre id="session-list-result"></pre>
+        </div>
+
+        <div class="section">
+            <h2>3. 세션 메시지</h2>
+            <div>
+                <label>Session ID:</label>
+                <input type="text" id="sessionId" placeholder="예: session_local_1753412275501">
+                <button onclick="getSessionMessages()">메시지 가져오기</button>
+            </div>
+            <div id="messages-list"></div>
+            <pre id="messages-result"></pre>
+        </div>
+
+        <div class="section">
+            <h2>4. 세션 삭제</h2>
+            <div>
+                <label>삭제할 Session ID:</label>
+                <input type="text" id="deleteSessionId" placeholder="예: session_local_1753412275501">
+                <button onclick="deleteSession()">세션 삭제</button>
+            </div>
+            <pre id="delete-result"></pre>
+        </div>
+
+        <div class="section">
+            <h2>5. 채팅 테스트</h2>
+            <div>
+                <input type="text" id="chatMessage" placeholder="메시지 입력..." style="width: 500px;">
+                <button onclick="sendChatMessage()">전송</button>
+            </div>
+            <pre id="chat-result"></pre>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 초기화
+        window.onload = function () {
+            loadUserId();
+        };
+
+        // User ID 관리
+        function loadUserId() {
+            const userId = localStorage.getItem('user_email') || localStorage.getItem('userEmail') || 'guest';
+            document.getElementById('userId').value = userId;
+            document.getElementById('settings-result').textContent = `현재 User ID: ${userId}`;
+        }
+
+        function saveUserId() {
+            const userId = document.getElementById('userId').value;
+            localStorage.setItem('user_email', userId);
+            localStorage.setItem('userEmail', userId);
+            document.getElementById('settings-result').textContent = `✅ User ID 저장됨: ${userId}`;
+        }
+
+        // API 호출 헬퍼
+        async function fetchWithUserId(url, options = {}) {
+            const userId = document.getElementById('userId').value || 'guest';
+            options.headers = options.headers || {};
+            options.headers['X-User-Id'] = userId;
+
+            console.log(`🔍 API 호출: ${url}`);
+            console.log(`📤 Headers:`, options.headers);
+
+            try {
+                const response = await fetch(url, options);
+                const data = await response.json();
+                console.log(`📥 응답:`, data);
+                return { response, data };
+            } catch (error) {
+                console.error(`❌ 오류:`, error);
+                throw error;
+            }
+        }
+
+        // 세션 목록 가져오기
+        async function getSessionList() {
+            try {
+                const { response, data } = await fetchWithUserId('/api/sessions');
+
+                if (response.ok) {
+                    document.getElementById('session-list-result').innerHTML =
+                        `<span class="success">✅ 성공</span>\n` +
+                        JSON.stringify(data, null, 2);
+
+                    // 세션 목록 표시
+                    const sessionListDiv = document.getElementById('session-list');
+                    sessionListDiv.innerHTML = '<h3>세션 목록:</h3>';
+
+                    if (data.sessions && data.sessions.length > 0) {
+                        data.sessions.forEach(session => {
+                            const sessionDiv = document.createElement('div');
+                            sessionDiv.className = 'session-item';
+                            sessionDiv.innerHTML = `
+                                <strong>${session.name}</strong><br>
+                                ID: ${session.id}<br>
+                                메시지: ${session.message_count}개<br>
+                                생성: ${new Date(session.created_at).toLocaleString()}
+                            `;
+                            sessionDiv.onclick = () => {
+                                document.getElementById('sessionId').value = session.id;
+                                getSessionMessages();
+                            };
+                            sessionListDiv.appendChild(sessionDiv);
+                        });
+                    } else {
+                        sessionListDiv.innerHTML += '<p>세션이 없습니다.</p>';
+                    }
+                } else {
+                    document.getElementById('session-list-result').innerHTML =
+                        `<span class="error">❌ 실패 (${response.status})</span>\n` +
+                        JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('session-list-result').innerHTML =
+                    `<span class="error">❌ 오류</span>\n${error.message}`;
+            }
+        }
+
+        // 새 세션 생성
+        async function createNewSession() {
+            try {
+                const sessionName = prompt('세션 이름을 입력하세요:', `새 세션 ${new Date().toLocaleString()}`);
+                if (!sessionName) return;
+
+                const { response, data } = await fetchWithUserId('/api/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: sessionName })
+                });
+
+                if (response.ok) {
+                    document.getElementById('session-list-result').innerHTML =
+                        `<span class="success">✅ 세션 생성 성공</span>\n` +
+                        JSON.stringify(data, null, 2);
+
+                    // 세션 목록 새로고침
+                    setTimeout(getSessionList, 500);
+                } else {
+                    document.getElementById('session-list-result').innerHTML =
+                        `<span class="error">❌ 생성 실패 (${response.status})</span>\n` +
+                        JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('session-list-result').innerHTML =
+                    `<span class="error">❌ 오류</span>\n${error.message}`;
+            }
+        }
+
+        // 세션 메시지 가져오기
+        async function getSessionMessages() {
+            const sessionId = document.getElementById('sessionId').value;
+            if (!sessionId) {
+                alert('Session ID를 입력하세요');
+                return;
+            }
+
+            try {
+                const { response, data } = await fetchWithUserId(`/api/sessions/${sessionId}/messages`);
+
+                if (response.ok) {
+                    document.getElementById('messages-result').innerHTML =
+                        `<span class="success">✅ 성공</span>\n` +
+                        JSON.stringify(data, null, 2);
+
+                    // 메시지 목록 표시
+                    const messagesDiv = document.getElementById('messages-list');
+                    messagesDiv.innerHTML = '<h3>대화 내용:</h3>';
+
+                    if (data.messages && data.messages.length > 0) {
+                        data.messages.forEach(msg => {
+                            const msgDiv = document.createElement('div');
+                            msgDiv.className = `message-item ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`;
+                            msgDiv.innerHTML = `
+                                <strong>${msg.role === 'user' ? '사용자' : 'AI'}:</strong><br>
+                                ${msg.content}<br>
+                                <small>${new Date(msg.timestamp).toLocaleString()}</small>
+                            `;
+                            messagesDiv.appendChild(msgDiv);
+                        });
+                    } else {
+                        messagesDiv.innerHTML += '<p>메시지가 없습니다.</p>';
+                    }
+                } else {
+                    document.getElementById('messages-result').innerHTML =
+                        `<span class="error">❌ 실패 (${response.status})</span>\n` +
+                        JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('messages-result').innerHTML =
+                    `<span class="error">❌ 오류</span>\n${error.message}`;
+            }
+        }
+
+        // 세션 삭제
+        async function deleteSession() {
+            const sessionId = document.getElementById('deleteSessionId').value;
+            if (!sessionId) {
+                alert('삭제할 Session ID를 입력하세요');
+                return;
+            }
+
+            if (!confirm(`정말로 세션 ${sessionId}를 삭제하시겠습니까?`)) {
+                return;
+            }
+
+            try {
+                const { response, data } = await fetchWithUserId(`/api/sessions/${sessionId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    document.getElementById('delete-result').innerHTML =
+                        `<span class="success">✅ 삭제 성공</span>\n` +
+                        JSON.stringify(data, null, 2);
+
+                    // 세션 목록 새로고침
+                    setTimeout(getSessionList, 500);
+                } else {
+                    document.getElementById('delete-result').innerHTML =
+                        `<span class="error">❌ 삭제 실패 (${response.status})</span>\n` +
+                        JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('delete-result').innerHTML =
+                    `<span class="error">❌ 오류</span>\n${error.message}`;
+            }
+        }
+
+        // 채팅 메시지 전송
+        async function sendChatMessage() {
+            const message = document.getElementById('chatMessage').value;
+            const sessionId = document.getElementById('sessionId').value || localStorage.getItem('currentSessionId');
+
+            if (!message) {
+                alert('메시지를 입력하세요');
+                return;
+            }
+
+            try {
+                const { response, data } = await fetchWithUserId('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        user: localStorage.getItem('user_email') || 'guest',
+                        session_id: sessionId,
+                        ai_model: 'ai1'
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('chat-result').innerHTML =
+                        `<span class="success">✅ 전송 성공</span>\n` +
+                        JSON.stringify(data, null, 2);
+
+                    document.getElementById('chatMessage').value = '';
+
+                    // 메시지 목록 새로고침
+                    if (sessionId) {
+                        setTimeout(getSessionMessages, 500);
+                    }
+                } else {
+                    document.getElementById('chat-result').innerHTML =
+                        `<span class="error">❌ 전송 실패 (${response.status})</span>\n` +
+                        JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('chat-result').innerHTML =
+                    `<span class="error">❌ 오류</span>\n${error.message}`;
+            }
+        }
+    </script>
+</body>
+
+</html>
