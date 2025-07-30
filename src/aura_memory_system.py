@@ -105,96 +105,116 @@ class AuraMemorySystem(EORAMemorySystem):
         
         return self._try_initialize()
     
-    async def store_interaction(self, user_id: str, message: str, response: str, 
-                               memory_type: str = "conversation", importance: float = 0.5) -> str:
-        """사용자 상호작용 저장"""
+    # ==================== 메모리 저장 함수 (핵심) ====================
+    
+    async def store_memory(self, content: str, memory_type: str = "general", 
+                          user_id: str = "system", session_id: str = None,
+                          metadata: Dict = None, importance: float = 0.5) -> str:
+        """강화된 메모리 저장 - 8종 회상을 위한 메타데이터 강화"""
         try:
-            if not self.is_initialized:
-                await self.initialize()
+            memory_id = f"memory_{int(time.time() * 1000)}"
+            timestamp = time.time()
             
-            # 메모리 데이터 생성
-            memory_id = str(time.time())
-            memory_data = {
-                "user_id": user_id,
-                "message": message,
-                "response": response,
+            # 감정 분석
+            emotions = self._analyze_emotions(content)
+            
+            # 신념 분석
+            beliefs = self._analyze_beliefs(content)
+            
+            # 키워드 추출
+            keywords = self._extract_keywords(content)
+            
+            # 맥락 정보 추출
+            context = self._extract_context(content, metadata)
+            
+            # 메모리 객체 생성
+            memory = {
+                "id": memory_id,
+                "content": content,
                 "memory_type": memory_type,
+                "user_id": user_id,
+                "session_id": session_id,
+                "timestamp": timestamp,
                 "importance": importance,
-                "timestamp": datetime.now(),
-                "tags": self._extract_tags(message)
+                "created_at": datetime.now().isoformat(),
+                
+                # 8종 회상을 위한 메타데이터
+                "keywords": keywords,
+                "emotions": emotions,
+                "beliefs": beliefs,
+                "context": context,
+                "tags": self._extract_tags(content),
+                
+                # 추가 메타데이터
+                "metadata": metadata or {},
+                "recall_count": 0,
+                "last_recalled": None
             }
             
             # MongoDB에 저장
             if self.memory_collection:
-                try:
-                    result = await self.memory_collection.insert_one(memory_data)
-                    memory_id = str(result.inserted_id)
-                    logger.info(f"✅ 아우라 메모리 저장 완료: {memory_id}")
-                except Exception as e:
-                    logger.warning(f"⚠️ MongoDB 저장 실패, 메모리 저장소 사용: {e}")
-                    self.memory_store[memory_id] = memory_data
+                await self.memory_collection.insert_one(memory)
+                print(f"💾 MongoDB 메모리 저장: {memory_id}")
             else:
                 # 메모리 저장소에 저장
-                self.memory_store[memory_id] = memory_data
-                logger.info(f"✅ 메모리 저장소에 저장 완료: {memory_id}")
+                self.memory_store[memory_id] = memory
+                print(f"💾 메모리 저장소 저장: {memory_id}")
             
-            # 임베딩 생성 및 저장 (비동기로 처리)
+            # 임베딩 생성 및 벡터 인덱스에 추가
             if self.embeddings_model and self.vector_index:
                 try:
-                    # 메시지와 응답 결합하여 임베딩
-                    text = f"{message} {response}"
-                    embedding = self.embeddings_model.encode(text)
-                    
-                    # 벡터 인덱스에 추가
-                    import numpy as np
-                    self.vector_index.add(np.array([embedding]))
-                    
-                    # 임베딩 정보 저장
-                    memory_data["embedding_id"] = self.vector_index.ntotal - 1
-                    
-                    logger.info(f"✅ 임베딩 생성 및 저장 완료: {memory_id}")
+                    embedding = self.embeddings_model.encode(content)
+                    self.vector_index.add(embedding.reshape(1, -1))
+                    memory["embedding_id"] = self.vector_index.ntotal - 1
+                    print(f"🔗 임베딩 인덱스 추가: {memory_id}")
                 except Exception as e:
-                    logger.warning(f"⚠️ 임베딩 생성 실패: {e}")
+                    print(f"⚠️ 임베딩 추가 실패: {e}")
             
             return memory_id
+            
         except Exception as e:
-            logger.error(f"❌ 아우라 메모리 저장 실패: {e}")
-            return "error"
+            logger.error(f"❌ 메모리 저장 실패: {e}")
+            return ""
     
-    async def recall(self, query: str, user_id: Optional[str] = None, 
-                    limit: int = 5, recall_type: str = "normal") -> List[Dict]:
-        """메모리 회상"""
+    async def store_interaction(self, user_id: str, message: str, response: str, 
+                               memory_type: str = "conversation", importance: float = 0.5) -> str:
+        """대화 상호작용 저장"""
         try:
-            if not self.is_initialized:
-                await self.initialize()
+            memory_id = f"interaction_{int(time.time() * 1000)}"
             
-            results = []
+            # 대화 내용을 하나의 메모리로 저장
+            combined_content = f"사용자: {message}\n응답: {response}"
             
-            # 회상 타입에 따라 다른 방식 적용
-            if recall_type == "semantic" and self.embeddings_model and self.vector_index:
-                # 임베딩 기반 회상
-                results = await self._semantic_recall(query, user_id, limit)
-            elif recall_type == "keyword":
-                # 키워드 기반 회상
-                results = await self._keyword_recall(query, user_id, limit)
-            elif recall_type == "window":
-                # 시간 윈도우 기반 회상
-                results = await self._window_recall(query, user_id, limit)
-            elif recall_type == "comprehensive":
-                # 종합 회상 (여러 방식 결합)
-                results = await self._comprehensive_recall(query, user_id, limit)
-            else:
-                # 기본 회상 (키워드 기반)
-                results = await self._keyword_recall(query, user_id, limit)
+            metadata = {
+                "user_message": message,
+                "ai_response": response,
+                "interaction_type": "chat"
+            }
             
-            logger.info(f"✅ 아우라 메모리 회상 완료: {len(results)}개 결과")
-            return results
+            return await self.store_memory(
+                content=combined_content,
+                memory_type=memory_type,
+                user_id=user_id,
+                metadata=metadata,
+                importance=importance
+            )
+            
         except Exception as e:
-            logger.error(f"❌ 아우라 메모리 회상 실패: {e}")
+            logger.error(f"❌ 상호작용 저장 실패: {e}")
+            return ""
+    
+    # ==================== 회상 함수들 ====================
+    
+    async def recall(self, query: str, user_id: Optional[str] = None, limit: int = 5) -> List[Dict]:
+        """기본 회상 함수"""
+        try:
+            return await self._comprehensive_recall(query, user_id, limit)
+        except Exception as e:
+            logger.error(f"❌ 회상 실패: {e}")
             return []
     
     async def _semantic_recall(self, query: str, user_id: Optional[str], limit: int) -> List[Dict]:
-        """임베딩 기반 의미적 회상"""
+        """의미적 회상 (임베딩 기반)"""
         try:
             if not self.embeddings_model or not self.vector_index:
                 logger.warning("⚠️ 임베딩 모델 또는 벡터 인덱스가 초기화되지 않았습니다.")
@@ -255,8 +275,8 @@ class AuraMemorySystem(EORAMemorySystem):
                 # 키워드 필터
                 keyword_conditions = []
                 for keyword in keywords:
-                    keyword_conditions.append({"message": {"$regex": keyword, "$options": "i"}})
-                    keyword_conditions.append({"response": {"$regex": keyword, "$options": "i"}})
+                    keyword_conditions.append({"content": {"$regex": keyword, "$options": "i"}})
+                    keyword_conditions.append({"keywords": {"$in": [keyword]}})
                 
                 if keyword_conditions:
                     query_conditions.append({"$or": keyword_conditions})
@@ -265,7 +285,9 @@ class AuraMemorySystem(EORAMemorySystem):
                 query_filter = {"$and": query_conditions} if query_conditions else {}
                 cursor = self.memory_collection.find(query_filter).sort("timestamp", -1).limit(limit)
                 
-                memories = await cursor.to_list(length=limit)
+                memories = []
+                async for doc in cursor:
+                    memories.append(doc)
                 return memories
             
             # 메모리 저장소에서 조회
@@ -276,11 +298,11 @@ class AuraMemorySystem(EORAMemorySystem):
                     continue
                 
                 # 키워드 필터
-                message = memory.get("message", "").lower()
-                response = memory.get("response", "").lower()
+                content = memory.get("content", "").lower()
+                memory_keywords = memory.get("keywords", [])
                 
                 for keyword in keywords:
-                    if keyword in message or keyword in response:
+                    if keyword in content or keyword in memory_keywords:
                         results.append(memory)
                         break
                 
@@ -289,43 +311,17 @@ class AuraMemorySystem(EORAMemorySystem):
             
             # 최신순 정렬
             results.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
-            return results[:limit]
+            return results
         except Exception as e:
-            logger.error(f"❌ 키워드 기반 회상 실패: {e}")
-            return []
-    
-    async def _window_recall(self, query: str, user_id: Optional[str], limit: int) -> List[Dict]:
-        """시간 윈도우 기반 회상"""
-        try:
-            # 최근 대화 가져오기
-            if self.memory_collection:
-                query_filter = {"user_id": user_id} if user_id else {}
-                cursor = self.memory_collection.find(query_filter).sort("timestamp", -1).limit(limit)
-                
-                memories = await cursor.to_list(length=limit)
-                return memories
-            
-            # 메모리 저장소에서 조회
-            results = []
-            for memory in self.memory_store.values():
-                if user_id and memory.get("user_id") != user_id:
-                    continue
-                
-                results.append(memory)
-            
-            # 최신순 정렬
-            results.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
-            return results[:limit]
-        except Exception as e:
-            logger.error(f"❌ 시간 윈도우 기반 회상 실패: {e}")
+            logger.error(f"❌ 키워드 회상 실패: {e}")
             return []
     
     async def _comprehensive_recall(self, query: str, user_id: Optional[str], limit: int) -> List[Dict]:
-        """종합 회상 (여러 방식 결합)"""
+        """종합적 회상 (의미적 + 키워드)"""
         try:
-            # 각 방식으로 회상
-            semantic_results = await self._semantic_recall(query, user_id, limit // 2)
-            keyword_results = await self._keyword_recall(query, user_id, limit // 2)
+            # 의미적 회상과 키워드 회상 병렬 실행
+            semantic_results = await self._semantic_recall(query, user_id, limit//2)
+            keyword_results = await self._keyword_recall(query, user_id, limit//2)
             
             # 중복 제거
             seen_ids = set()
@@ -333,7 +329,7 @@ class AuraMemorySystem(EORAMemorySystem):
             
             # 의미적 회상 결과 추가
             for memory in semantic_results:
-                memory_id = str(memory.get("_id", ""))
+                memory_id = str(memory.get("_id", memory.get("id", "")))
                 if memory_id not in seen_ids:
                     seen_ids.add(memory_id)
                     memory["recall_type"] = "semantic"
@@ -341,7 +337,7 @@ class AuraMemorySystem(EORAMemorySystem):
             
             # 키워드 회상 결과 추가
             for memory in keyword_results:
-                memory_id = str(memory.get("_id", ""))
+                memory_id = str(memory.get("_id", memory.get("id", "")))
                 if memory_id not in seen_ids and len(combined_results) < limit:
                     seen_ids.add(memory_id)
                     memory["recall_type"] = "keyword"
@@ -403,9 +399,79 @@ class AuraMemorySystem(EORAMemorySystem):
             logger.error(f"❌ 사용자 메모리 조회 실패: {e}")
             return []
     
+    # ==================== 분석 함수들 ====================
+    
+    def _analyze_emotions(self, content: str) -> List[str]:
+        """감정 분석"""
+        emotion_keywords = {
+            "기쁨": ["기쁘", "행복", "즐겁", "웃", "좋", "만족", "긍정"],
+            "슬픔": ["슬프", "우울", "눈물", "아프", "힘들", "절망"],
+            "화남": ["화나", "짜증", "분노", "억울", "열받"],
+            "놀람": ["놀라", "깜짝", "신기", "와", "헉"],
+            "두려움": ["무서", "걱정", "불안", "두려", "겁"],
+            "혐오": ["싫", "역겨", "짜증", "기분나쁘"]
+        }
+        
+        detected_emotions = []
+        content_lower = content.lower()
+        
+        for emotion, keywords in emotion_keywords.items():
+            for keyword in keywords:
+                if keyword in content_lower:
+                    detected_emotions.append(emotion)
+                    break
+        
+        return detected_emotions
+    
+    def _analyze_beliefs(self, content: str) -> List[str]:
+        """신념 분석"""
+        belief_patterns = [
+            "생각한다", "믿는다", "확신", "신념", "가치관", "철학", "원칙",
+            "중요하다", "소중하다", "의미있다", "가치있다"
+        ]
+        
+        detected_beliefs = []
+        content_lower = content.lower()
+        
+        for pattern in belief_patterns:
+            if pattern in content_lower:
+                detected_beliefs.append(pattern)
+        
+        return detected_beliefs
+    
+    def _extract_keywords(self, content: str) -> List[str]:
+        """키워드 추출"""
+        import re
+        
+        # 한글, 영문, 숫자만 추출
+        words = re.findall(r'[가-힣a-zA-Z0-9]+', content)
+        
+        # 길이 2자 이상, 의미있는 단어만 선택
+        keywords = []
+        for word in words:
+            if len(word) >= 2:
+                keywords.append(word.lower())
+        
+        # 중복 제거 및 상위 10개 반환
+        return list(set(keywords))[:10]
+    
+    def _extract_context(self, content: str, metadata: Dict = None) -> Dict:
+        """맥락 정보 추출"""
+        context = {
+            "length": len(content),
+            "word_count": len(content.split()),
+            "has_question": "?" in content,
+            "has_exclamation": "!" in content,
+            "is_long": len(content) > 100
+        }
+        
+        if metadata:
+            context.update(metadata)
+        
+        return context
+    
     def _extract_tags(self, text: str) -> List[str]:
         """텍스트에서 태그 추출"""
-        # 간단한 태그 추출 로직
         words = text.lower().split()
         tags = []
         
@@ -415,7 +481,7 @@ class AuraMemorySystem(EORAMemorySystem):
                 tags.append(word)
         
         return tags[:5]  # 최대 5개 태그
-    
+
     # 8종 회상 시스템 메서드들
     async def recall_wisdom(self, query: str, user_id: Optional[str] = None, limit: int = 5) -> List[Dict]:
         """지혜 기반 회상"""

@@ -26,10 +26,21 @@ try:
     from eora_advanced_chat_system import process_advanced_message
     from aura_system.recall_engine import RecallEngine
     from aura_memory_system import EORAMemorySystem
+    
+    # EORA 메모리 시스템 초기화
+    eora_memory_system = EORAMemorySystem()
+    
+    # 회상 엔진 초기화 
+    recall_engine = RecallEngine()
+    
     ADVANCED_FEATURES_AVAILABLE = True
     print("✅ EORA 고급 기능 모듈 로드 성공")
+    print("✅ EORAMemorySystem 초기화 완료")
+    print("✅ RecallEngine 초기화 완료")
 except ImportError as e:
     print(f"⚠️ EORA 고급 기능 모듈 로드 실패: {e}")
+    eora_memory_system = None
+    recall_engine = None
     ADVANCED_FEATURES_AVAILABLE = False
 
 # 환경변수 로딩 및 Railway 환경 최적화
@@ -347,7 +358,7 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
     """EORA 고급 기능을 활용한 AI 응답 생성 (성능 최적화)"""
     try:
         # 1. 고급 기능이 비활성화된 경우 OpenAI API 직접 사용
-        if not advanced_systems_ready or not ADVANCED_FEATURES_AVAILABLE:
+        if not ADVANCED_FEATURES_AVAILABLE or not eora_memory_system:
             return await generate_openai_response(message, conversation_history, [])
         
         # 2. 강화된 8종 회상 시스템 + 고급 기능 활성화
@@ -2208,6 +2219,16 @@ if __name__ == "__main__":
     print("=" * 50)
     print("📧 관리자 계정: admin@eora.ai")
     print("🔑 비밀번호: admin123")
+    print("=" * 50)
+    
+    # 🧠 EORA 고급 시스템 상태 표시
+    print("🧠 EORA 고급 시스템 상태:")
+    print(f"   - 고급 기능: {'✅ 활성화' if ADVANCED_FEATURES_AVAILABLE else '❌ 비활성화'}")
+    print(f"   - EORAMemorySystem: {'✅ 준비됨' if eora_memory_system else '❌ 없음'}")
+    print(f"   - RecallEngine: {'✅ 준비됨' if recall_engine else '❌ 없음'}")
+    if ADVANCED_FEATURES_AVAILABLE and eora_memory_system:
+        print(f"   - 8종 회상 시스템: ✅ 준비됨")
+        print(f"   - 직관/통찰/지혜: ✅ 준비됨")
     print("=" * 50)
     
     # Railway 환경에 맞는 포트 및 호스트 설정
