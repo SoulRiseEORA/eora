@@ -440,6 +440,7 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
 
 async def generate_openai_response(message: str, history: List[Dict], memories: List[Dict] = None) -> str:
     """OpenAI API를 사용한 응답 생성 (Railway 환경 최적화)"""
+    global openai_client
     try:
         print(f"🤖 OpenAI API 호출 시작")
         print(f"   - OpenAI 사용 가능: {OPENAI_AVAILABLE}")
@@ -494,7 +495,6 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
                     from openai import AsyncOpenAI
                     retry_key = get_openai_api_key()
                     if retry_key:
-                        global openai_client
                         # Railway 환경에 최적화된 설정
                         if is_railway_now:
                             print("🚂 Railway 환경에 맞춘 클라이언트 설정")
