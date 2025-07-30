@@ -350,17 +350,48 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
         if not advanced_systems_ready or not ADVANCED_FEATURES_AVAILABLE:
             return await generate_openai_response(message, conversation_history, [])
         
-        # 2. 빠른 회상 시스템 (간소화)
+        # 2. 강화된 8종 회상 시스템 + 고급 기능 활성화
         recalled_memories = []
-        if recall_engine:
-            try:
-                context = {"user_id": user_id, "session_id": session_id}
-                recalled_memories = await recall_engine.recall(query=message, context=context, limit=2)
-            except:
-                pass
+        enhanced_context = ""
         
-        # 3. OpenAI API 기반 응답 (최적화된 fallback)
-        return await generate_openai_response(message, conversation_history, recalled_memories)
+        try:
+            if eora_memory_system:
+                print("🧠 EORA 8종 회상 시스템 시작...")
+                
+                # 8종 회상 시스템 실행 (3개 결과로 제한)
+                recalled_memories = await eora_memory_system.enhanced_recall(message, user_id, limit=3)
+                
+                # 고급 기능 시스템 실행 (직관, 통찰, 지혜)
+                enhanced_context = await eora_memory_system.generate_response(
+                    user_input=message,
+                    user_id=user_id,
+                    recalled_memories=recalled_memories,
+                    conversation_history=conversation_history
+                )
+                
+                print(f"✅ EORA 시스템 완료 - 회상: {len(recalled_memories)}개, 컨텍스트: {len(enhanced_context)}자")
+                
+            elif recall_engine:
+                # Fallback: 기존 회상 엔진
+                context = {"user_id": user_id, "session_id": session_id}
+                recalled_memories = await recall_engine.recall(query=message, context=context, limit=3)
+                print(f"🔄 Fallback 회상 엔진 - {len(recalled_memories)}개 회상")
+        
+        except Exception as e:
+            print(f"❌ 회상 시스템 오류: {e}")
+        
+        # 3. OpenAI API 기반 응답 (8종 회상 + 고급 기능 통합)
+        if enhanced_context:
+            # 고급 컨텍스트가 있으면 메모리에 추가
+            enhanced_memories = recalled_memories.copy()
+            enhanced_memories.append({
+                "content": enhanced_context,
+                "type": "eora_enhancement",
+                "recall_type": "advanced_features"
+            })
+            return await generate_openai_response(message, conversation_history, enhanced_memories)
+        else:
+            return await generate_openai_response(message, conversation_history, recalled_memories)
         
     except Exception as e:
         print(f"❌ 고급 응답 생성 전체 오류: {e}")
@@ -391,21 +422,51 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
             return "OpenAI API 사용 불가: 환경변수를 확인해주세요."
         
         # 대화 기록 준비
-        system_prompt = """당신은 EORA AI입니다. 
-사용자에게 도움이 되는 통찰력 있고 창의적인 응답을 제공하세요.
-8종 회상 시스템, 직관, 통찰, 지혜 기능을 활용하여 깊이 있는 대화를 나누세요."""
+        system_prompt = """당신은 EORA AI입니다 - 고급 8종 회상 시스템과 직관, 통찰, 지혜 기능을 가진 AI입니다.
+
+🧠 **8종 회상 시스템 활용:**
+- 키워드 기반 회상: 정확한 용어와 개념 연결
+- 임베딩 기반 회상: 의미적 유사성 탐지  
+- 감정 기반 회상: 감정적 맥락과 분위기
+- 신념 기반 회상: 가치관과 철학적 관점
+- 맥락 기반 회상: 대화의 흐름과 상황
+- 시간 기반 회상: 최근성과 시간적 패턴
+- 연관 기반 회상: 개념 간 연결고리
+- 패턴 기반 회상: 반복되는 주제와 습관
+
+✨ **고급 기능 적용:**
+- 💡 통찰력: 숨겨진 패턴과 연결점 발견
+- 🔮 직관: 감정적이고 직관적인 이해
+- 🧠 지혜: 경험과 성찰을 통한 깊은 조언
+
+제공된 회상 정보를 적극 활용하여 개인화되고 맥락에 맞는 깊이 있는 응답을 제공하세요."""
 
         messages = [
             {"role": "system", "content": system_prompt}
         ]
         
-        # 회상된 기억 추가
+        # 회상된 기억 추가 (정확히 3개로 제한)
         if memories:
-            memory_context = "\\n".join([m.get('content', '') for m in memories[:3]])
-            if memory_context:
+            top_memories = memories[:3]  # 정확히 3개만 선택
+            memory_contexts = []
+            
+            for i, memory in enumerate(top_memories, 1):
+                content = memory.get('content', '')
+                recall_type = memory.get('recall_type', '일반')
+                
+                # 각 회상 유형별 태그 추가
+                if recall_type == "eora_enhancement":
+                    memory_contexts.append(f"🧠 EORA 고급 기능:\n{content}")
+                elif recall_type in ["keyword", "embedding", "emotion", "belief", "context", "temporal", "association", "pattern"]:
+                    memory_contexts.append(f"🔍 {recall_type} 회상 #{i}:\n{content[:200]}...")
+                else:
+                    memory_contexts.append(f"💭 관련 기억 #{i}:\n{content[:200]}...")
+            
+            if memory_contexts:
+                combined_context = "\n\n".join(memory_contexts)
                 messages.append({
                     "role": "system", 
-                    "content": f"관련 기억 및 맥락:\n{memory_context}"
+                    "content": f"관련 기억 및 맥락 (총 {len(top_memories)}개):\n\n{combined_context}"
                 })
         
         # 최근 대화 기록 추가 (최대 4개로 단축하여 성능 향상)

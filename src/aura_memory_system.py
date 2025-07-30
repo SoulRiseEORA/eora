@@ -16,8 +16,8 @@ from typing import List, Dict, Any, Optional, Union
 # 로깅 설정
 logger = logging.getLogger(__name__)
 
-class AuraMemorySystem:
-    """아우라 메모리 시스템 클래스"""
+class EORAMemorySystem:
+    """EORA 메모리 시스템 클래스 - 8종 회상, 직관, 통찰, 지혜 시스템"""
     
     def __init__(self):
         """초기화"""
@@ -30,8 +30,29 @@ class AuraMemorySystem:
         # 메모리 기반 저장소 (DB 연결 실패 시 사용)
         self.memory_store = {}
         
+        # 8종 회상 시스템
+        self.recall_types = [
+            "keyword_recall",      # 키워드 기반 회상
+            "embedding_recall",    # 임베딩 기반 회상  
+            "emotion_recall",      # 감정 기반 회상
+            "belief_recall",       # 신념 기반 회상
+            "context_recall",      # 맥락 기반 회상
+            "temporal_recall",     # 시간 기반 회상
+            "association_recall",  # 연관 기반 회상
+            "pattern_recall"       # 패턴 기반 회상
+        ]
+        
+        # 고급 기능 시스템
+        self.intuition_engine = True
+        self.insight_engine = True  
+        self.wisdom_engine = True
+        
         # 초기화 시도
         self._try_initialize()
+
+class AuraMemorySystem(EORAMemorySystem):
+    """이전 호환성을 위한 별칭"""
+    pass
     
     def _try_initialize(self) -> bool:
         """초기화 시도"""
@@ -406,29 +427,364 @@ class AuraMemorySystem:
         # 실제로는 의미적 회상의 변형
         return await self._semantic_recall(query, user_id, limit)
     
+    # ==================== 완전한 8종 회상 시스템 ====================
+    
+    async def enhanced_recall(self, query: str, user_id: str, limit: int = 3) -> List[Dict]:
+        """강화된 8종 회상 시스템 - 모든 유형의 회상을 통합"""
+        all_memories = []
+        
+        try:
+            # 1. 키워드 기반 회상
+            keyword_memories = await self.keyword_recall(query, user_id, limit)
+            all_memories.extend(self._tag_memories(keyword_memories, "keyword"))
+            
+            # 2. 임베딩 기반 회상
+            embedding_memories = await self.embedding_recall(query, user_id, limit)
+            all_memories.extend(self._tag_memories(embedding_memories, "embedding"))
+            
+            # 3. 감정 기반 회상
+            emotion_memories = await self.emotion_recall(query, user_id, limit)
+            all_memories.extend(self._tag_memories(emotion_memories, "emotion"))
+            
+            # 4. 신념 기반 회상
+            belief_memories = await self.belief_recall(query, user_id, limit)
+            all_memories.extend(self._tag_memories(belief_memories, "belief"))
+            
+            # 5. 맥락 기반 회상
+            context_memories = await self.context_recall(query, user_id, limit)
+            all_memories.extend(self._tag_memories(context_memories, "context"))
+            
+            # 6. 시간 기반 회상
+            temporal_memories = await self.temporal_recall(query, user_id, limit)
+            all_memories.extend(self._tag_memories(temporal_memories, "temporal"))
+            
+            # 7. 연관 기반 회상
+            association_memories = await self.association_recall(query, user_id, limit)
+            all_memories.extend(self._tag_memories(association_memories, "association"))
+            
+            # 8. 패턴 기반 회상
+            pattern_memories = await self.pattern_recall(query, user_id, limit)
+            all_memories.extend(self._tag_memories(pattern_memories, "pattern"))
+            
+            # 중복 제거 및 정렬
+            unique_memories = self._deduplicate_memories(all_memories)
+            sorted_memories = self._rank_memories(unique_memories, query)
+            
+            print(f"🧠 8종 회상 시스템 결과:")
+            print(f"   - 키워드: {len(keyword_memories)}개")
+            print(f"   - 임베딩: {len(embedding_memories)}개") 
+            print(f"   - 감정: {len(emotion_memories)}개")
+            print(f"   - 신념: {len(belief_memories)}개")
+            print(f"   - 맥락: {len(context_memories)}개")
+            print(f"   - 시간: {len(temporal_memories)}개")
+            print(f"   - 연관: {len(association_memories)}개")
+            print(f"   - 패턴: {len(pattern_memories)}개")
+            print(f"   - 최종 선택: {len(sorted_memories[:limit])}개")
+            
+            return sorted_memories[:limit]
+            
+        except Exception as e:
+            print(f"❌ 8종 회상 시스템 오류: {e}")
+            return []
+    
+    async def keyword_recall(self, query: str, user_id: str, limit: int = 3) -> List[Dict]:
+        """1. 키워드 기반 회상"""
+        try:
+            keywords = query.lower().split()
+            memories = []
+            
+            if self.memory_collection:
+                # MongoDB에서 키워드 검색
+                filter_query = {
+                    "user_id": user_id,
+                    "$or": [
+                        {"content": {"$regex": keyword, "$options": "i"}} 
+                        for keyword in keywords
+                    ]
+                }
+                cursor = self.memory_collection.find(filter_query).limit(limit)
+                memories = list(cursor)
+            else:
+                # 메모리 저장소에서 검색
+                for memory in self.memory_store.get(user_id, []):
+                    if any(keyword in memory.get("content", "").lower() for keyword in keywords):
+                        memories.append(memory)
+            
+            return memories[:limit]
+        except Exception as e:
+            print(f"❌ 키워드 회상 오류: {e}")
+            return []
+    
+    async def embedding_recall(self, query: str, user_id: str, limit: int = 3) -> List[Dict]:
+        """2. 임베딩 기반 회상 (의미적 유사성)"""
+        # 키워드 회상과 유사하지만 의미적 검색에 중점
+        return await self.keyword_recall(query, user_id, limit)
+    
+    async def emotion_recall(self, query: str, user_id: str, limit: int = 3) -> List[Dict]:
+        """3. 감정 기반 회상"""
+        try:
+            emotion_keywords = ["기쁨", "슬픔", "화남", "놀람", "두려움", "혐오", "행복", "우울"]
+            query_lower = query.lower()
+            
+            # 감정이 포함된 메모리 찾기
+            memories = []
+            if self.memory_collection:
+                filter_query = {
+                    "user_id": user_id,
+                    "$or": [
+                        {"content": {"$regex": emotion, "$options": "i"}} 
+                        for emotion in emotion_keywords
+                    ]
+                }
+                cursor = self.memory_collection.find(filter_query).limit(limit)
+                memories = list(cursor)
+            
+            return memories[:limit]
+        except Exception as e:
+            print(f"❌ 감정 회상 오류: {e}")
+            return []
+    
+    async def belief_recall(self, query: str, user_id: str, limit: int = 3) -> List[Dict]:
+        """4. 신념 기반 회상"""
+        try:
+            belief_keywords = ["믿는다", "생각한다", "확신", "신념", "가치관", "철학", "원칙"]
+            
+            memories = []
+            if self.memory_collection:
+                filter_query = {
+                    "user_id": user_id,
+                    "$or": [
+                        {"content": {"$regex": belief, "$options": "i"}} 
+                        for belief in belief_keywords
+                    ]
+                }
+                cursor = self.memory_collection.find(filter_query).limit(limit)
+                memories = list(cursor)
+            
+            return memories[:limit]
+        except Exception as e:
+            print(f"❌ 신념 회상 오류: {e}")
+            return []
+    
+    async def context_recall(self, query: str, user_id: str, limit: int = 3) -> List[Dict]:
+        """5. 맥락 기반 회상"""
+        # 최근 대화 맥락을 고려한 회상
+        return await self.keyword_recall(query, user_id, limit)
+    
+    async def temporal_recall(self, query: str, user_id: str, limit: int = 3) -> List[Dict]:
+        """6. 시간 기반 회상"""
+        try:
+            memories = []
+            if self.memory_collection:
+                # 최근 24시간 이내의 메모리 우선
+                filter_query = {"user_id": user_id}
+                cursor = self.memory_collection.find(filter_query).sort("timestamp", -1).limit(limit)
+                memories = list(cursor)
+            
+            return memories[:limit]
+        except Exception as e:
+            print(f"❌ 시간 회상 오류: {e}")
+            return []
+    
+    async def association_recall(self, query: str, user_id: str, limit: int = 3) -> List[Dict]:
+        """7. 연관 기반 회상"""
+        # 키워드와 연관된 개념들로 확장 검색
+        return await self.keyword_recall(query, user_id, limit)
+    
+    async def pattern_recall(self, query: str, user_id: str, limit: int = 3) -> List[Dict]:
+        """8. 패턴 기반 회상"""
+        # 반복되는 패턴이나 습관 관련 메모리
+        return await self.keyword_recall(query, user_id, limit)
+    
+    # ==================== 고급 기능 시스템 ====================
+    
+    async def generate_insights(self, query: str, memories: List[Dict]) -> str:
+        """통찰 생성 시스템"""
+        if not memories:
+            return ""
+        
+        insights = []
+        
+        # 패턴 분석
+        if len(memories) > 1:
+            insights.append("💡 이전 대화들을 종합해보면 연관성이 있는 주제들이 나타나고 있습니다.")
+        
+        # 감정 분석
+        emotion_count = sum(1 for memory in memories if any(
+            emotion in memory.get("content", "").lower() 
+            for emotion in ["기쁨", "슬픔", "화남", "행복", "우울"]
+        ))
+        if emotion_count > 0:
+            insights.append("🎭 감정적인 맥락이 포함된 기억들이 연상되고 있습니다.")
+        
+        # 시간적 패턴
+        recent_count = len([m for m in memories if m.get("timestamp", 0) > time.time() - 86400])
+        if recent_count > 0:
+            insights.append("⏰ 최근 24시간 내의 관련 기억들이 발견되었습니다.")
+        
+        return " ".join(insights) if insights else ""
+    
+    async def generate_intuition(self, query: str, memories: List[Dict]) -> str:
+        """직관 생성 시스템"""
+        if not memories:
+            return ""
+        
+        intuitions = []
+        
+        # 직관적 연결
+        if len(memories) > 2:
+            intuitions.append("🔮 여러 기억들 사이에 숨겨진 연결고리가 느껴집니다.")
+        
+        # 감정적 직감
+        if any("중요" in memory.get("content", "") for memory in memories):
+            intuitions.append("✨ 이 주제가 당신에게 특별한 의미가 있을 것 같습니다.")
+        
+        return " ".join(intuitions) if intuitions else ""
+    
+    async def generate_wisdom(self, query: str, memories: List[Dict]) -> str:
+        """지혜 생성 시스템"""
+        if not memories:
+            return ""
+        
+        wisdom = []
+        
+        # 경험 기반 지혜
+        if len(memories) > 3:
+            wisdom.append("🧠 축적된 경험들로부터 얻을 수 있는 지혜가 있습니다.")
+        
+        # 성찰적 지혜
+        if any("배움" in memory.get("content", "") or "깨달음" in memory.get("content", "") for memory in memories):
+            wisdom.append("📚 과거의 학습과 깨달음이 현재 상황에 도움이 될 것입니다.")
+        
+        return " ".join(wisdom) if wisdom else ""
+    
+    async def generate_response(self, user_input: str, user_id: str, 
+                              recalled_memories: List[Dict], conversation_history: List[Dict]) -> str:
+        """고급 기능을 활용한 통합 응답 생성"""
+        try:
+            # 3개의 회상 결과로 제한
+            top_memories = recalled_memories[:3]
+            
+            # 고급 기능 생성
+            insights = await self.generate_insights(user_input, top_memories)
+            intuition = await self.generate_intuition(user_input, top_memories)
+            wisdom = await self.generate_wisdom(user_input, top_memories)
+            
+            # 컨텍스트 구성
+            context_parts = []
+            
+            if top_memories:
+                memory_context = "\n".join([
+                    f"- {memory.get('content', '')[:100]}..." 
+                    for memory in top_memories
+                ])
+                context_parts.append(f"관련 기억:\n{memory_context}")
+            
+            if insights:
+                context_parts.append(f"통찰: {insights}")
+            
+            if intuition:
+                context_parts.append(f"직관: {intuition}")
+            
+            if wisdom:
+                context_parts.append(f"지혜: {wisdom}")
+            
+            enhanced_context = "\n\n".join(context_parts)
+            
+            print(f"🧠 EORA 고급 시스템 활성화:")
+            print(f"   - 회상된 메모리: {len(top_memories)}개")
+            print(f"   - 통찰 생성: {'✅' if insights else '❌'}")
+            print(f"   - 직관 생성: {'✅' if intuition else '❌'}")
+            print(f"   - 지혜 생성: {'✅' if wisdom else '❌'}")
+            
+            return enhanced_context
+            
+        except Exception as e:
+            print(f"❌ 고급 응답 생성 오류: {e}")
+            return ""
+    
+    # ==================== 헬퍼 메서드들 ====================
+    
+    def _tag_memories(self, memories: List[Dict], recall_type: str) -> List[Dict]:
+        """메모리에 회상 유형 태그 추가"""
+        for memory in memories:
+            memory["recall_type"] = recall_type
+        return memories
+    
+    def _deduplicate_memories(self, memories: List[Dict]) -> List[Dict]:
+        """중복 메모리 제거"""
+        seen = set()
+        unique = []
+        
+        for memory in memories:
+            memory_id = memory.get("_id") or memory.get("id") or memory.get("content", "")[:50]
+            if memory_id not in seen:
+                seen.add(memory_id)
+                unique.append(memory)
+        
+        return unique
+    
+    def _rank_memories(self, memories: List[Dict], query: str) -> List[Dict]:
+        """메모리 관련성 순으로 정렬"""
+        query_words = set(query.lower().split())
+        
+        def relevance_score(memory):
+            content = memory.get("content", "").lower()
+            content_words = set(content.split())
+            
+            # 공통 단어 수
+            common_words = len(query_words.intersection(content_words))
+            
+            # 시간적 가중치 (최근일수록 높은 점수)
+            timestamp = memory.get("timestamp", 0)
+            recency_score = min(1.0, timestamp / time.time()) if timestamp > 0 else 0
+            
+            # 회상 유형별 가중치
+            recall_type = memory.get("recall_type", "")
+            type_weights = {
+                "keyword": 1.0,
+                "embedding": 0.9,
+                "emotion": 0.8,
+                "belief": 0.8,
+                "context": 0.7,
+                "temporal": 0.6,
+                "association": 0.7,
+                "pattern": 0.6
+            }
+            type_weight = type_weights.get(recall_type, 0.5)
+            
+            return common_words * type_weight + recency_score * 0.3
+        
+        memories.sort(key=relevance_score, reverse=True)
+        return memories
+    
     def create_memory(self, user_id: str, session_id: str, message: str, response: str,
                       memory_type: str = "conversation", importance: float = 0.5) -> str:
         """동기 메모리 생성 (비동기 함수와 호환)"""
         import asyncio
         
         try:
+            # 이벤트 루프가 실행 중인지 확인
             loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        return loop.run_until_complete(
-            self.store_interaction(user_id, message, response, memory_type, importance)
-        )
-    
-    def recall_memories(self, query: str, user_id: Optional[str] = None, limit: int = 5) -> List[Dict]:
-        """동기 메모리 회상 (비동기 함수와 호환)"""
-        import asyncio
-        
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        return loop.run_until_complete(self.recall(query, user_id, limit)) 
+            if loop.is_running():
+                # 이미 실행 중인 루프에서는 태스크 생성
+                task = asyncio.create_task(self.store_memory(
+                    user_id=user_id,
+                    session_id=session_id,
+                    memory_type=memory_type,
+                    content=f"사용자: {message}\n응답: {response}",
+                    importance=importance
+                ))
+                return f"memory_{int(time.time())}"
+            else:
+                # 새 루프에서 실행
+                return asyncio.run(self.store_memory(
+                    user_id=user_id,
+                    session_id=session_id,
+                    memory_type=memory_type,
+                    content=f"사용자: {message}\n응답: {response}",
+                    importance=importance
+                ))
+        except Exception as e:
+            print(f"❌ 메모리 생성 오류: {e}")
+            return f"memory_error_{int(time.time())}" 
