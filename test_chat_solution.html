@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA 채팅 테스트 - 메시지 저장 해결</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f23;
+            color: #ccc;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00ff88;
+            text-align: center;
+        }
+
+        .info-box {
+            background: #1a1a2e;
+            border: 1px solid #00ff88;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .solution {
+            background: #263238;
+            border-left: 4px solid #00ff88;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        button {
+            background: #00ff88;
+            color: #0f0f23;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #00cc70;
+        }
+
+        code {
+            background: #455a64;
+            color: #aed581;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 EORA 채팅 메시지 저장 문제 해결</h1>
+
+        <div class="info-box">
+            <h2>현재 문제</h2>
+            <p>채팅이 작동하지만 메시지가 <code>messages.json</code> 파일에 저장되지 않습니다.</p>
+        </div>
+
+        <div class="info-box">
+            <h2>해결 방법</h2>
+
+            <div class="solution">
+                <h3>1. 서버 재시작</h3>
+                <p>현재 실행 중인 모든 서버를 종료하고 <code>stable_server.py</code>를 다시 시작하세요:</p>
+                <code>python stable_server.py</code>
+            </div>
+
+            <div class="solution">
+                <h3>2. 테스트 버튼</h3>
+                <button onclick="testChat()">채팅 테스트</button>
+                <button onclick="checkMessages()">메시지 확인</button>
+                <button onclick="checkFiles()">파일 상태 확인</button>
+            </div>
+
+            <div class="solution">
+                <h3>3. 서버 로그 확인</h3>
+                <p>서버 콘솔에서 다음 로그를 확인하세요:</p>
+                <ul>
+                    <li>💾 메시지 저장: session_xxx -> user (X자)</li>
+                    <li>💬 채팅 응답: session_xxx -> X자</li>
+                    <li>💾 세션의 총 메시지 수: X개</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h2>테스트 결과</h2>
+            <div id="log" class="log">테스트 결과가 여기에 표시됩니다...</div>
+        </div>
+
+        <div class="info-box">
+            <h2>추가 정보</h2>
+            <p>메시지가 저장되지 않는 경우:</p>
+            <ol>
+                <li><code>data</code> 폴더의 권한을 확인하세요</li>
+                <li><code>messages.json</code> 파일이 손상되지 않았는지 확인하세요</li>
+                <li>서버 로그에 오류 메시지가 있는지 확인하세요</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = 'http://127.0.0.1:8100';
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `${time} - ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function testChat() {
+            log('채팅 테스트 시작...');
+
+            try {
+                // 로그인
+                const loginResponse = await fetch(`${SERVER_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: 'admin@eora.ai',
+                        password: 'admin123'
+                    })
+                });
+
+                if (!loginResponse.ok) {
+                    log('❌ 로그인 실패');
+                    return;
+                }
+                log('✅ 로그인 성공');
+
+                // 세션 목록 조회
+                const sessionsResponse = await fetch(`${SERVER_URL}/api/sessions`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const sessionsData = await sessionsResponse.json();
+                const sessions = sessionsData.sessions || [];
+                log(`📂 세션 수: ${sessions.length}`);
+
+                let sessionId;
+                if (sessions.length > 0) {
+                    sessionId = sessions[0].id;
+                    log(`✅ 기존 세션 사용: ${sessionId}`);
+                } else {
+                    // 새 세션 생성
+                    const createResponse = await fetch(`${SERVER_URL}/api/sessions`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            name: `테스트 세션 ${new Date().toLocaleString()}`
+                        })
+                    });
+
+                    const createData = await createResponse.json();
+                    sessionId = createData.session.id;
+                    log(`🆕 새 세션 생성: ${sessionId}`);
+                }
+
+                // 채팅 메시지 전송
+                const message = `테스트 메시지 - ${new Date().toLocaleTimeString()}`;
+                log(`📤 메시지 전송: ${message}`);
+
+                const chatResponse = await fetch(`${SERVER_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        message: message
+                    })
+                });
+
+                const chatData = await chatResponse.json();
+                log(`🤖 AI 응답: ${chatData.response}`);
+
+                // 메시지 확인
+                setTimeout(() => checkMessages(), 2000);
+
+            } catch (error) {
+                log(`❌ 오류: ${error.message}`);
+            }
+        }
+
+        async function checkMessages() {
+            log('메시지 확인 중...');
+
+            try {
+                const sessionsResponse = await fetch(`${SERVER_URL}/api/sessions`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const sessionsData = await sessionsResponse.json();
+                const sessions = sessionsData.sessions || [];
+
+                if (sessions.length > 0) {
+                    const sessionId = sessions[0].id;
+
+                    const messagesResponse = await fetch(`${SERVER_URL}/api/sessions/${sessionId}/messages`, {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+
+                    const messagesData = await messagesResponse.json();
+                    const messages = messagesData.messages || [];
+
+                    log(`💬 세션 ${sessionId}의 메시지 수: ${messages.length}`);
+
+                    messages.forEach((msg, idx) => {
+                        log(`  [${idx + 1}] ${msg.role}: ${msg.content}`);
+                    });
+                } else {
+                    log('📂 세션이 없습니다');
+                }
+
+            } catch (error) {
+                log(`❌ 오류: ${error.message}`);
+            }
+        }
+
+        async function checkFiles() {
+            log('파일 상태 확인 중...');
+            log('서버 측에서 파일을 직접 확인해야 합니다.');
+            log('PowerShell에서 다음 명령을 실행하세요:');
+            log('  cat data/messages.json');
+            log('  cat data/sessions.json');
+        }
+    </script>
+</body>
+
+</html>

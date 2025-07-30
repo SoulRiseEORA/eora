@@ -718,10 +718,12 @@
 
         // 로그인 상태 체크
         function checkLogin() {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (!user.email || !user.role || user.role !== 'admin') {
+            const userEmail = localStorage.getItem('user_email');
+            const isAdmin = localStorage.getItem('is_admin') === 'true';
+
+            if (!userEmail || !isAdmin) {
                 alert('관리자 로그인이 필요합니다.');
-                window.location.href = '/login';
+                window.location.href = '/';
                 return false;
             }
             return true;
@@ -1025,9 +1027,12 @@
 
         // 로그아웃
         function logout() {
-            localStorage.removeItem('user');
+            localStorage.removeItem('user_email');
+            localStorage.removeItem('user_name');
+            localStorage.removeItem('is_admin');
+            localStorage.removeItem('auto_login');
             localStorage.removeItem('token');
-            window.location.href = '/login';
+            window.location.href = '/';
         }
 
         // 이벤트 리스너 추가

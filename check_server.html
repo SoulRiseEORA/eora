@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 서버 확인</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 40px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1 {
+            color: #0095ff;
+            margin-bottom: 40px;
+        }
+
+        .status {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #0095ff;
+            color: white;
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #0077cc;
+            transform: translateY(-2px);
+        }
+
+        .success {
+            color: #4CAF50;
+            font-size: 24px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 EORA AI 서버 상태</h1>
+
+        <div class="status">
+            <p class="success">✅ 서버가 정상 실행 중입니다!</p>
+            <p>포트: 8020</p>
+        </div>
+
+        <div>
+            <a href="http://127.0.0.1:8020" class="btn">🏠 홈페이지 열기</a>
+            <a href="http://127.0.0.1:8020/login" class="btn">🔐 로그인 페이지</a>
+        </div>
+
+        <div style="margin-top: 40px;">
+            <h3>테스트 계정</h3>
+            <p>관리자: admin@eora.ai / admin123</p>
+            <p>일반: test@eora.ai / test123</p>
+        </div>
+    </div>
+</body>
+
+</html>

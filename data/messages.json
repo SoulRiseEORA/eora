@@ -1,0 +1,197 @@
+{
+  "test_session_1753791733": [
+    {
+      "role": "user",
+      "content": "테스트 메시지입니다.",
+      "timestamp": "2025-07-29T21:22:13.950612"
+    }
+  ],
+  "session_admin_eora_ai_1753850560949": [
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "2025-07-30T13:47:27.403112"
+    },
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "2025-07-30T13:47:27.408110"
+    },
+    {
+      "role": "assistant",
+      "content": "안녕하세요! EORA AI입니다. 무엇을 도와드릴까요?",
+      "timestamp": "2025-07-30T13:47:27.408110"
+    },
+    {
+      "role": "assistant",
+      "content": "안녕하세요! EORA AI입니다. 무엇을 도와드릴까요?",
+      "timestamp": "2025-07-30T13:47:27.412108"
+    },
+    {
+      "role": "user",
+      "content": "hihi",
+      "timestamp": "2025-07-30T13:47:28.491201"
+    },
+    {
+      "role": "user",
+      "content": "hihi",
+      "timestamp": "2025-07-30T13:47:28.494201"
+    },
+    {
+      "role": "assistant",
+      "content": "도움이 될 수 있도록 최선을 다하겠습니다!",
+      "timestamp": "2025-07-30T13:47:28.494201"
+    },
+    {
+      "role": "assistant",
+      "content": "도움이 될 수 있도록 최선을 다하겠습니다!",
+      "timestamp": "2025-07-30T13:47:28.498200"
+    },
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "2025-07-30T13:47:29.362448"
+    },
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "2025-07-30T13:47:29.366447"
+    },
+    {
+      "role": "assistant",
+      "content": "안녕하세요! EORA AI입니다. 무엇을 도와드릴까요?",
+      "timestamp": "2025-07-30T13:47:29.366447"
+    },
+    {
+      "role": "assistant",
+      "content": "안녕하세요! EORA AI입니다. 무엇을 도와드릴까요?",
+      "timestamp": "2025-07-30T13:47:29.370449"
+    }
+  ],
+  "session_local_1753850560951": [
+    {
+      "role": "user",
+      "content": "koko",
+      "timestamp": "2025-07-30T13:42:43.914045"
+    },
+    {
+      "role": "user",
+      "content": "koko",
+      "timestamp": "2025-07-30T13:42:43.918045"
+    },
+    {
+      "role": "assistant",
+      "content": "좋은 질문이네요! 더 자세히 알려주시겠어요?",
+      "timestamp": "2025-07-30T13:42:43.918045"
+    },
+    {
+      "role": "assistant",
+      "content": "좋은 질문이네요! 더 자세히 알려주시겠어요?",
+      "timestamp": "2025-07-30T13:42:43.924050"
+    },
+    {
+      "role": "user",
+      "content": "ko",
+      "timestamp": "2025-07-30T13:42:45.307068"
+    },
+    {
+      "role": "user",
+      "content": "ko",
+      "timestamp": "2025-07-30T13:42:45.311070"
+    },
+    {
+      "role": "assistant",
+      "content": "안녕하세요! EORA AI입니다. 무엇을 도와드릴까요?",
+      "timestamp": "2025-07-30T13:42:45.311070"
+    },
+    {
+      "role": "assistant",
+      "content": "안녕하세요! EORA AI입니다. 무엇을 도와드릴까요?",
+      "timestamp": "2025-07-30T13:42:45.315067"
+    }
+  ],
+  "session_admin_eora_ai_1753851021499": [
+    {
+      "role": "user",
+      "content": "안녕하세요, EORA AI! 당신의 고급 기능들을 테스트해보고 싶습니다.",
+      "timestamp": "2025-07-30T13:50:21.502773"
+    },
+    {
+      "role": "assistant",
+      "content": "네, 이해했습니다. 계속 말씀해주세요.",
+      "timestamp": "2025-07-30T13:50:21.503773"
+    },
+    {
+      "role": "user",
+      "content": "8종 회상 시스템이 작동하는지 확인해주세요.",
+      "timestamp": "2025-07-30T13:50:23.507814"
+    },
+    {
+      "role": "assistant",
+      "content": "좋은 질문이네요! 더 자세히 알려주시겠어요?",
+      "timestamp": "2025-07-30T13:50:23.507814"
+    },
+    {
+      "role": "user",
+      "content": "직관과 통찰 기능이 활성화되어 있나요?",
+      "timestamp": "2025-07-30T13:50:25.511456"
+    },
+    {
+      "role": "assistant",
+      "content": "안녕하세요! EORA AI입니다. 무엇을 도와드릴까요?",
+      "timestamp": "2025-07-30T13:50:25.511456"
+    },
+    {
+      "role": "user",
+      "content": "이전 대화를 기억하고 있나요?",
+      "timestamp": "2025-07-30T13:50:27.516405"
+    },
+    {
+      "role": "assistant",
+      "content": "안녕하세요! EORA AI입니다. 무엇을 도와드릴까요?",
+      "timestamp": "2025-07-30T13:50:27.516405"
+    }
+  ],
+  "session_admin_eora_ai_1753853818235": [
+    {
+      "role": "user",
+      "content": "ji",
+      "timestamp": "2025-07-30T14:42:02.466782"
+    },
+    {
+      "role": "user",
+      "content": "ji",
+      "timestamp": "2025-07-30T14:42:02.471783"
+    },
+    {
+      "role": "assistant",
+      "content": "복합적인 사고를 통해 답변드리겠습니다. 어떤 측면이 가장 중요하다고 생각하시나요?",
+      "timestamp": "2025-07-30T14:42:02.471783"
+    },
+    {
+      "role": "assistant",
+      "content": "복합적인 사고를 통해 답변드리겠습니다. 어떤 측면이 가장 중요하다고 생각하시나요?",
+      "timestamp": "2025-07-30T14:42:02.476781"
+    },
+    {
+      "role": "user",
+      "content": "jk",
+      "timestamp": "2025-07-30T14:42:04.057314"
+    },
+    {
+      "role": "user",
+      "content": "jk",
+      "timestamp": "2025-07-30T14:42:04.061315"
+    },
+    {
+      "role": "assistant",
+      "content": "그 관점에서 접근해보니 새로운 통찰이 떠오르네요. 더 자세히 나눠볼까요?",
+      "timestamp": "2025-07-30T14:42:04.061315"
+    },
+    {
+      "role": "assistant",
+      "content": "그 관점에서 접근해보니 새로운 통찰이 떠오르네요. 더 자세히 나눠볼까요?",
+      "timestamp": "2025-07-30T14:42:04.066315"
+    }
+  ]
+}

@@ -991,13 +991,7 @@
                     <span>💬</span>
                     채팅 시작하기
                 </button>
-                {% if user and (user.role == 'admin' or user.is_admin == true or user.is_admin == 'true' or user.email
-                == 'admin@eora.ai') %}
-                <a href="/admin" class="admin-btn" id="adminBtn"
-                    style="margin-left:12px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
-                    <span>⚙️</span> 관리자 대시보드
-                </a>
-                {% endif %}
+                <!-- 관리자 버튼은 JavaScript로 동적 생성 -->
                 <div class="language-selector">
                     <span class="language-icon">🌍</span>
                     <span>언어 선택</span>
@@ -1288,6 +1282,15 @@
     <script>
         // 로그인 폼 이벤트 리스너
         document.addEventListener('DOMContentLoaded', function () {
+            // URL 파라미터 확인하여 오류 메시지 표시
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            if (error === 'admin_required') {
+                alert('관리자 권한이 필요합니다. 관리자 계정으로 로그인하세요.');
+                // URL에서 오류 파라미터 제거
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
             checkLoginStatus();
             const loginForm = document.getElementById('loginForm');
             if (loginForm) {
@@ -1320,16 +1323,36 @@
                     document.getElementById('userDisplayName').textContent = userName;
                     document.getElementById('userDisplayEmail').textContent = userEmail;
 
-                    // 관리자 계정인 경우 관리자 버튼 표시 (항상 강제)
+                    // 관리자 정보가 없으면 설정 (admin@eora.ai인 경우)
+                    if (localStorage.getItem('is_admin') === null && userEmail === 'admin@eora.ai') {
+                        localStorage.setItem('is_admin', 'true');
+                    }
+
+                    // 관리자 계정인 경우만 관리자 버튼 표시 (로그인된 상태에서만)
                     const isAdmin = localStorage.getItem('is_admin') === 'true' || userEmail === 'admin@eora.ai';
-                    const adminBtn = document.getElementById('adminBtn');
-                    if (isAdmin) {
-                        if (adminBtn) {
-                            adminBtn.style.display = 'inline-block';
-                        } else {
-                            console.warn('adminBtn 버튼이 DOM에 없습니다.');
+                    let adminBtn = document.getElementById('adminBtn');
+
+                    if (isAdmin && userEmail) {  // 로그인된 상태이면서 관리자인 경우만
+                        if (!adminBtn) {
+                            // 관리자 버튼이 없으면 동적으로 생성
+                            const chatBtn = document.querySelector('.header-chat-btn');
+                            if (chatBtn && chatBtn.parentElement) {
+                                adminBtn = document.createElement('a');
+                                adminBtn.href = '#';
+                                adminBtn.className = 'admin-btn';
+                                adminBtn.id = 'adminBtn';
+                                adminBtn.style.cssText = 'margin-left:12px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;';
+                                adminBtn.innerHTML = '<span>⚙️</span> 관리자 대시보드';
+                                adminBtn.onclick = function (e) {
+                                    e.preventDefault();
+                                    goToAdminPage();
+                                };
+                                chatBtn.parentElement.insertBefore(adminBtn, chatBtn.nextSibling);
+                            }
                         }
+                        if (adminBtn) adminBtn.style.display = 'inline-flex';
                     } else {
+                        // 로그인하지 않았거나 관리자가 아닌 경우 버튼 숨김
                         if (adminBtn) adminBtn.style.display = 'none';
                     }
                 }
@@ -1357,6 +1380,9 @@
                 if (userInfoSection) {
                     userInfoSection.style.display = 'none';
                 }
+                // 관리자 버튼 숨김
+                const adminBtn = document.getElementById('adminBtn');
+                if (adminBtn) adminBtn.style.display = 'none';
             }
         }
 
@@ -1388,13 +1414,23 @@
                             localStorage.setItem('user_name', email.split('@')[0]); // 이메일에서 이름 추출
                         }
 
+                        // 관리자 정보 저장
+                        if (data.user && (data.user.is_admin === true || data.user.role === 'admin' || email === 'admin@eora.ai')) {
+                            localStorage.setItem('is_admin', 'true');
+                        } else {
+                            localStorage.setItem('is_admin', 'false');
+                        }
+
                         if (autoLogin) {
                             localStorage.setItem('auto_login', 'true');
                         }
 
                         alert('로그인 성공!');
-                        if (data.user && data.user.role === 'admin') {
-                            window.location.href = '/admin';
+                        if (data.user && (data.user.role === 'admin' || data.user.is_admin === true || email === 'admin@eora.ai')) {
+                            // 관리자 로그인 시 쿠키 설정을 위해 잠시 기다린 후 이동
+                            setTimeout(() => {
+                                window.location.href = '/admin';
+                            }, 500);
                         } else {
                             window.open('/chat', '_blank');
                             window.location.href = '/';
@@ -1680,6 +1716,7 @@
                 localStorage.removeItem('user_email');
                 localStorage.removeItem('user_name');
                 localStorage.removeItem('auto_login');
+                localStorage.removeItem('is_admin');
                 window.location.href = '/';
             }
         }
@@ -1690,8 +1727,29 @@
                 localStorage.removeItem('user_email');
                 localStorage.removeItem('user_name');
                 localStorage.removeItem('auto_login');
+                localStorage.removeItem('is_admin');
                 window.location.reload(); // 페이지 새로고침하여 로그인 창 표시
             }
+        }
+
+        // 관리자 페이지로 이동
+        function goToAdminPage() {
+            const userEmail = localStorage.getItem('user_email');
+            const isAdmin = localStorage.getItem('is_admin') === 'true' || userEmail === 'admin@eora.ai';
+
+            if (!userEmail) {
+                alert('로그인이 필요합니다.');
+                showLoginForm();
+                return;
+            }
+
+            if (!isAdmin) {
+                alert('관리자 권한이 필요합니다.');
+                return;
+            }
+
+            // 관리자 권한 확인 후 페이지 이동
+            window.location.href = '/admin';
         }
 
         // 구글 로그인 기능

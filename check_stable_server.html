@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 안정 서버 상태</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #0095ff;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+        }
+
+        .status-card {
+            background: #16213e;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #0f3460;
+        }
+
+        .status-indicator {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .status-indicator.online {
+            color: #4CAF50;
+        }
+
+        .status-indicator.offline {
+            color: #f44336;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #2a4a7a;
+        }
+
+        .feature-card h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+        }
+
+        .test-btn {
+            background: #0095ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .test-btn:hover {
+            background: #0077cc;
+        }
+
+        .result-box {
+            background: #0a1628;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 0.9em;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .link-btn {
+            background: #00ff88;
+            color: #1a1a2e;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+
+        .link-btn:hover {
+            background: #00cc70;
+        }
+
+        .info-box {
+            background: #0a1628;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #2a4a7a;
+        }
+
+        .info-box p {
+            margin: 5px 0;
+        }
+
+        .success {
+            color: #4CAF50;
+        }
+
+        .error {
+            color: #f44336;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0095ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 EORA AI 안정 서버 상태</h1>
+
+        <div class="status-card">
+            <div id="serverStatus" class="status-indicator offline">
+                <span class="loading"></span> 서버 상태 확인 중...
+            </div>
+
+            <div class="info-box">
+                <h3>📋 서버 정보</h3>
+                <p><strong>주소:</strong> http://127.0.0.1:8100</p>
+                <p><strong>관리자:</strong> admin@eora.ai / admin123</p>
+                <p><strong>테스트:</strong> test@eora.ai / test123</p>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="http://127.0.0.1:8100" class="link-btn" target="_blank">홈페이지</a>
+                <a href="http://127.0.0.1:8100/login" class="link-btn" target="_blank">로그인</a>
+                <a href="http://127.0.0.1:8100/register" class="link-btn" target="_blank">회원가입</a>
+                <a href="http://127.0.0.1:8100/admin" class="link-btn" target="_blank">관리자</a>
+                <a href="http://127.0.0.1:8100/chat" class="link-btn" target="_blank">채팅</a>
+                <a href="http://127.0.0.1:8100/prompt_management" class="link-btn" target="_blank">프롬프트 관리</a>
+            </div>
+        </div>
+
+        <div class="features-grid">
+            <!-- 세션 테스트 -->
+            <div class="feature-card">
+                <h3>💾 세션 저장/불러오기 테스트</h3>
+                <button class="test-btn" onclick="testSessions()">세션 테스트</button>
+                <button class="test-btn" onclick="createNewSession()">새 세션 생성</button>
+                <div id="sessionResult" class="result-box"></div>
+            </div>
+
+            <!-- 프롬프트 테스트 -->
+            <div class="feature-card">
+                <h3>📋 프롬프트 관리 테스트</h3>
+                <button class="test-btn" onclick="testPrompts()">프롬프트 목록</button>
+                <button class="test-btn" onclick="testAI1Prompt()">AI1 프롬프트</button>
+                <div id="promptResult" class="result-box"></div>
+            </div>
+
+            <!-- 회원가입 테스트 -->
+            <div class="feature-card">
+                <h3>👤 회원가입 테스트</h3>
+                <button class="test-btn" onclick="testRegister()">테스트 회원가입</button>
+                <button class="test-btn" onclick="loginAsAdmin()">관리자 로그인</button>
+                <div id="authResult" class="result-box"></div>
+            </div>
+
+            <!-- 메시지 테스트 -->
+            <div class="feature-card">
+                <h3>💬 메시지 저장 테스트</h3>
+                <button class="test-btn" onclick="testMessages()">메시지 테스트</button>
+                <button class="test-btn" onclick="testChat()">채팅 응답 테스트</button>
+                <div id="messageResult" class="result-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = 'http://127.0.0.1:8100';
+        let currentSessionId = null;
+
+        // 서버 상태 확인
+        async function checkServerStatus() {
+            const statusEl = document.getElementById('serverStatus');
+            try {
+                const response = await fetch(SERVER_URL);
+                if (response.ok) {
+                    statusEl.className = 'status-indicator online';
+                    statusEl.innerHTML = '✅ 서버 온라인 (포트 8100)';
+                } else {
+                    statusEl.className = 'status-indicator offline';
+                    statusEl.innerHTML = '❌ 서버 응답 오류';
+                }
+            } catch (error) {
+                statusEl.className = 'status-indicator offline';
+                statusEl.innerHTML = '❌ 서버 오프라인 - start_stable_server.bat 실행 필요';
+            }
+        }
+
+        // 세션 테스트
+        async function testSessions() {
+            const resultBox = document.getElementById('sessionResult');
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '세션 목록 조회 중...';
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/sessions`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultBox.innerHTML = `<span class="success">✅ 세션 조회 성공!</span>\n\n`;
+                    resultBox.innerHTML += `총 ${data.sessions.length}개의 세션\n\n`;
+
+                    data.sessions.forEach((session, idx) => {
+                        resultBox.innerHTML += `${idx + 1}. ${session.name}\n`;
+                        resultBox.innerHTML += `   ID: ${session.id}\n`;
+                        resultBox.innerHTML += `   메시지: ${session.message_count}개\n`;
+                        resultBox.innerHTML += `   생성: ${new Date(session.created_at).toLocaleString()}\n\n`;
+                    });
+
+                    if (data.sessions.length > 0) {
+                        currentSessionId = data.sessions[0].id;
+                    }
+                } else {
+                    resultBox.innerHTML = `<span class="error">❌ 세션 조회 실패</span>\n로그인이 필요합니다.`;
+                }
+            } catch (error) {
+                resultBox.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 새 세션 생성
+        async function createNewSession() {
+            const resultBox = document.getElementById('sessionResult');
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '새 세션 생성 중...';
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/sessions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: `테스트 세션 ${new Date().toLocaleTimeString()}` }),
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultBox.innerHTML = `<span class="success">✅ 세션 생성 성공!</span>\n\n`;
+                    resultBox.innerHTML += `세션 ID: ${data.session.id}\n`;
+                    resultBox.innerHTML += `세션 이름: ${data.session.name}\n`;
+                    currentSessionId = data.session.id;
+                } else {
+                    const error = await response.json();
+                    resultBox.innerHTML = `<span class="error">❌ 세션 생성 실패: ${error.detail}</span>`;
+                }
+            } catch (error) {
+                resultBox.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 프롬프트 테스트
+        async function testPrompts() {
+            const resultBox = document.getElementById('promptResult');
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '프롬프트 목록 조회 중...';
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/prompts`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultBox.innerHTML = `<span class="success">✅ 프롬프트 조회 성공!</span>\n\n`;
+                    resultBox.innerHTML += `총 ${data.prompts.length}개의 프롬프트\n\n`;
+
+                    data.prompts.forEach(prompt => {
+                        resultBox.innerHTML += `- ${prompt.name} (${prompt.id})\n`;
+                    });
+                } else {
+                    const error = await response.json();
+                    resultBox.innerHTML = `<span class="error">❌ 프롬프트 조회 실패: ${error.detail}</span>`;
+                }
+            } catch (error) {
+                resultBox.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // AI1 프롬프트 테스트
+        async function testAI1Prompt() {
+            const resultBox = document.getElementById('promptResult');
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = 'AI1 프롬프트 조회 중...';
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/prompts/ai1`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultBox.innerHTML = `<span class="success">✅ AI1 프롬프트 조회 성공!</span>\n\n`;
+                    const prompt = data.prompt;
+                    resultBox.innerHTML += `이름: ${prompt.name}\n`;
+                    resultBox.innerHTML += `ID: ${prompt.id}\n\n`;
+                    resultBox.innerHTML += `시스템: ${prompt.system.substring(0, 100)}...\n`;
+                    resultBox.innerHTML += `역할: ${prompt.role.substring(0, 100)}...\n`;
+                } else {
+                    const error = await response.json();
+                    resultBox.innerHTML = `<span class="error">❌ AI1 프롬프트 조회 실패: ${error.detail}</span>`;
+                }
+            } catch (error) {
+                resultBox.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 회원가입 테스트
+        async function testRegister() {
+            const resultBox = document.getElementById('authResult');
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '테스트 회원가입 중...';
+
+            const timestamp = Date.now();
+            const testData = {
+                email: `test${timestamp}@test.com`,
+                password: 'test1234',
+                name: `테스트사용자${timestamp}`
+            };
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    resultBox.innerHTML = `<span class="success">✅ 회원가입 성공!</span>\n\n`;
+                    resultBox.innerHTML += `이메일: ${data.user.email}\n`;
+                    resultBox.innerHTML += `이름: ${data.user.name}\n`;
+                    resultBox.innerHTML += `자동 로그인 완료`;
+                } else {
+                    resultBox.innerHTML = `<span class="error">❌ 회원가입 실패: ${data.message}</span>`;
+                }
+            } catch (error) {
+                resultBox.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 관리자 로그인
+        async function loginAsAdmin() {
+            const resultBox = document.getElementById('authResult');
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '관리자 로그인 중...';
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@eora.ai',
+                        password: 'admin123'
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    resultBox.innerHTML = `<span class="success">✅ 관리자 로그인 성공!</span>\n\n`;
+                    resultBox.innerHTML += `이메일: ${data.user.email}\n`;
+                    resultBox.innerHTML += `이름: ${data.user.name}\n`;
+                    resultBox.innerHTML += `관리자: ${data.user.is_admin ? '예' : '아니오'}\n`;
+
+                    // 로컬 스토리지 업데이트
+                    localStorage.setItem('user_email', data.user.email);
+                    localStorage.setItem('user_name', data.user.name);
+                    localStorage.setItem('is_admin', data.user.is_admin ? 'true' : 'false');
+                } else {
+                    resultBox.innerHTML = `<span class="error">❌ 로그인 실패: ${data.message}</span>`;
+                }
+            } catch (error) {
+                resultBox.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 메시지 테스트
+        async function testMessages() {
+            const resultBox = document.getElementById('messageResult');
+            resultBox.style.display = 'block';
+
+            if (!currentSessionId) {
+                resultBox.innerHTML = '<span class="error">❌ 먼저 세션을 생성하거나 조회하세요.</span>';
+                return;
+            }
+
+            resultBox.innerHTML = '메시지 저장 테스트 중...';
+
+            try {
+                // 메시지 저장
+                const saveResponse = await fetch(`${SERVER_URL}/api/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        message: `테스트 메시지 ${new Date().toLocaleTimeString()}`,
+                        role: 'user'
+                    }),
+                    credentials: 'include'
+                });
+
+                if (!saveResponse.ok) {
+                    const error = await saveResponse.json();
+                    resultBox.innerHTML = `<span class="error">❌ 메시지 저장 실패: ${error.detail}</span>`;
+                    return;
+                }
+
+                // 메시지 조회
+                const getResponse = await fetch(`${SERVER_URL}/api/sessions/${currentSessionId}/messages`, {
+                    credentials: 'include'
+                });
+
+                if (getResponse.ok) {
+                    const data = await getResponse.json();
+                    resultBox.innerHTML = `<span class="success">✅ 메시지 테스트 성공!</span>\n\n`;
+                    resultBox.innerHTML += `세션의 총 메시지: ${data.messages.length}개\n\n`;
+
+                    data.messages.slice(-3).forEach((msg, idx) => {
+                        resultBox.innerHTML += `[${msg.role}] ${msg.content}\n`;
+                    });
+                } else {
+                    const error = await getResponse.json();
+                    resultBox.innerHTML = `<span class="error">❌ 메시지 조회 실패: ${error.detail}</span>`;
+                }
+            } catch (error) {
+                resultBox.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 채팅 테스트
+        async function testChat() {
+            const resultBox = document.getElementById('messageResult');
+            resultBox.style.display = 'block';
+
+            if (!currentSessionId) {
+                resultBox.innerHTML = '<span class="error">❌ 먼저 세션을 생성하거나 조회하세요.</span>';
+                return;
+            }
+
+            resultBox.innerHTML = '채팅 응답 테스트 중...';
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        message: '안녕하세요!'
+                    }),
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultBox.innerHTML = `<span class="success">✅ 채팅 응답 성공!</span>\n\n`;
+                    resultBox.innerHTML += `응답: ${data.response}`;
+                } else {
+                    const error = await response.json();
+                    resultBox.innerHTML = `<span class="error">❌ 채팅 응답 실패: ${error.detail}</span>`;
+                }
+            } catch (error) {
+                resultBox.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 페이지 로드 시 서버 상태 확인
+        checkServerStatus();
+        setInterval(checkServerStatus, 5000);
+    </script>
+</body>
+
+</html>

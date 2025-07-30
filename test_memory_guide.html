@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 EORA AI 메모리 회상 테스트 가이드</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+
+        .test-query {
+            background: #e3f2fd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #2196f3;
+            font-family: monospace;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .test-query:hover {
+            background: #bbdefb;
+            transform: translateY(-2px);
+        }
+
+        .expected-result {
+            background: #e8f5e8;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #4caf50;
+            font-size: 0.9em;
+        }
+
+        .warning {
+            background: #fff3cd;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #ffc107;
+            color: #856404;
+        }
+
+        .success {
+            background: #d4edda;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #28a745;
+            color: #155724;
+        }
+
+        .button {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+
+        .button:hover {
+            background: #5a6fd8;
+        }
+
+        .copy-btn {
+            font-size: 12px;
+            padding: 5px 10px;
+            margin-left: 10px;
+            background: #28a745;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🧠 EORA AI 메모리 회상 테스트 가이드</h1>
+
+        <div class="success">
+            <strong>✅ 학습 완료!</strong><br>
+            AURA 논문이 3개 청크로 성공적으로 학습되었습니다. 이제 메모리 회상을 테스트해보세요!
+        </div>
+
+        <div class="step">
+            <h3>🔗 1단계: EORA AI 채팅 페이지 접속</h3>
+            <p>먼저 EORA AI 채팅 페이지에 접속하세요:</p>
+            <a href="http://127.0.0.1:8300/chat" target="_blank" class="button">📱 채팅 페이지 열기</a>
+        </div>
+
+        <div class="step">
+            <h3>🧪 2단계: 메모리 회상 테스트 쿼리</h3>
+            <p>아래의 테스트 쿼리들을 채팅창에 입력하여 학습된 AURA 논문 내용이 회상되는지 확인해보세요:</p>
+
+            <div class="test-query" onclick="copyToClipboard(this.textContent)">
+                AURA 시스템이 뭐야?
+                <button class="copy-btn" onclick="event.stopPropagation(); copyToClipboard('AURA 시스템이 뭐야?')">복사</button>
+            </div>
+            <div class="expected-result">
+                <strong>기대 결과:</strong> Autonomous Understanding and Recall Architecture, 메모리 증강 GPT 시스템 등의 내용이 포함된 응답
+            </div>
+
+            <div class="test-query" onclick="copyToClipboard(this.textContent)">
+                윤종석이 누구야?
+                <button class="copy-btn" onclick="event.stopPropagation(); copyToClipboard('윤종석이 누구야?')">복사</button>
+            </div>
+            <div class="expected-result">
+                <strong>기대 결과:</strong> AURA 논문의 저자로 언급되는 응답
+            </div>
+
+            <div class="test-query" onclick="copyToClipboard(this.textContent)">
+                Memory-Augmented GPT Systems에 대해 설명해줘
+                <button class="copy-btn"
+                    onclick="event.stopPropagation(); copyToClipboard('Memory-Augmented GPT Systems에 대해 설명해줘')">복사</button>
+            </div>
+            <div class="expected-result">
+                <strong>기대 결과:</strong> 메모리 증강 GPT 시스템의 개념과 AURA 아키텍처 관련 내용
+            </div>
+
+            <div class="test-query" onclick="copyToClipboard(this.textContent)">
+                벡터 검색 기반 RAG 시스템의 문제점은?
+                <button class="copy-btn"
+                    onclick="event.stopPropagation(); copyToClipboard('벡터 검색 기반 RAG 시스템의 문제점은?')">복사</button>
+            </div>
+            <div class="expected-result">
+                <strong>기대 결과:</strong> 기존 RAG 시스템의 한계점과 AURA가 해결하는 문제들에 대한 설명
+            </div>
+
+            <div class="test-query" onclick="copyToClipboard(this.textContent)">
+                2000개 이상의 멀티턴 대화 쌍이란?
+                <button class="copy-btn"
+                    onclick="event.stopPropagation(); copyToClipboard('2000개 이상의 멀티턴 대화 쌍이란?')">복사</button>
+            </div>
+            <div class="expected-result">
+                <strong>기대 결과:</strong> AURA 논문의 데이터셋에 대한 설명
+            </div>
+
+            <div class="test-query" onclick="copyToClipboard(this.textContent)">
+                Autonomous Understanding and Recall Architecture
+                <button class="copy-btn"
+                    onclick="event.stopPropagation(); copyToClipboard('Autonomous Understanding and Recall Architecture')">복사</button>
+            </div>
+            <div class="expected-result">
+                <strong>기대 결과:</strong> AURA의 정식 명칭과 관련된 상세한 설명
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>📊 3단계: 결과 분석</h3>
+            <p>AI의 응답에서 다음 요소들을 확인하세요:</p>
+            <ul>
+                <li>✅ <strong>AURA 관련 키워드</strong>: "AURA", "Autonomous", "Understanding", "Recall", "Architecture"</li>
+                <li>✅ <strong>저자 정보</strong>: "윤종석" 언급</li>
+                <li>✅ <strong>기술적 내용</strong>: "Memory-Augmented", "벡터 검색", "RAG 시스템"</li>
+                <li>✅ <strong>데이터셋 정보</strong>: "2000개", "멀티턴 대화"</li>
+            </ul>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ 참고사항:</strong><br>
+            • 일부 쿼리에서는 일반적인 응답이 나올 수 있습니다.<br>
+            • 메모리 회상이 정확히 작동하려면 키워드나 맥락이 일치해야 합니다.<br>
+            • 다양한 표현으로 같은 내용을 물어보면 더 정확한 테스트가 가능합니다.
+        </div>
+
+        <div class="step">
+            <h3>🎯 4단계: 성공 기준</h3>
+            <p>다음 중 <strong>3개 이상</strong>의 쿼리에서 학습된 내용이 회상되면 <strong>성공</strong>입니다:</p>
+            <ul>
+                <li>응답에 AURA 논문의 구체적인 내용이 포함됨</li>
+                <li>윤종석 저자 정보가 정확하게 언급됨</li>
+                <li>기술적 용어들이 정확하게 설명됨</li>
+                <li>논문의 데이터셋 정보가 회상됨</li>
+            </ul>
+        </div>
+
+        <div class="success">
+            <strong>🎉 추가 테스트 팁:</strong><br>
+            • 학습된 내용의 일부를 변형하여 질문해보세요<br>
+            • 키워드를 조합하여 새로운 질문을 만들어보세요<br>
+            • 브라우저 개발자 도구(F12) → Console에서 디버깅 로그도 확인해보세요
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="http://127.0.0.1:8300/chat" target="_blank" class="button">🚀 지금 테스트 시작하기</a>
+            <a href="http://127.0.0.1:8300/learning" target="_blank" class="button">📚 학습 페이지로 돌아가기</a>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(text) {
+            // 복사 버튼 텍스트 제거
+            const cleanText = text.replace(/복사$/, '').trim();
+
+            navigator.clipboard.writeText(cleanText).then(function () {
+                // 성공 피드백
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #28a745;
+                    color: white;
+                    padding: 10px 20px;
+                    border-radius: 5px;
+                    z-index: 1000;
+                    animation: fadeInOut 2s ease-in-out;
+                `;
+                notification.textContent = '📋 클립보드에 복사되었습니다!';
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 2000);
+            }).catch(function () {
+                alert('복사 실패: ' + cleanText);
+            });
+        }
+
+        // CSS 애니메이션 추가
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(-20px); }
+                20% { opacity: 1; transform: translateY(0); }
+                80% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+
+</html>

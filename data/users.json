@@ -1,0 +1,10 @@
+{
+  "admin@eora.ai": {
+    "email": "admin@eora.ai",
+    "password": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+    "name": "관리자",
+    "role": "admin",
+    "is_admin": true,
+    "created_at": "2025-07-29T22:04:43.004897"
+  }
+}

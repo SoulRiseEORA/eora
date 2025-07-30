@@ -1,24 +1,23 @@
 @echo off
-echo ====================================
-echo EORA AI System - 모듈화 버전 시작
-echo 버전: 2.1.0 (모듈화)
-echo ====================================
+echo 🚀 EORA AI System - 모듈화된 서버 시작 중...
 
-cd /d src
+REM 환경 변수 설정
+set OPENAI_API_KEY=your_openai_api_key_here
+set DATABASE_NAME=eora_ai
+set PORT=8010
 
-echo 현재 디렉토리: %CD%
+REM 현재 디렉토리 저장
+set CURRENT_DIR=%CD%
 
-echo Python 버전 확인...
-python --version
+REM src 디렉토리로 이동
+cd src
+echo 📂 src 디렉토리로 이동했습니다.
 
-echo 필요한 패키지 설치 확인...
-pip install fastapi uvicorn python-dotenv pymongo openai pydantic
+REM 서버 실행
+echo 🚀 서버를 시작합니다. (포트: %PORT%)
+python run_railway_server.py --port %PORT%
 
-echo 서버 시작 중...
-python app_modular.py
-
-echo.
-echo 만약 위 명령이 실패하면 아래 명령을 시도하세요:
-echo python -m uvicorn app_modular:app --host 127.0.0.1 --port 8001 --reload
+REM 원래 디렉토리로 복귀
+cd %CURRENT_DIR%
 
 pause 

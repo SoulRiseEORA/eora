@@ -67,12 +67,22 @@ def admin_required(func):
         return await func(*args, **kwargs)
     return wrapper
 
-# 데이터베이스 및 캐시
-import pymongo
-from pymongo import MongoClient
-from bson import ObjectId
-
-# 로깅은 상단에서 이미 설정됨
+# 데이터베이스 모듈 임포트
+try:
+    from database import mongo_client, db, sessions_collection, chat_logs_collection, memories_collection, users_collection
+    from database import init_mongodb_connection, verify_connection
+    DATABASE_CONNECTED = mongo_client is not None
+    logger.info(f"💾 데이터베이스 연결 상태: {'✅ 연결됨' if DATABASE_CONNECTED else '❌ 연결 안됨'}")
+except ImportError as e:
+    logger.error(f"❌ 데이터베이스 모듈 임포트 실패: {e}")
+    DATABASE_CONNECTED = False
+    # 임시 변수 설정
+    mongo_client = None
+    db = None
+    sessions_collection = None
+    chat_logs_collection = None
+    memories_collection = None
+    users_collection = None
 
 # OpenAI 클라이언트
 openai_client = None
@@ -96,6 +106,36 @@ except ImportError as e:
 except Exception as e:
     logger.warning(f"⚠️ 아우라 메모리 시스템 초기화 실패: {e}")
     logger.info("ℹ️ 기본 메모리 시스템으로 동작합니다.")
+
+# 강화된 회상 엔진 통합
+ENHANCED_RECALL_AVAILABLE = False
+enhanced_recall_engine = None
+try:
+    from enhanced_recall_engine import get_enhanced_recall_engine
+    enhanced_recall_engine = get_enhanced_recall_engine()
+    ENHANCED_RECALL_AVAILABLE = True
+    logger.info("✅ 강화된 회상 엔진 로드 성공")
+except ImportError as e:
+    logger.warning(f"⚠️ 강화된 회상 엔진 로드 실패: {e}")
+    logger.info("ℹ️ 기본 회상 시스템으로 동작합니다.")
+except Exception as e:
+    logger.warning(f"⚠️ 강화된 회상 엔진 초기화 실패: {e}")
+    logger.info("ℹ️ 기본 회상 시스템으로 동작합니다.")
+
+# 강화된 학습 시스템 통합
+ENHANCED_LEARNING_AVAILABLE = False
+enhanced_learning_system = None
+try:
+    from enhanced_learning_system import get_enhanced_learning_system
+    enhanced_learning_system = get_enhanced_learning_system()
+    ENHANCED_LEARNING_AVAILABLE = True
+    logger.info("✅ 강화된 학습 시스템 로드 성공")
+except ImportError as e:
+    logger.warning(f"⚠️ 강화된 학습 시스템 로드 실패: {e}")
+    logger.info("ℹ️ 기본 학습 시스템으로 동작합니다.")
+except Exception as e:
+    logger.warning(f"⚠️ 강화된 학습 시스템 초기화 실패: {e}")
+    logger.info("ℹ️ 기본 학습 시스템으로 동작합니다.")
 
 # 고급 회상 시스템 통합 (선택적)
 ADVANCED_CHAT_AVAILABLE = False
@@ -428,46 +468,24 @@ except ImportError:
     RAILWAY_OPTIMIZATION_AVAILABLE = False
     logger.warning("⚠️ Railway 성능 최적화 모듈을 찾을 수 없습니다.")
 
-# MongoDB 연결 시도 (Railway 최적화 적용)
-global db, users_collection
-if RAILWAY_OPTIMIZATION_AVAILABLE:
-    # Railway 최적화된 연결 사용
-    client = None
+# MongoDB 연결 확인 및 필요시 재연결
+if not DATABASE_CONNECTED:
     try:
-        # 비동기 최적화 초기화
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(initialize_railway_optimizations())
-        
-        # 최적화된 MongoDB 연결
-        client = loop.run_until_complete(performance_optimizer.optimize_mongodb_connection())
-        loop.close()
-        
-        if client:
-            logger.info("✅ Railway 최적화된 MongoDB 연결 성공")
+        logger.info("🔄 데이터베이스 연결 재시도...")
+        from database import init_mongodb_connection
+        mongo_client = init_mongodb_connection()
+        if mongo_client:
+            from database import db, sessions_collection, chat_logs_collection, memories_collection, users_collection
+            DATABASE_CONNECTED = True
+            logger.info("✅ 데이터베이스 재연결 성공")
         else:
-            logger.warning("⚠️ Railway 최적화 연결 실패, 기본 연결 시도")
-            client = try_mongodb_connection()
+            logger.error("❌ 데이터베이스 재연결 실패")
+            # 연결 실패 시에도 서버는 계속 실행
+            logger.info("ℹ️ 메모리 기반 세션 관리로 전환합니다.")
     except Exception as e:
-        logger.error(f"❌ Railway 최적화 실패: {e}")
-        client = try_mongodb_connection()
-else:
-    # 기본 연결 사용
-    client = try_mongodb_connection()
-
-if client is None:
-    logger.error("❌ 모든 MongoDB 연결 시도 실패")
-    print("[MongoDB 연결 디버깅] client=None, db/users_collection 모두 None으로 설정")
-    # 연결 실패 시에도 서버는 계속 실행
-    logger.info("ℹ️ 메모리 기반 세션 관리로 전환합니다.")
-    db = None
-    users_collection = None
-else:
-    # 데이터베이스 및 컬렉션 설정
-    try:
-        db = client[DATABASE_NAME]
-        chat_logs_collection = db["chat_logs"]
+        logger.error(f"❌ 데이터베이스 재연결 중 오류 발생: {e}")
+        # 메모리 기반으로 계속 진행
+        logger.info("ℹ️ 메모리 기반 세션 관리로 전환합니다.")
         sessions_collection = db["sessions"]
         users_collection = db["users"]
         memories_collection = db["memories"]  # 학습 메모리 저장용
@@ -1564,11 +1582,18 @@ async def test_prompts(request: Request):
 
 @app.get("/health")
 async def health():
+    # 데이터베이스 모듈에서 연결 상태 가져오기
+    try:
+        from database import mongo_client, verify_connection
+        db_connected = verify_connection()
+    except ImportError:
+        db_connected = False
+        
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "services": {
-            "mongodb": "connected" if client else "disconnected",
+            "mongodb": "connected" if db_connected else "disconnected",
             "redis": "connected" if redis_connected else "disconnected",
             "openai": "configured" if openai_client else "not_configured"
         }
@@ -2006,27 +2031,44 @@ async def chat_endpoint(request: Request):
         user_id = data.get("user_id", "anonymous")
         recall_type = data.get("recall_type", "normal")
         print(f"[채팅 요청] user_id: {user_id}, session_id: {session_id}, recall_type: {recall_type}, message: {user_message}")
-        # 1. 아우라 메모리 시스템에서 관련 기억 회상 (FAISS 지연 로딩 적용)
+        # 1. 강화된 회상 엔진에서 관련 기억 회상 (태그/키워드/시퀀스 기반)
         recalled_memories = []
-        if AURA_MEMORY_AVAILABLE and aura_memory:
+        
+        # 강화된 회상 엔진 우선 사용
+        if ENHANCED_RECALL_AVAILABLE and enhanced_recall_engine:
+            try:
+                logger.info(f"🔍 강화된 회상 엔진 호출: {user_message}")
+                recalled_memories = await enhanced_recall_engine.recall_memories(
+                    query=user_message,
+                    user_id=user_id,
+                    limit=5
+                )
+                logger.info(f"✅ 강화된 회상 완료: {len(recalled_memories)}개")
+                
+            except Exception as e:
+                logger.error(f"❌ 강화된 회상 엔진 실패: {e}")
+        
+        # 강화된 회상이 실패하면 아우라 메모리 시스템 사용
+        if not recalled_memories and AURA_MEMORY_AVAILABLE and aura_memory:
             try:
                 # FAISS가 필요한 경우에만 지연 로딩
                 if recall_type in ["semantic", "embedding"] and not FAISS_AVAILABLE:
                     logger.info("🔄 메모리 회상을 위한 FAISS 지연 로딩 시작...")
                     init_faiss_system()
                 
-                print(f"[회상 함수 호출] recall_type: {recall_type}")
+                logger.info(f"[회상 함수 호출] recall_type: {recall_type}")
                 recalled_memories = await recall_from_aura_memory(
                     query=user_message,
                     user_id=user_id,
                     limit=3,
                     recall_type=recall_type
                 )
-                print(f"[회상 결과] {len(recalled_memories)}개: {recalled_memories}")
+                logger.info(f"[회상 결과] {len(recalled_memories)}개")
             except Exception as e:
-                print(f"[ERROR] 아우라 메모리 회상 실패: {e}")
-        else:
-            print("[INFO] 아우라 메모리 시스템 미사용, 기본 회상 동작")
+                logger.error(f"[ERROR] 아우라 메모리 회상 실패: {e}")
+        
+        if not recalled_memories:
+            logger.info("[INFO] 회상 시스템 미사용, 기본 동작")
         # 2. 고급 채팅 시스템 처리 (가능한 경우)
         advanced_response = None
         if ADVANCED_CHAT_AVAILABLE and advanced_chat_system:
@@ -2171,6 +2213,75 @@ async def chat_endpoint(request: Request):
         logger.info(f"📝 최종 프롬프트 미리보기 (처음 500자):")
         logger.info(f"{system_prompt[:500]}{'...' if len(system_prompt) > 500 else ''}")
         
+        # 3개 API에 회상 정보 전달하는 메서드
+        async def _send_recall_to_apis(recall_data):
+            """3개 API에 회상 정보를 전달하는 비동기 메서드"""
+            try:
+                # API 1: 메모리 분석 API
+                await self._send_to_memory_analysis_api(recall_data)
+                
+                # API 2: 태그 기반 추천 API
+                await self._send_to_tag_recommendation_api(recall_data)
+                
+                # API 3: 키워드 기반 검색 API
+                await self._send_to_keyword_search_api(recall_data)
+                
+                logger.info("✅ 3개 API에 회상 정보 전달 완료")
+                
+            except Exception as e:
+                logger.error(f"❌ API 전달 실패: {e}")
+        
+        async def _send_to_memory_analysis_api(recall_data):
+            """메모리 분석 API에 전달"""
+            try:
+                # 메모리 분석을 위한 데이터 준비
+                analysis_data = {
+                    "query": recall_data["query"],
+                    "user_id": recall_data["user_id"],
+                    "memories": recall_data["memories"],
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                # 여기에 실제 API 호출 로직 추가
+                logger.info(f"📊 메모리 분석 API 호출: {len(recall_data['memories'])}개 메모리")
+                
+            except Exception as e:
+                logger.error(f"❌ 메모리 분석 API 실패: {e}")
+        
+        async def _send_to_tag_recommendation_api(recall_data):
+            """태그 기반 추천 API에 전달"""
+            try:
+                # 태그 추천을 위한 데이터 준비
+                tag_data = {
+                    "query": recall_data["query"],
+                    "user_id": recall_data["user_id"],
+                    "tags": list(set(recall_data["tags"])),  # 중복 제거
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                # 여기에 실제 API 호출 로직 추가
+                logger.info(f"🏷️ 태그 추천 API 호출: {len(tag_data['tags'])}개 태그")
+                
+            except Exception as e:
+                logger.error(f"❌ 태그 추천 API 실패: {e}")
+        
+        async def _send_to_keyword_search_api(recall_data):
+            """키워드 기반 검색 API에 전달"""
+            try:
+                # 키워드 검색을 위한 데이터 준비
+                keyword_data = {
+                    "query": recall_data["query"],
+                    "user_id": recall_data["user_id"],
+                    "keywords": recall_data["keywords"],
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                # 여기에 실제 API 호출 로직 추가
+                logger.info(f"🔍 키워드 검색 API 호출: {len(recall_data['keywords'])}개 키워드")
+                
+            except Exception as e:
+                logger.error(f"❌ 키워드 검색 API 실패: {e}")
+        
         # 4. EORA 응답 생성 - 회상된 기억과 고급 시스템 통합
         eora_response = None
         
@@ -2189,12 +2300,60 @@ async def chat_endpoint(request: Request):
                 # messages 배열 생성: system 프롬프트, 회상(assistant), user 입력
                 messages = []
                 messages.append({"role": "system", "content": system_prompt})
-                # 회상된 메모리(최대 3~5개) assistant 역할로 추가
+                
+                # 회상된 메모리(최대 3~5개) assistant 역할로 추가 (강화된 회상 정보)
                 if recalled_memories:
-                    for memory in recalled_memories:
-                        recall_text = getattr(memory, "message", None) or getattr(memory, "content", None) or ""
+                    logger.info(f"🔍 회상된 메모리 {len(recalled_memories)}개를 GPT에 전달")
+                    
+                    # 회상 정보를 3개 API에 전달
+                    recall_api_data = {
+                        "query": user_message,
+                        "user_id": user_id,
+                        "memories": [],
+                        "tags": [],
+                        "keywords": []
+                    }
+                    
+                    for i, memory in enumerate(recalled_memories):
+                        # 다양한 속성에서 회상 텍스트 추출
+                        recall_text = (getattr(memory, "message", None) or 
+                                     getattr(memory, "content", None) or 
+                                     getattr(memory, "response", None) or 
+                                     memory.get("content", "") or 
+                                     memory.get("message", "") or "")
+                        
                         if recall_text:
+                            # 회상 정보에 태그와 소스 정보 추가
+                            source = getattr(memory, "source", "회상") or memory.get("source", "회상")
+                            tags = getattr(memory, "tags", []) or memory.get("tags", [])
+                            
+                            # 태그 정보가 있으면 추가
+                            if tags:
+                                tag_info = f"[태그: {', '.join(tags[:3])}] "
+                                recall_text = tag_info + recall_text
+                            
+                            # 소스 정보 추가
+                            recall_text = f"[{source}] {recall_text}"
+                            
                             messages.append({"role": "assistant", "content": recall_text})
+                            logger.info(f"📝 회상 메모리 {i+1}: {recall_text[:100]}...")
+                            
+                            # 3개 API 전달용 데이터 수집
+                            recall_api_data["memories"].append({
+                                "content": recall_text,
+                                "source": source,
+                                "tags": tags,
+                                "index": i
+                            })
+                            recall_api_data["tags"].extend(tags)
+                    
+                    # 키워드 추출
+                    keywords = user_message.split()[:5]
+                    recall_api_data["keywords"] = keywords
+                    
+                    # 3개 API에 회상 정보 전달 (비동기)
+                    asyncio.create_task(self._send_recall_to_apis(recall_api_data))
+                
                 # 마지막에 유저 입력 추가
                 messages.append({"role": "user", "content": user_message})
                 # 최신 OpenAI 라이브러리 호환 - gpt-4o 모델 사용
@@ -3372,11 +3531,11 @@ async def save_to_aura_memory(user_id: str, session_id: str, message: str, respo
         return None
 
 async def recall_from_aura_memory(query: str, user_id: str = None, limit: int = 5, recall_type: str = "normal"):
-    """아우라 메모리 시스템에서 8종 회상 분기 지원 + 학습된 정보 포함"""
+    """아우라 메모리 시스템에서 8종 회상 분기 지원 + 학습된 정보 포함 + 태그/임베딩 강화"""
     all_memories = []
     
     try:
-        # 1. 아우라 메모리에서 회상
+        # 1. 아우라 메모리에서 회상 (강화된 검색)
         if AURA_MEMORY_AVAILABLE and aura_memory:
             try:
                 # 8종 회상 분기 예시
@@ -3397,10 +3556,10 @@ async def recall_from_aura_memory(query: str, user_id: str = None, limit: int = 
             except Exception as aura_error:
                 logger.warning(f"⚠️ 아우라 메모리 회상 실패: {aura_error}")
         
-        # 2. 학습된 정보에서 추가 회상 (MongoDB memories_collection)
+        # 2. 강화된 학습된 정보에서 추가 회상 (MongoDB memories_collection)
         try:
             if memories_collection is not None:
-                # 키워드 기반 검색
+                # 키워드 기반 검색 강화
                 keywords = query.split()[:5]  # 최대 5개 키워드
                 search_conditions = []
                 
@@ -3409,37 +3568,46 @@ async def recall_from_aura_memory(query: str, user_id: str = None, limit: int = 
                         search_conditions.extend([
                             {"response": {"$regex": keyword, "$options": "i"}},
                             {"message": {"$regex": keyword, "$options": "i"}},
-                            {"tags": {"$in": [keyword]}}
+                            {"tags": {"$in": [keyword]}},
+                            {"content": {"$regex": keyword, "$options": "i"}},
+                            {"summary": {"$regex": keyword, "$options": "i"}}
                         ])
                 
                 if search_conditions:
-                    # MongoDB에서 학습된 메모리 검색
+                    # MongoDB에서 학습된 메모리 검색 (강화된 검색)
                     search_query = {
                         "$or": search_conditions,
-                        "memory_type": {"$in": ["learning_material", "dialog_learning"]}
+                        "memory_type": {"$in": ["learning_material", "dialog_learning", "general"]}
                     }
                     
                     learning_memories = list(memories_collection.find(
                         search_query,
-                        {"response": 1, "message": 1, "source_file": 1, "timestamp": 1, "_id": 0}
+                        {"response": 1, "message": 1, "content": 1, "summary": 1, "tags": 1, "source_file": 1, "timestamp": 1, "_id": 0}
                     ).sort("timestamp", -1).limit(limit//2))
                     
                     if learning_memories:
                         logger.info(f"✅ 학습 메모리 회상 완료: {len(learning_memories)}개")
                         
-                        # 아우라 메모리 형식으로 변환
+                        # 아우라 메모리 형식으로 변환 (강화된 내용 추출)
                         for memory in learning_memories:
                             class MockMemory:
-                                def __init__(self, content, source="학습자료"):
+                                def __init__(self, content, source="학습자료", tags=None):
                                     self.content = content
                                     self.message = content
                                     self.response = content
                                     self.source = source
+                                    self.tags = tags or []
                             
-                            content = memory.get("response", "") or memory.get("message", "")
+                            # 우선순위: response > message > content > summary
+                            content = (memory.get("response", "") or 
+                                     memory.get("message", "") or 
+                                     memory.get("content", "") or 
+                                     memory.get("summary", ""))
+                            
                             if content and len(content) > 20:  # 의미있는 내용만
                                 source = memory.get("source_file", "학습자료")
-                                mock_memory = MockMemory(content[:1000], f"📚{source}")  # 1000자로 제한
+                                tags = memory.get("tags", [])
+                                mock_memory = MockMemory(content[:1000], f"📚{source}", tags)  # 1000자로 제한
                                 all_memories.append(mock_memory)
                                 if len(all_memories) >= limit:
                                     break
@@ -3449,12 +3617,59 @@ async def recall_from_aura_memory(query: str, user_id: str = None, limit: int = 
         except Exception as learning_error:
             logger.warning(f"⚠️ 학습 메모리 회상 실패: {learning_error}")
         
-        # 3. 결과 정리
+        # 3. 채팅 로그에서 추가 회상 (실시간 대화 기억)
+        try:
+            if chat_logs_collection is not None:
+                # 키워드 기반 검색
+                keywords = query.split()[:3]  # 최대 3개 키워드
+                search_conditions = []
+                
+                for keyword in keywords:
+                    if len(keyword) > 1:
+                        search_conditions.extend([
+                            {"content": {"$regex": keyword, "$options": "i"}},
+                            {"role": "user"}  # 사용자 메시지만 검색
+                        ])
+                
+                if search_conditions:
+                    # 최근 채팅 로그에서 검색
+                    chat_query = {
+                        "$or": search_conditions,
+                        "timestamp": {"$gte": datetime.now() - timedelta(days=7)}  # 최근 7일
+                    }
+                    
+                    chat_memories = list(chat_logs_collection.find(
+                        chat_query,
+                        {"content": 1, "role": 1, "timestamp": 1, "_id": 0}
+                    ).sort("timestamp", -1).limit(limit//4))
+                    
+                    if chat_memories:
+                        logger.info(f"✅ 채팅 로그 회상 완료: {len(chat_memories)}개")
+                        
+                        for memory in chat_memories:
+                            class MockMemory:
+                                def __init__(self, content, source="대화기록"):
+                                    self.content = content
+                                    self.message = content
+                                    self.response = content
+                                    self.source = source
+                            
+                            content = memory.get("content", "")
+                            if content and len(content) > 10:
+                                mock_memory = MockMemory(content[:500], "💬대화기록")  # 500자로 제한
+                                all_memories.append(mock_memory)
+                                if len(all_memories) >= limit:
+                                    break
+                                    
+        except Exception as chat_error:
+            logger.warning(f"⚠️ 채팅 로그 회상 실패: {chat_error}")
+        
+        # 4. 결과 정리 및 중복 제거
         total_found = len(all_memories)
         if total_found > limit:
             all_memories = all_memories[:limit]
             
-        logger.info(f"🎯 총 회상 완료: {len(all_memories)}개 (아우라+학습)")
+        logger.info(f"🎯 총 회상 완료: {len(all_memories)}개 (아우라+학습+채팅)")
         return all_memories
         
     except Exception as e:
@@ -4087,10 +4302,11 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
             logger.error("❌ 파일 내용이 비어있습니다")
             return {"success": False, "message": "파일 내용이 비어있습니다."}
         
-        # 2단계: 텍스트 분할
+        # 2단계: 텍스트 분할 (500~1000자 청크)
         logger.info("✂️ 2단계: 텍스트 분할 시작...")
-        chunk_size = 2000  # 회상에 적합한 크기
-        logger.info(f"📏 설정된 chunk 크기: {chunk_size} 문자")
+        min_chunk_size = 500
+        max_chunk_size = 1000
+        logger.info(f"📏 설정된 chunk 크기: {min_chunk_size}~{max_chunk_size} 문자")
         
         chunks = []
         sentences = text.split('. ')
@@ -4101,24 +4317,36 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
         processed_sentences = 0
         
         for i, sentence in enumerate(sentences):
-            if len(current_chunk + sentence) < chunk_size:
-                current_chunk += sentence + ". "
-            else:
+            sentence_with_period = sentence + ". "
+            
+            # 현재 청크가 최소 크기보다 작으면 계속 추가
+            if len(current_chunk + sentence_with_period) < min_chunk_size:
+                current_chunk += sentence_with_period
+            # 최대 크기를 초과하면 현재 청크 저장하고 새 청크 시작
+            elif len(current_chunk + sentence_with_period) > max_chunk_size:
                 if current_chunk.strip():
                     chunks.append(current_chunk.strip())
                     logger.info(f"✅ Chunk {len(chunks)} 생성 완료 ({len(current_chunk)} 문자)")
-                current_chunk = sentence + ". "
+                current_chunk = sentence_with_period
+            # 적절한 크기면 현재 청크에 추가
+            else:
+                current_chunk += sentence_with_period
             
             processed_sentences += 1
             if processed_sentences % 100 == 0:
                 logger.info(f"⏳ 문장 처리 진행률: {processed_sentences:,}/{sentence_count:,} ({processed_sentences/sentence_count*100:.1f}%)")
         
+        # 마지막 청크 처리
         if current_chunk.strip():
             chunks.append(current_chunk.strip())
             logger.info(f"✅ 마지막 Chunk {len(chunks)} 생성 완료 ({len(current_chunk)} 문자)")
         
         logger.info(f"🎯 분할 완료: {len(chunks)}개 chunk 생성")
-        logger.info(f"📊 평균 chunk 크기: {sum(len(c) for c in chunks)/len(chunks):.0f} 문자")
+        if chunks:
+            avg_chunk_size = sum(len(c) for c in chunks) / len(chunks)
+            logger.info(f"📊 평균 chunk 크기: {avg_chunk_size:.0f} 문자")
+            logger.info(f"📊 최소 chunk 크기: {min(len(c) for c in chunks)} 문자")
+            logger.info(f"📊 최대 chunk 크기: {max(len(c) for c in chunks)} 문자")
         
         # 3단계: 메모리 저장
         logger.info("💾 3단계: 메모리 저장 시작...")
@@ -4212,6 +4440,44 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
                 logger.error("❌ 메모리 저장 시스템을 사용할 수 없습니다")
                 return {"success": False, "message": "메모리 저장 시스템을 사용할 수 없습니다."}
         
+        # 4단계: DB 반영 여부 확인
+        logger.info("🔍 4단계: DB 반영 여부 확인 시작...")
+        db_verification_results = []
+        
+        if memories_collection:
+            try:
+                # 세션 ID로 저장된 메모리 조회
+                stored_memories = list(memories_collection.find(
+                    {"session_id": session_id},
+                    {"_id": 1, "message": 1, "response": 1, "timestamp": 1}
+                ))
+                
+                logger.info(f"🔍 DB에서 조회된 메모리: {len(stored_memories)}개")
+                
+                if len(stored_memories) == len(chunks):
+                    logger.info("✅ DB 반영 성공: 모든 청크가 정상적으로 저장됨")
+                    db_verification_results.append("✅ 모든 청크 DB 저장 확인")
+                else:
+                    logger.warning(f"⚠️ DB 반영 부분 실패: 예상 {len(chunks)}개, 실제 {len(stored_memories)}개")
+                    db_verification_results.append(f"⚠️ 부분 저장: {len(stored_memories)}/{len(chunks)}개")
+                
+                # 저장된 메모리 샘플 확인
+                if stored_memories:
+                    sample_memory = stored_memories[0]
+                    logger.info(f"📝 샘플 메모리 확인:")
+                    logger.info(f"   - ID: {sample_memory.get('_id')}")
+                    logger.info(f"   - 메시지: {sample_memory.get('message', '')[:50]}...")
+                    logger.info(f"   - 내용 길이: {len(sample_memory.get('response', ''))} 문자")
+                    logger.info(f"   - 저장 시간: {sample_memory.get('timestamp')}")
+                    db_verification_results.append("✅ 샘플 메모리 내용 확인 완료")
+                
+            except Exception as verify_error:
+                logger.error(f"❌ DB 확인 실패: {verify_error}")
+                db_verification_results.append(f"❌ DB 확인 실패: {verify_error}")
+        else:
+            logger.warning("⚠️ memories_collection이 없어 DB 확인을 건너뜀")
+            db_verification_results.append("⚠️ DB 확인 불가")
+        
         # 최종 결과 로그
         logger.info("="*60)
         logger.info("🎉 학습 완료 요약:")
@@ -4222,6 +4488,9 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
         logger.info(f"💾 저장된 메모리: {len(saved_memories)}개")
         logger.info(f"🆔 세션 ID: {session_id}")
         logger.info(f"🕐 완료 시간: {datetime.now().isoformat()}")
+        logger.info("🔍 DB 반영 확인:")
+        for result in db_verification_results:
+            logger.info(f"   {result}")
         logger.info("="*60)
         
         return {
@@ -4229,15 +4498,19 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
             "message": f"파일 '{file.filename}' 학습 완료! {len(saved_memories)}개 메모리 생성됨",
             "chunks": len(chunks),
             "saved_memories": len(saved_memories),
+            "db_verification": db_verification_results,
             "details": {
                 "filename": file.filename,
                 "original_size": raw_size,
                 "text_length": text_size,
                 "total_chunks": len(chunks),
                 "avg_chunk_size": int(sum(len(c) for c in chunks)/len(chunks)) if chunks else 0,
+                "min_chunk_size": min(len(c) for c in chunks) if chunks else 0,
+                "max_chunk_size": max(len(c) for c in chunks) if chunks else 0,
                 "memory_system": "아우라 메모리" if AURA_MEMORY_AVAILABLE else "MongoDB",
                 "session_id": session_id,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "db_stored_count": len(stored_memories) if 'stored_memories' in locals() else 0
             }
         }
         

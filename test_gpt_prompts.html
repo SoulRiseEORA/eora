@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프롬프트-GPT 연동 테스트</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f23;
+            color: #ccc;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00ff88;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .test-section {
+            background: #1a1a2e;
+            border: 1px solid #00ff88;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            color: #00ff88;
+            margin-top: 0;
+        }
+
+        .ai-selector {
+            margin-bottom: 20px;
+        }
+
+        .ai-selector label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ff88;
+        }
+
+        .ai-selector select {
+            width: 100%;
+            padding: 10px;
+            background: #0f0f23;
+            color: #ccc;
+            border: 1px solid #00ff88;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .message-input {
+            width: 100%;
+            padding: 10px;
+            background: #0f0f23;
+            color: #ccc;
+            border: 1px solid #00ff88;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .send-button {
+            background: #00ff88;
+            color: #0f0f23;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .send-button:hover {
+            background: #00cc70;
+            transform: scale(1.05);
+        }
+
+        .send-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .response-area {
+            margin-top: 20px;
+            padding: 15px;
+            background: #0f0f23;
+            border: 1px solid #444;
+            border-radius: 5px;
+            min-height: 100px;
+            white-space: pre-wrap;
+        }
+
+        .prompt-preview {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 5px;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+        }
+
+        .status.error {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff4444;
+            color: #ff4444;
+        }
+
+        .status.loading {
+            background: rgba(255, 255, 0, 0.2);
+            border: 1px solid #ffff00;
+            color: #ffff00;
+        }
+
+        .instructions {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            margin-top: 0;
+            color: #00ff88;
+        }
+
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .instructions code {
+            background: #0f0f23;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🤖 프롬프트-GPT 연동 테스트</h1>
+
+        <div class="instructions">
+            <h3>📋 사용 방법</h3>
+            <ol>
+                <li><code>start_stable_server_with_api.bat</code> 파일을 편집하여 OpenAI API 키 설정</li>
+                <li>배치 파일을 실행하여 서버 시작</li>
+                <li>아래에서 AI를 선택하고 메시지 입력</li>
+                <li>응답을 확인하여 프롬프트가 잘 적용되는지 확인</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>테스트 설정</h2>
+
+            <div class="ai-selector">
+                <label for="aiSelect">AI 선택:</label>
+                <select id="aiSelect">
+                    <option value="ai1">AI1 - 요구사항 분석가</option>
+                    <option value="ai2">AI2 - API 설계 전문가</option>
+                    <option value="ai3">AI3 - 프롬프트 엔지니어</option>
+                    <option value="ai4">AI4 - 오류 해결사</option>
+                    <option value="ai5">AI5 - 최적화 전문가</option>
+                </select>
+            </div>
+
+            <input type="text" id="messageInput" class="message-input" placeholder="테스트 메시지를 입력하세요..."
+                value="당신의 역할과 전문 분야에 대해 설명해주세요.">
+
+            <button id="sendButton" class="send-button" onclick="sendMessage()">
+                메시지 전송
+            </button>
+
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>프롬프트 미리보기</h2>
+            <div id="promptPreview" class="prompt-preview">
+                AI를 선택하면 해당 프롬프트가 여기에 표시됩니다.
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>GPT 응답</h2>
+            <div id="responseArea" class="response-area">
+                응답이 여기에 표시됩니다...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        let prompts = {};
+
+        // 페이지 로드 시 초기화
+        window.onload = async function () {
+            // 로그인 상태 확인
+            const token = getCookie('access_token');
+            if (!token) {
+                alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
+                window.location.href = 'http://127.0.0.1:8100/login';
+                return;
+            }
+
+            // 세션 생성
+            await createSession();
+
+            // 프롬프트 로드
+            await loadPrompts();
+
+            // AI 선택 이벤트
+            document.getElementById('aiSelect').addEventListener('change', updatePromptPreview);
+
+            // 엔터키 이벤트
+            document.getElementById('messageInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        };
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        async function createSession() {
+            try {
+                const response = await fetch('http://127.0.0.1:8100/api/sessions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        name: 'GPT 프롬프트 테스트'
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    currentSessionId = data.session.id;
+                    console.log('세션 생성 완료:', currentSessionId);
+                }
+            } catch (error) {
+                console.error('세션 생성 오류:', error);
+            }
+        }
+
+        async function loadPrompts() {
+            try {
+                const response = await fetch('http://127.0.0.1:8100/api/prompts', {
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // 프롬프트를 객체로 변환
+                    data.prompts.forEach(prompt => {
+                        prompts[prompt.id] = prompt;
+                    });
+                    updatePromptPreview();
+                }
+            } catch (error) {
+                console.error('프롬프트 로드 오류:', error);
+            }
+        }
+
+        function updatePromptPreview() {
+            const aiKey = document.getElementById('aiSelect').value;
+            const prompt = prompts[aiKey];
+
+            if (prompt) {
+                let preview = `<strong>${prompt.name} 프롬프트</strong>\n\n`;
+
+                if (prompt.system) {
+                    preview += `<strong>[System]</strong>\n${prompt.system}\n\n`;
+                }
+                if (prompt.role) {
+                    preview += `<strong>[Role]</strong>\n${prompt.role}\n\n`;
+                }
+                if (prompt.guide) {
+                    preview += `<strong>[Guide]</strong>\n${prompt.guide}\n\n`;
+                }
+                if (prompt.format) {
+                    preview += `<strong>[Format]</strong>\n${prompt.format}`;
+                }
+
+                document.getElementById('promptPreview').innerHTML = preview;
+            }
+        }
+
+        async function sendMessage() {
+            const message = document.getElementById('messageInput').value.trim();
+            if (!message || !currentSessionId) return;
+
+            const aiKey = document.getElementById('aiSelect').value;
+            const sendButton = document.getElementById('sendButton');
+            const statusDiv = document.getElementById('status');
+            const responseArea = document.getElementById('responseArea');
+
+            // UI 상태 변경
+            sendButton.disabled = true;
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '응답 생성 중...';
+            statusDiv.style.display = 'block';
+            responseArea.textContent = '대기 중...';
+
+            try {
+                // 메시지 저장
+                await fetch('http://127.0.0.1:8100/api/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        message: message,
+                        role: 'user'
+                    })
+                });
+
+                // GPT 응답 요청
+                const response = await fetch('http://127.0.0.1:8100/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        message: message,
+                        ai_key: aiKey
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 응답 표시
+                    responseArea.textContent = data.response;
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ 응답 생성 완료!';
+
+                    // 응답 저장
+                    await fetch('http://127.0.0.1:8100/api/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            session_id: currentSessionId,
+                            message: data.response,
+                            role: 'assistant'
+                        })
+                    });
+                } else {
+                    throw new Error(data.message || '응답 생성 실패');
+                }
+
+            } catch (error) {
+                console.error('메시지 전송 오류:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ 오류: ' + error.message;
+                responseArea.textContent = '오류가 발생했습니다: ' + error.message;
+            } finally {
+                sendButton.disabled = false;
+
+                // 3초 후 상태 메시지 숨기기
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프롬프트 관리 디버그</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        .button-group {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        .result {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #4CAF50;
+        }
+
+        .error {
+            color: #f44336;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 프롬프트 관리 디버그</h1>
+
+        <div class="status" id="status">서버 상태 확인 중...</div>
+
+        <div class="button-group">
+            <button onclick="checkPromptFiles()">1. 프롬프트 파일 확인</button>
+            <button onclick="loadPromptsDebug()">2. 프롬프트 로드 디버그</button>
+            <button onclick="testPromptAPI()">3. API 응답 테스트</button>
+            <button onclick="testAI1Structure()">4. AI1 구조 확인</button>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const SERVER_URL = 'http://127.0.0.1:8100';
+
+        // 서버 상태 확인
+        async function checkServer() {
+            try {
+                const response = await fetch(SERVER_URL);
+                if (response.ok) {
+                    document.getElementById('status').innerHTML = '<span class="success">✅ 서버 연결됨 (포트 8100)</span>';
+                } else {
+                    document.getElementById('status').innerHTML = '<span class="error">❌ 서버 응답 오류</span>';
+                }
+            } catch (error) {
+                document.getElementById('status').innerHTML = '<span class="error">❌ 서버 연결 실패</span>';
+            }
+        }
+
+        // 프롬프트 파일 확인
+        async function checkPromptFiles() {
+            const result = document.getElementById('result');
+            result.textContent = '프롬프트 파일 위치 확인 중...\n\n';
+
+            const paths = [
+                '/ai_prompts.json',
+                '/src/ai_prompts.json',
+                '/src/templates/ai_prompts.json',
+                '/src/ai_brain/ai_prompts.json'
+            ];
+
+            result.textContent += '확인할 경로:\n';
+            paths.forEach(path => {
+                result.textContent += `- ${path}\n`;
+            });
+
+            result.textContent += '\n서버가 프롬프트 파일을 찾을 것입니다.';
+        }
+
+        // 프롬프트 로드 디버그
+        async function loadPromptsDebug() {
+            const result = document.getElementById('result');
+            result.textContent = '프롬프트 로드 디버그...\n\n';
+
+            // 먼저 로그인
+            try {
+                const loginResponse = await fetch(`${SERVER_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@eora.ai',
+                        password: 'admin123'
+                    }),
+                    credentials: 'include'
+                });
+
+                if (!loginResponse.ok) {
+                    result.textContent += '❌ 로그인 실패\n';
+                    return;
+                }
+
+                result.textContent += '✅ 로그인 성공\n\n';
+
+                // 프롬프트 API 호출
+                const response = await fetch(`${SERVER_URL}/api/prompts`, {
+                    credentials: 'include'
+                });
+
+                result.textContent += `응답 상태: ${response.status} ${response.statusText}\n`;
+                result.textContent += `응답 헤더:\n`;
+                for (let [key, value] of response.headers) {
+                    result.textContent += `  ${key}: ${value}\n`;
+                }
+
+                const data = await response.json();
+                result.textContent += '\n응답 데이터:\n';
+                result.textContent += JSON.stringify(data, null, 2);
+
+            } catch (error) {
+                result.textContent += '\n❌ 오류: ' + error.message;
+            }
+        }
+
+        // API 응답 테스트
+        async function testPromptAPI() {
+            const result = document.getElementById('result');
+            result.textContent = 'API 응답 구조 테스트...\n\n';
+
+            try {
+                // 로그인 후 API 호출
+                const loginResponse = await fetch(`${SERVER_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@eora.ai',
+                        password: 'admin123'
+                    }),
+                    credentials: 'include'
+                });
+
+                if (loginResponse.ok) {
+                    const response = await fetch(`${SERVER_URL}/api/prompts`, {
+                        credentials: 'include'
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.prompts) {
+                        result.textContent += `✅ API 응답 성공\n`;
+                        result.textContent += `프롬프트 개수: ${data.prompts.length}\n\n`;
+
+                        data.prompts.forEach(prompt => {
+                            result.textContent += `\n=== ${prompt.id} ===\n`;
+                            result.textContent += `이름: ${prompt.name}\n`;
+                            result.textContent += `system 타입: ${typeof prompt.system}\n`;
+                            result.textContent += `system 길이: ${prompt.system.length}\n`;
+                            result.textContent += `role 타입: ${typeof prompt.role}\n`;
+                            result.textContent += `guide 타입: ${typeof prompt.guide}\n`;
+                            result.textContent += `format 타입: ${typeof prompt.format}\n`;
+                        });
+                    }
+                }
+            } catch (error) {
+                result.textContent += '❌ 오류: ' + error.message;
+            }
+        }
+
+        // AI1 구조 확인
+        async function testAI1Structure() {
+            const result = document.getElementById('result');
+            result.textContent = 'AI1 프롬프트 구조 확인...\n\n';
+
+            try {
+                // 로그인 후 AI1 데이터 가져오기
+                const loginResponse = await fetch(`${SERVER_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@eora.ai',
+                        password: 'admin123'
+                    }),
+                    credentials: 'include'
+                });
+
+                if (loginResponse.ok) {
+                    const response = await fetch(`${SERVER_URL}/api/prompts/ai1`, {
+                        credentials: 'include'
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.prompt) {
+                        result.textContent += '✅ AI1 데이터 로드 성공\n\n';
+                        result.textContent += '=== AI1 프롬프트 구조 ===\n';
+                        result.textContent += JSON.stringify(data.prompt, null, 2);
+
+                        result.textContent += '\n\n=== 원본 ai_prompts.json AI1 구조 (예상) ===\n';
+                        result.textContent += '{\n';
+                        result.textContent += '  "system": "문자열",\n';
+                        result.textContent += '  "role": ["배열", "요소들"],\n';
+                        result.textContent += '  "guide": ["배열", "요소들"],\n';
+                        result.textContent += '  "format": ["배열", "요소들"]\n';
+                        result.textContent += '}';
+                    }
+                }
+            } catch (error) {
+                result.textContent += '❌ 오류: ' + error.message;
+            }
+        }
+
+        // 초기화
+        checkServer();
+        setInterval(checkServer, 5000);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 로그인 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .form-group {
+            margin: 20px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #764ba2;
+        }
+
+        .message {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .server-list {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .server-list h3 {
+            margin-top: 0;
+        }
+
+        .server-list a {
+            display: block;
+            padding: 5px 0;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .server-list a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔐 관리자 로그인 테스트</h1>
+
+        <div class="form-group">
+            <label for="server">서버 주소:</label>
+            <select id="server"
+                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;">
+                <option value="http://127.0.0.1:8004">http://127.0.0.1:8004 (포트 8004)</option>
+                <option value="http://127.0.0.1:8005">http://127.0.0.1:8005 (포트 8005)</option>
+                <option value="http://127.0.0.1:8006">http://127.0.0.1:8006 (포트 8006)</option>
+                <option value="http://127.0.0.1:8007">http://127.0.0.1:8007 (포트 8007)</option>
+                <option value="http://127.0.0.1:8008">http://127.0.0.1:8008 (포트 8008)</option>
+                <option value="http://127.0.0.1:8009">http://127.0.0.1:8009 (포트 8009)</option>
+                <option value="http://127.0.0.1:8010">http://127.0.0.1:8010 (포트 8010)</option>
+                <option value="http://127.0.0.1:8011">http://127.0.0.1:8011 (포트 8011)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="email">이메일:</label>
+            <input type="email" id="email" value="admin@eora.ai" placeholder="admin@eora.ai">
+        </div>
+
+        <div class="form-group">
+            <label for="password">비밀번호:</label>
+            <input type="password" id="password" value="admin123" placeholder="admin123">
+        </div>
+
+        <button onclick="testLogin()">로그인 테스트</button>
+
+        <div id="message"></div>
+
+        <div class="server-list">
+            <h3>🌐 실행 가능한 서버들:</h3>
+            <a href="#" onclick="checkServer('http://127.0.0.1:8004'); return false;">포트 8004 서버 확인</a>
+            <a href="#" onclick="checkServer('http://127.0.0.1:8005'); return false;">포트 8005 서버 확인</a>
+            <a href="#" onclick="checkServer('http://127.0.0.1:8006'); return false;">포트 8006 서버 확인</a>
+            <a href="#" onclick="checkServer('http://127.0.0.1:8007'); return false;">포트 8007 서버 확인</a>
+            <a href="#" onclick="checkServer('http://127.0.0.1:8008'); return false;">포트 8008 서버 확인</a>
+            <a href="#" onclick="checkServer('http://127.0.0.1:8009'); return false;">포트 8009 서버 확인</a>
+            <a href="#" onclick="checkServer('http://127.0.0.1:8010'); return false;">포트 8010 서버 확인</a>
+            <a href="#" onclick="checkServer('http://127.0.0.1:8011'); return false;">포트 8011 서버 확인</a>
+        </div>
+    </div>
+
+    <script>
+        async function testLogin() {
+            const server = document.getElementById('server').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+
+            messageDiv.innerHTML = '<div class="message info">로그인 시도 중...</div>';
+
+            const endpoints = ['/api/login', '/api/admin/login', '/api/auth/login'];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(server + endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password
+                        }),
+                        credentials: 'include'
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            // 로그인 정보 저장
+                            localStorage.setItem('user_email', email);
+                            localStorage.setItem('is_admin', 'true');
+                            if (data.access_token) {
+                                localStorage.setItem('access_token', data.access_token);
+                                document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+                            }
+                            document.cookie = `user_email=${email}; path=/; max-age=86400`;
+
+                            messageDiv.innerHTML = `
+                                <div class="message success">
+                                    ✅ 로그인 성공!<br>
+                                    사용된 엔드포인트: ${endpoint}<br>
+                                    <a href="${server}/admin" target="_blank">관리자 페이지로 이동</a>
+                                </div>
+                            `;
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.log(`${endpoint} 실패:`, error);
+                }
+            }
+
+            messageDiv.innerHTML = '<div class="message error">❌ 로그인 실패: 모든 엔드포인트에서 실패했습니다.</div>';
+        }
+
+        async function checkServer(server) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="message info">${server} 확인 중...</div>`;
+
+            try {
+                const response = await fetch(server + '/', { method: 'GET' });
+                if (response.ok) {
+                    messageDiv.innerHTML = `
+                        <div class="message success">
+                            ✅ ${server} 서버가 실행 중입니다!<br>
+                            <a href="${server}" target="_blank">홈페이지 열기</a> | 
+                            <a href="${server}/login" target="_blank">로그인 페이지 열기</a> | 
+                            <a href="${server}/admin" target="_blank">관리자 페이지 열기</a>
+                        </div>
+                    `;
+                    document.getElementById('server').value = server;
+                } else {
+                    messageDiv.innerHTML = `<div class="message error">❌ ${server} 서버가 응답하지 않습니다.</div>`;
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="message error">❌ ${server} 서버에 연결할 수 없습니다.</div>`;
+            }
+        }
+
+        // 페이지 로드 시 자동으로 서버 확인
+        window.onload = function () {
+            checkServer('http://127.0.0.1:8011');
+        };
+    </script>
+</body>
+
+</html>

@@ -1,28 +1,22 @@
-# EORA AI System - 모듈화 버전 PowerShell 실행 스크립트
-Write-Host "====================================="
-Write-Host "EORA AI System - 모듈화 버전 시작"
-Write-Host "버전: 2.1.0 (모듈화)"
-Write-Host "====================================="
+# EORA AI System - 모듈화된 서버 시작 스크립트 (PowerShell)
+Write-Host "🚀 EORA AI System - 모듈화된 서버 시작 중..."
+
+# 환경 변수 설정
+$env:OPENAI_API_KEY = "your_openai_api_key_here"
+$env:DATABASE_NAME = "eora_ai"
+$env:PORT = "8010"
+
+# 현재 디렉토리 확인
+$currentDir = Get-Location
+Write-Host "📂 현재 디렉토리: $currentDir"
 
 # src 디렉토리로 이동
 Set-Location -Path "src"
-Write-Host "현재 디렉토리: $(Get-Location)"
+Write-Host "📂 src 디렉토리로 이동했습니다."
 
-# Python 버전 확인
-Write-Host "Python 버전 확인..."
-python --version
+# 서버 실행
+Write-Host "🚀 서버를 시작합니다. (포트: $env:PORT)"
+python run_railway_server.py --port $env:PORT
 
-# 필요한 패키지 설치 확인
-Write-Host "필요한 패키지 설치 확인..."
-pip install fastapi uvicorn python-dotenv pymongo openai pydantic
-
-# 서버 시작
-Write-Host "서버 시작 중..."
-python app_modular.py
-
-# 대체 명령어 안내
-Write-Host ""
-Write-Host "만약 위 명령이 실패하면 아래 명령을 시도하세요:"
-Write-Host "python -m uvicorn app_modular:app --host 127.0.0.1 --port 8001 --reload"
-
-pause 
+# 원래 디렉토리로 복귀
+Set-Location -Path $currentDir 

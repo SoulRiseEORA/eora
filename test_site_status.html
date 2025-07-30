@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 사이트 상태 확인</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #0095ff;
+            margin-bottom: 30px;
+        }
+
+        .status-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #0f3460;
+        }
+
+        .status-card h2 {
+            margin-top: 0;
+            color: #fff;
+        }
+
+        .status-item {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f3460;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .checking {
+            background: #FFA500;
+            color: #000;
+        }
+
+        .online {
+            background: #28a745;
+            color: #fff;
+        }
+
+        .offline {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .error {
+            background: #ffc107;
+            color: #000;
+        }
+
+        button {
+            background: #0095ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+
+        button:hover {
+            background: #0077cc;
+        }
+
+        .server-info {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .link {
+            color: #0095ff;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 EORA AI 사이트 상태 확인</h1>
+
+        <div class="status-card">
+            <h2>📊 서버 상태</h2>
+            <div id="serverStatus"></div>
+        </div>
+
+        <div class="status-card">
+            <h2>🔧 빠른 실행</h2>
+            <button onclick="checkAllServers()">🔄 모든 서버 확인</button>
+            <button onclick="window.open('file:///E:/eora_new/start_stable_server.bat')">🚀 안정 서버 시작</button>
+        </div>
+
+        <div class="status-card">
+            <h2>📋 서버 정보</h2>
+            <div class="server-info">
+                <h3>사용 가능한 포트:</h3>
+                <ul>
+                    <li>포트 8007: final_homepage_server.py</li>
+                    <li>포트 8011: full_server.py</li>
+                    <li>포트 8012: test_admin_server.py</li>
+                </ul>
+                <h3>로그인 정보:</h3>
+                <ul>
+                    <li>📧 관리자 이메일: admin@eora.ai</li>
+                    <li>🔑 비밀번호: admin123</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <h2>💡 문제 해결 방법</h2>
+            <ol>
+                <li>명령 프롬프트를 관리자 권한으로 실행</li>
+                <li>cd E:\eora_new 명령 실행</li>
+                <li>start_stable_server.bat 실행</li>
+                <li>브라우저에서 표시된 주소로 접속</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const servers = [
+            { name: 'test_admin_server.py', port: 8012 },
+            { name: 'final_homepage_server.py', port: 8007 },
+            { name: 'full_server.py', port: 8011 },
+            { name: 'complete_server.py', port: 8009 },
+            { name: 'simple_web_server.py', port: 8010 }
+        ];
+
+        async function checkServer(port) {
+            const statusEl = document.getElementById(`status-${port}`);
+            if (statusEl) {
+                statusEl.textContent = '확인 중...';
+                statusEl.className = 'status checking';
+            }
+
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 3000);
+
+                const response = await fetch(`http://127.0.0.1:${port}/`, {
+                    mode: 'no-cors',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeout);
+
+                // no-cors 모드에서는 response를 읽을 수 없지만, 
+                // 요청이 성공하면 서버가 실행 중임을 의미
+                if (statusEl) {
+                    statusEl.textContent = '온라인';
+                    statusEl.className = 'status online';
+                }
+                return true;
+            } catch (error) {
+                if (statusEl) {
+                    statusEl.textContent = '오프라인';
+                    statusEl.className = 'status offline';
+                }
+                return false;
+            }
+        }
+
+        async function checkAllServers() {
+            const container = document.getElementById('serverStatus');
+            container.innerHTML = '';
+
+            for (const server of servers) {
+                const item = document.createElement('div');
+                item.className = 'status-item';
+                item.innerHTML = `
+                    <div>
+                        <strong>${server.name}</strong> (포트 ${server.port})
+                        <a href="http://127.0.0.1:${server.port}/" target="_blank" class="link">열기</a>
+                        <a href="http://127.0.0.1:${server.port}/login" target="_blank" class="link">로그인</a>
+                        <a href="http://127.0.0.1:${server.port}/admin" target="_blank" class="link">관리자</a>
+                    </div>
+                    <span id="status-${server.port}" class="status checking">확인 중...</span>
+                `;
+                container.appendChild(item);
+
+                // 각 서버 비동기 확인
+                checkServer(server.port);
+            }
+        }
+
+        // 페이지 로드 시 자동 확인
+        window.onload = () => {
+            checkAllServers();
+        };
+    </script>
+</body>
+
+</html>

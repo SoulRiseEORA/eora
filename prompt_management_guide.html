@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 프롬프트 관리 가이드</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border-left: 5px solid #00ff88;
+        }
+
+        .step h2 {
+            color: #00ff88;
+            margin-top: 0;
+        }
+
+        .link-btn {
+            display: inline-block;
+            background: #00ff88;
+            color: #333;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin: 10px;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .link-btn:hover {
+            background: #00cc70;
+            transform: scale(1.05);
+        }
+
+        .info-box {
+            background: rgba(0, 255, 136, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #00ff88;
+        }
+
+        .code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ffc107;
+            margin: 20px 0;
+        }
+
+        .links-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 EORA AI 프롬프트 관리 시스템</h1>
+
+        <div class="info-box">
+            <h2>📋 프롬프트 관리 시스템 정보</h2>
+            <p>✅ ai_prompts.json 파일을 실시간으로 편집하고 관리할 수 있습니다</p>
+            <p>✅ AI1의 system은 문자열로, 나머지는 배열로 처리됩니다</p>
+            <p>✅ 모든 변경사항은 즉시 저장되고 적용됩니다</p>
+        </div>
+
+        <div class="step">
+            <h2>1단계: 서버 실행</h2>
+            <p>먼저 안정 서버가 실행 중인지 확인하세요:</p>
+            <div class="code">python stable_server.py</div>
+            <p>또는 배치 파일 실행:</p>
+            <div class="code">start_stable_server.bat</div>
+        </div>
+
+        <div class="step">
+            <h2>2단계: 관리자 로그인</h2>
+            <p>관리자 계정으로 로그인하세요:</p>
+            <div class="code">
+                이메일: admin@eora.ai<br>
+                비밀번호: admin123
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>3단계: 프롬프트 관리 페이지 접속</h2>
+            <p>아래 링크를 클릭하여 접속하세요:</p>
+        </div>
+
+        <div class="links-container">
+            <a href="http://127.0.0.1:8100" class="link-btn">홈페이지</a>
+            <a href="http://127.0.0.1:8100/login" class="link-btn">로그인</a>
+            <a href="http://127.0.0.1:8100/prompt_management" class="link-btn">프롬프트 관리</a>
+        </div>
+
+        <div class="warning">
+            <h3>⚠️ 주의사항</h3>
+            <ul>
+                <li>관리자 권한이 있는 계정으로만 접근 가능합니다</li>
+                <li>AI1의 system 프롬프트는 반드시 문자열로 저장됩니다</li>
+                <li>변경사항은 즉시 ai_prompts.json 파일에 반영됩니다</li>
+                <li>서버가 실행 중이어야 접속 가능합니다</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>🧪 테스트 도구</h3>
+            <p>프롬프트 관리 기능을 테스트하려면:</p>
+            <a href="test_prompt_ai1.html" class="link-btn" style="display:block;margin:10px auto;width:200px;">AI1 프롬프트
+                테스트</a>
+            <a href="check_stable_server.html" class="link-btn" style="display:block;margin:10px auto;width:200px;">서버
+                상태 확인</a>
+        </div>
+    </div>
+</body>
+
+</html>

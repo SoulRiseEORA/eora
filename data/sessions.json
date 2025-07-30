@@ -1,0 +1,30 @@
+{
+  "session_admin_eora_ai_1753850560949": {
+    "id": "session_admin_eora_ai_1753850560949",
+    "user_email": "admin@eora.ai",
+    "name": "새 세션 2025. 7. 30.",
+    "created_at": "2025-07-30T13:42:40.949002",
+    "message_count": 12
+  },
+  "session_local_1753850560951": {
+    "id": "session_local_1753850560951",
+    "user_email": "admin@eora.ai",
+    "name": "대화 2025-07-30 13:42",
+    "created_at": "2025-07-30T13:42:43.914045",
+    "message_count": 8
+  },
+  "session_admin_eora_ai_1753851021499": {
+    "id": "session_admin_eora_ai_1753851021499",
+    "user_email": "admin@eora.ai",
+    "name": "고급 기능 테스트 13:50:21",
+    "created_at": "2025-07-30T13:50:21.499774",
+    "message_count": 8
+  },
+  "session_admin_eora_ai_1753853818235": {
+    "id": "session_admin_eora_ai_1753853818235",
+    "user_email": "admin@eora.ai",
+    "name": "대화 2025-07-30 14:36",
+    "created_at": "2025-07-30T14:36:58.235345",
+    "message_count": 8
+  }
+}

@@ -392,13 +392,24 @@
                     document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
                     document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
                     localStorage.setItem('user_name', data.user.name);
-                    localStorage.setItem('user_role', data.user.role);
-                    localStorage.setItem('is_admin', 'true');
-                    successMessage.textContent = '관리자 로그인 성공! 관리자 페이지로 이동합니다...';
-                    successMessage.style.display = 'block';
-                    setTimeout(() => {
-                        window.location.href = '/admin';
-                    }, 1000);
+
+                    // 관리자 여부 확인
+                    const isAdmin = data.user.is_admin || data.user.email === 'admin@eora.ai';
+                    localStorage.setItem('is_admin', isAdmin ? 'true' : 'false');
+
+                    if (isAdmin) {
+                        successMessage.textContent = '관리자 로그인 성공! 관리자 페이지로 이동합니다...';
+                        successMessage.style.display = 'block';
+                        setTimeout(() => {
+                            window.location.href = '/admin';
+                        }, 1000);
+                    } else {
+                        successMessage.textContent = '로그인 성공! 홈페이지로 이동합니다...';
+                        successMessage.style.display = 'block';
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 1000);
+                    }
                 } else {
                     errorMessage.textContent = data.message || '로그인에 실패했습니다.';
                     errorMessage.style.display = 'block';

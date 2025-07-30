@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 빠른 확인</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            text-align: center;
+            padding: 50px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #0095ff;
+        }
+
+        .links {
+            margin: 30px 0;
+        }
+
+        .link-btn {
+            display: inline-block;
+            background: #0095ff;
+            color: white;
+            padding: 15px 30px;
+            margin: 10px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .link-btn:hover {
+            background: #0077cc;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 149, 255, 0.3);
+        }
+
+        .info {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 30px auto;
+            max-width: 600px;
+            border: 1px solid #0f3460;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 5px;
+        }
+
+        .success {
+            color: #28a745;
+        }
+
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🚀 EORA AI 시스템</h1>
+
+    <div class="links">
+        <h2>📍 포트 8012에서 실행 중</h2>
+        <a href="http://127.0.0.1:8012/" class="link-btn">🏠 홈페이지</a>
+        <a href="http://127.0.0.1:8012/login" class="link-btn">🔐 로그인</a>
+        <a href="http://127.0.0.1:8012/admin" class="link-btn">⚙️ 관리자</a>
+    </div>
+
+    <div class="info">
+        <h3>🔑 로그인 정보</h3>
+        <p><strong>이메일:</strong> admin@eora.ai</p>
+        <p><strong>비밀번호:</strong> admin123</p>
+    </div>
+
+    <div class="status" id="status">
+        <p>서버 상태 확인 중...</p>
+    </div>
+
+    <script>
+        // 서버 상태 확인
+        fetch('http://127.0.0.1:8012/')
+            .then(() => {
+                document.getElementById('status').innerHTML =
+                    '<p class="success">✅ 서버가 정상적으로 실행 중입니다!</p>';
+            })
+            .catch(() => {
+                document.getElementById('status').innerHTML =
+                    '<p class="error">❌ 서버에 연결할 수 없습니다. start_stable_server.bat을 실행하세요.</p>';
+            });
+    </script>
+</body>
+
+</html>

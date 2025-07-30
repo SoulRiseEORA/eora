@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프롬프트 관리 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 40px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #0095ff;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .status-box {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 1px solid #0f3460;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #0095ff;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background: #0077cc;
+            transform: translateY(-2px);
+        }
+
+        .success {
+            color: #4CAF50;
+        }
+
+        .error {
+            color: #f44336;
+        }
+
+        .prompt-list {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .prompt-item {
+            background: #1a1a2e;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #2a4a7a;
+        }
+
+        .prompt-name {
+            font-weight: bold;
+            color: #0095ff;
+            margin-bottom: 5px;
+        }
+
+        pre {
+            background: #0a0a15;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📝 프롬프트 관리 테스트</h1>
+
+        <div class="status-box">
+            <h2>서버 상태</h2>
+            <p>서버 주소: <strong>http://127.0.0.1:8030</strong></p>
+            <p id="server-status">상태 확인 중...</p>
+        </div>
+
+        <div class="status-box">
+            <h2>테스트 버튼</h2>
+            <button class="btn" onclick="testLogin()">1. 관리자 로그인</button>
+            <button class="btn" onclick="loadPrompts()">2. 프롬프트 로드</button>
+            <button class="btn" onclick="testPromptAPI()">3. API 테스트</button>
+            <a href="http://127.0.0.1:8030/prompt_management" class="btn" target="_blank">4. 프롬프트 관리 페이지 열기</a>
+        </div>
+
+        <div class="status-box">
+            <h2>테스트 결과</h2>
+            <div id="test-result">테스트를 시작하려면 위 버튼을 클릭하세요.</div>
+        </div>
+
+        <div class="status-box">
+            <h2>프롬프트 목록</h2>
+            <div id="prompt-list" class="prompt-list">
+                프롬프트를 로드하려면 "프롬프트 로드" 버튼을 클릭하세요.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = 'http://127.0.0.1:8030';
+        const resultDiv = document.getElementById('test-result');
+        const promptListDiv = document.getElementById('prompt-list');
+        const statusDiv = document.getElementById('server-status');
+
+        // 서버 상태 확인
+        async function checkServer() {
+            try {
+                const response = await fetch(SERVER_URL);
+                if (response.ok) {
+                    statusDiv.innerHTML = '<span class="success">✅ 서버가 정상 작동 중입니다!</span>';
+                } else {
+                    statusDiv.innerHTML = '<span class="error">❌ 서버 응답 오류</span>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<span class="error">❌ 서버에 연결할 수 없습니다.</span>';
+            }
+        }
+
+        // 관리자 로그인
+        async function testLogin() {
+            resultDiv.innerHTML = '로그인 중...';
+            try {
+                const response = await fetch(`${SERVER_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@eora.ai',
+                        password: 'admin123'
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    resultDiv.innerHTML = `<span class="success">✅ 로그인 성공!</span><br>
+                        사용자: ${data.user.name} (${data.user.email})<br>
+                        관리자: ${data.user.is_admin ? '예' : '아니오'}`;
+
+                    // 토큰 저장
+                    if (data.access_token) {
+                        document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ 로그인 실패: ${data.message}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 프롬프트 로드
+        async function loadPrompts() {
+            promptListDiv.innerHTML = '프롬프트 로드 중...';
+            try {
+                const response = await fetch(`${SERVER_URL}/api/prompts`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.prompts) {
+                        promptListDiv.innerHTML = '';
+                        data.prompts.forEach(prompt => {
+                            const promptItem = document.createElement('div');
+                            promptItem.className = 'prompt-item';
+                            promptItem.innerHTML = `
+                                <div class="prompt-name">${prompt.name} (${prompt.id})</div>
+                                <details>
+                                    <summary>시스템 프롬프트</summary>
+                                    <pre>${prompt.system}</pre>
+                                </details>
+                                <details>
+                                    <summary>역할</summary>
+                                    <pre>${prompt.role}</pre>
+                                </details>
+                            `;
+                            promptListDiv.appendChild(promptItem);
+                        });
+                        resultDiv.innerHTML = `<span class="success">✅ ${data.prompts.length}개의 프롬프트를 로드했습니다!</span>`;
+                    } else {
+                        promptListDiv.innerHTML = '<span class="error">프롬프트 데이터가 없습니다.</span>';
+                    }
+                } else {
+                    const errorData = await response.json();
+                    promptListDiv.innerHTML = `<span class="error">❌ 오류: ${errorData.detail || '프롬프트 로드 실패'}</span>`;
+                }
+            } catch (error) {
+                promptListDiv.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // API 테스트
+        async function testPromptAPI() {
+            resultDiv.innerHTML = 'API 테스트 중...';
+            try {
+                // 특정 프롬프트 조회 테스트
+                const response = await fetch(`${SERVER_URL}/api/prompts/ai2`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `<span class="success">✅ API 테스트 성공!</span><br>
+                        프롬프트 ID: ${data.prompt.id}<br>
+                        이름: ${data.prompt.name}`;
+                } else {
+                    const errorData = await response.json();
+                    resultDiv.innerHTML = `<span class="error">❌ API 오류: ${errorData.detail}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 페이지 로드시 서버 확인
+        checkServer();
+    </script>
+</body>
+
+</html>

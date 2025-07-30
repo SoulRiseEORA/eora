@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA 채팅 테스트 - 문제 해결</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #16213e;
+            padding: 15px;
+            border-bottom: 2px solid #0f3460;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #00ff88;
+            font-size: 24px;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #16213e;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #0f3460;
+        }
+
+        .sidebar h2 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: #0f3460;
+            color: #eee;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #00ff88;
+            color: #16213e;
+        }
+
+        .session-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #0f3460;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .session-item:hover {
+            background: #1e5f8e;
+        }
+
+        .session-item.active {
+            background: #00ff88;
+            color: #16213e;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .messages {
+            flex: 1;
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+
+        .message.user {
+            background: #0f3460;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.assistant {
+            background: #1e5f8e;
+        }
+
+        .message .time {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 15px;
+            background: #16213e;
+            border: 2px solid #0f3460;
+            border-radius: 5px;
+            color: #eee;
+            font-size: 16px;
+        }
+
+        .input-area input:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        .input-area button {
+            padding: 15px 30px;
+            background: #00ff88;
+            color: #16213e;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .input-area button:hover {
+            background: #00cc70;
+        }
+
+        .input-area button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #666;
+            margin-top: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🧪 EORA 채팅 테스트</h1>
+        <div id="status" class="status">
+            서버: http://127.0.0.1:8300 | 상태: 연결 중...
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <h2>대화 목록</h2>
+            <button class="btn" onclick="createNewSession()">➕ 새 대화 시작</button>
+            <button class="btn" onclick="loadSessions()">🔄 새로고침</button>
+            <div id="sessions" style="margin-top: 20px;">
+                <div class="empty-state">로그인 중...</div>
+            </div>
+        </div>
+
+        <div class="chat-area">
+            <div id="messages" class="messages">
+                <div class="empty-state">
+                    대화를 선택하거나 새로 시작하세요
+                </div>
+            </div>
+
+            <div class="input-area">
+                <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." disabled>
+                <button id="sendBtn" onclick="sendMessage()" disabled>전송</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SERVER = 'http://127.0.0.1:8300';
+        let currentSessionId = null;
+        let currentUser = null;
+
+        // 초기화
+        async function init() {
+            // 먼저 로그인
+            await login();
+
+            // 세션 목록 로드
+            await loadSessions();
+        }
+
+        // 로그인
+        async function login() {
+            try {
+                const response = await fetch(`${SERVER}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: 'admin@eora.ai',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentUser = data.user;
+                    updateStatus(`로그인: ${currentUser.email} | 상태: 정상`);
+                } else {
+                    updateStatus(`로그인 실패: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                updateStatus(`서버 연결 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // 상태 업데이트
+        function updateStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            status.textContent = `서버: ${SERVER} | ${message}`;
+            status.style.background = type === 'error' ? '#e74c3c' : '#0f3460';
+        }
+
+        // 세션 목록 로드
+        async function loadSessions() {
+            try {
+                const response = await fetch(`${SERVER}/api/sessions`, {
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displaySessions(data.sessions);
+                }
+            } catch (error) {
+                console.error('세션 로드 오류:', error);
+            }
+        }
+
+        // 세션 목록 표시
+        function displaySessions(sessions) {
+            const container = document.getElementById('sessions');
+
+            if (sessions.length === 0) {
+                container.innerHTML = '<div class="empty-state">대화가 없습니다</div>';
+            } else {
+                container.innerHTML = sessions.map(session => `
+                    <div class="session-item ${session.id === currentSessionId ? 'active' : ''}" 
+                         onclick="selectSession('${session.id}')">
+                        <strong>${session.name}</strong><br>
+                        <small>메시지: ${session.message_count || 0}개</small><br>
+                        <small>${new Date(session.created_at).toLocaleString()}</small>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 새 세션 생성
+        async function createNewSession() {
+            const name = prompt('대화 이름:', `대화 ${new Date().toLocaleString()}`);
+            if (!name) return;
+
+            try {
+                const response = await fetch(`${SERVER}/api/sessions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ name })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadSessions();
+                    selectSession(data.session.id);
+                }
+            } catch (error) {
+                alert('세션 생성 실패: ' + error.message);
+            }
+        }
+
+        // 세션 선택
+        async function selectSession(sessionId) {
+            currentSessionId = sessionId;
+
+            // UI 업데이트
+            document.querySelectorAll('.session-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.session-item')?.classList.add('active');
+
+            // 입력 활성화
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+
+            // 메시지 로드
+            await loadMessages();
+        }
+
+        // 메시지 로드
+        async function loadMessages() {
+            if (!currentSessionId) return;
+
+            try {
+                const response = await fetch(
+                    `${SERVER}/api/sessions/${currentSessionId}/messages`,
+                    { credentials: 'include' }
+                );
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayMessages(data.messages);
+                }
+            } catch (error) {
+                console.error('메시지 로드 오류:', error);
+            }
+        }
+
+        // 메시지 표시
+        function displayMessages(messages) {
+            const container = document.getElementById('messages');
+
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="empty-state">대화를 시작하세요</div>';
+            } else {
+                container.innerHTML = messages.map(msg => `
+                    <div class="message ${msg.role}">
+                        <div>${msg.content}</div>
+                        <div class="time">${new Date(msg.timestamp).toLocaleString()}</div>
+                    </div>
+                `).join('');
+
+                // 스크롤 맨 아래로
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        // 메시지 전송
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message || !currentSessionId) return;
+
+            // UI 비활성화
+            input.disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+
+            try {
+                // 채팅 API 호출
+                const response = await fetch(`${SERVER}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        message: message
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 메시지 다시 로드
+                    await loadMessages();
+
+                    // 세션 목록 업데이트
+                    await loadSessions();
+
+                    // 입력 초기화
+                    input.value = '';
+                } else {
+                    alert('오류: ' + (data.error || '메시지 전송 실패'));
+                }
+            } catch (error) {
+                alert('서버 오류: ' + error.message);
+            } finally {
+                // UI 활성화
+                input.disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                input.focus();
+            }
+        }
+
+        // 엔터키로 전송
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 페이지 로드 시 초기화
+        window.onload = init;
+    </script>
+</body>
+
+</html>

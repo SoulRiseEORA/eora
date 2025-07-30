@@ -83,9 +83,24 @@
             background: #f8f9fa;
             border-radius: 8px;
             padding: 16px;
-            min-height: 40px;
+            min-height: 250px;
+            max-height: 600px;
             margin-top: 10px;
-            font-size: 0.97em;
+            font-size: 0.95em;
+            overflow-y: auto;
+            border: 2px solid #dee2e6;
+            white-space: pre-wrap;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            line-height: 1.4;
+        }
+
+        .log:empty::before {
+            content: "📝 학습 로그가 여기에 표시됩니다...";
+            color: #6c757d;
+            font-style: italic;
+            display: block;
+            text-align: center;
+            margin-top: 50px;
         }
 
         .back-link {
@@ -196,15 +211,55 @@
                 const formData = new FormData();
                 formData.append('file', file);
                 try {
+                    learningLog.innerHTML += `<div style="margin-top: 20px; border-top: 2px solid #667eea; padding-top: 10px;"><strong>📚 ${file.name} 학습 시작...</strong></div>`;
+                    learningLog.scrollTop = learningLog.scrollHeight;
+
+                    console.log(`🔍 [DEBUG] ${file.name} 학습 요청 시작`);
+
                     const res = await fetch('/api/admin/learn-file', { method: 'POST', body: formData });
-                    const data = await res.json();
-                    if (data.success) {
-                        learningLog.innerHTML += `<div>✅ ${file.name}: ${data.chunks}개 청크 학습 완료</div>`;
-                    } else {
-                        learningLog.innerHTML += `<div>❌ ${file.name}: ${data.message || '오류'}</div>`;
+                    console.log(`🔍 [DEBUG] API 응답 상태: ${res.status}`);
+
+                    if (!res.ok) {
+                        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
                     }
+
+                    const data = await res.json();
+                    console.log(`🔍 [DEBUG] API 응답 데이터:`, data);
+                    console.log(`🔍 [DEBUG] 로그 개수: ${data.logs ? data.logs.length : 0}`);
+
+                    // 상세 로그 표시
+                    if (data.logs && data.logs.length > 0) {
+                        learningLog.innerHTML += `<div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;"><strong>📋 상세 로그 (총 ${data.logs.length}개)</strong></div>`;
+
+                        for (let i = 0; i < data.logs.length; i++) {
+                            const log = data.logs[i];
+                            learningLog.innerHTML += `<div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.3; margin: 1px 0; padding: 2px 5px; background: #ffffff; border-left: 3px solid #667eea;">${log}</div>`;
+
+                            // 로그가 많은 경우 스크롤을 자동으로 아래로
+                            learningLog.scrollTop = learningLog.scrollHeight;
+
+                            // 로그 출력 간격을 위한 약간의 지연
+                            if (i % 10 === 0) { // 10개마다 지연
+                                await new Promise(resolve => setTimeout(resolve, 30));
+                            }
+                        }
+                    } else {
+                        learningLog.innerHTML += `<div style="margin: 10px 0; padding: 10px; background: #fff3cd; color: #856404; border-radius: 5px;">⚠️ 상세 로그가 없습니다.</div>`;
+                        console.warn(`🔍 [DEBUG] 로그 데이터가 없음:`, data);
+                    }
+
+                    if (data.success) {
+                        learningLog.innerHTML += `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 8px; border: 1px solid #c3e6cb;">🎉 <strong>${file.name}</strong> 학습 완료<br/>📦 청크: ${data.chunks}개 | 📝 텍스트: ${data.text_length || 0}자</div>`;
+                    } else {
+                        learningLog.innerHTML += `<div style="margin-top: 15px; padding: 15px; background: #f8d7da; color: #721c24; border-radius: 8px; border: 1px solid #f5c6cb;">❌ <strong>${file.name}</strong> 학습 실패<br/>💬 메시지: ${data.message || '알 수 없는 오류'}</div>`;
+                    }
+
+                    learningLog.scrollTop = learningLog.scrollHeight;
+
                 } catch (err) {
-                    learningLog.innerHTML += `<div>❌ ${file.name}: 네트워크 오류</div>`;
+                    console.error(`🔍 [DEBUG] 학습 오류:`, err);
+                    learningLog.innerHTML += `<div style="margin-top: 15px; padding: 15px; background: #f8d7da; color: #721c24; border-radius: 8px; border: 1px solid #f5c6cb;">❌ <strong>${file.name}</strong> 오류 발생<br/>💬 세부사항: ${err.message}</div>`;
+                    learningLog.scrollTop = learningLog.scrollHeight;
                 }
             }
             stopLearningBtn.disabled = true;
@@ -262,15 +317,55 @@
                 const formData = new FormData();
                 formData.append('file', file);
                 try {
+                    dialogLearningLog.innerHTML += `<div style="margin-top: 20px; border-top: 2px solid #667eea; padding-top: 10px;"><strong>💬 ${file.name} 대화 학습 시작...</strong></div>`;
+                    dialogLearningLog.scrollTop = dialogLearningLog.scrollHeight;
+
+                    console.log(`🔍 [DEBUG] ${file.name} 대화 학습 요청 시작`);
+
                     const res = await fetch('/api/admin/learn-dialog-file', { method: 'POST', body: formData });
-                    const data = await res.json();
-                    if (data.success) {
-                        dialogLearningLog.innerHTML += `<div>✅ ${file.name}: 대화 ${data.turns}턴 학습 완료</div>`;
-                    } else {
-                        dialogLearningLog.innerHTML += `<div>❌ ${file.name}: ${data.message || '오류'}</div>`;
+                    console.log(`🔍 [DEBUG] 대화 API 응답 상태: ${res.status}`);
+
+                    if (!res.ok) {
+                        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
                     }
+
+                    const data = await res.json();
+                    console.log(`🔍 [DEBUG] 대화 API 응답 데이터:`, data);
+                    console.log(`🔍 [DEBUG] 대화 로그 개수: ${data.logs ? data.logs.length : 0}`);
+
+                    // 상세 로그 표시
+                    if (data.logs && data.logs.length > 0) {
+                        dialogLearningLog.innerHTML += `<div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;"><strong>📋 대화 학습 로그 (총 ${data.logs.length}개)</strong></div>`;
+
+                        for (let i = 0; i < data.logs.length; i++) {
+                            const log = data.logs[i];
+                            dialogLearningLog.innerHTML += `<div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.3; margin: 1px 0; padding: 2px 5px; background: #ffffff; border-left: 3px solid #667eea;">${log}</div>`;
+
+                            // 로그가 많은 경우 스크롤을 자동으로 아래로
+                            dialogLearningLog.scrollTop = dialogLearningLog.scrollHeight;
+
+                            // 로그 출력 간격을 위한 약간의 지연
+                            if (i % 10 === 0) { // 10개마다 지연
+                                await new Promise(resolve => setTimeout(resolve, 30));
+                            }
+                        }
+                    } else {
+                        dialogLearningLog.innerHTML += `<div style="margin: 10px 0; padding: 10px; background: #fff3cd; color: #856404; border-radius: 5px;">⚠️ 대화 학습 로그가 없습니다.</div>`;
+                        console.warn(`🔍 [DEBUG] 대화 로그 데이터가 없음:`, data);
+                    }
+
+                    if (data.success) {
+                        dialogLearningLog.innerHTML += `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 8px; border: 1px solid #c3e6cb;">🎉 <strong>${file.name}</strong> 대화 학습 완료<br/>💬 대화 턴: ${data.turns}턴 | 📝 텍스트: ${data.text_length || 0}자</div>`;
+                    } else {
+                        dialogLearningLog.innerHTML += `<div style="margin-top: 15px; padding: 15px; background: #f8d7da; color: #721c24; border-radius: 8px; border: 1px solid #f5c6cb;">❌ <strong>${file.name}</strong> 대화 학습 실패<br/>💬 메시지: ${data.message || '알 수 없는 오류'}</div>`;
+                    }
+
+                    dialogLearningLog.scrollTop = dialogLearningLog.scrollHeight;
+
                 } catch (err) {
-                    dialogLearningLog.innerHTML += `<div>❌ ${file.name}: 네트워크 오류</div>`;
+                    console.error(`🔍 [DEBUG] 대화 학습 오류:`, err);
+                    dialogLearningLog.innerHTML += `<div style="margin-top: 15px; padding: 15px; background: #f8d7da; color: #721c24; border-radius: 8px; border: 1px solid #f5c6cb;">❌ <strong>${file.name}</strong> 오류 발생<br/>💬 세부사항: ${err.message}</div>`;
+                    dialogLearningLog.scrollTop = dialogLearningLog.scrollHeight;
                 }
             }
             dialogStopLearningBtn.disabled = true;

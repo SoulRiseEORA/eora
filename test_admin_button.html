@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 버튼 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .test-section h2 {
+            margin-top: 0;
+            color: #667eea;
+        }
+
+        .info {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 5px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #764ba2;
+        }
+
+        .admin-btn {
+            background: #00d4aa;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 212, 170, 0.3);
+        }
+
+        .admin-btn:hover {
+            background: #00b894;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.4);
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 관리자 버튼 테스트</h1>
+
+        <div class="test-section">
+            <h2>📋 현재 상태</h2>
+            <div class="info" id="userInfo">로그인 정보를 확인 중...</div>
+            <div class="info" id="cookieInfo">쿠키 정보를 확인 중...</div>
+            <div class="info" id="localStorageInfo">LocalStorage 정보를 확인 중...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔐 로그인 테스트</h2>
+            <div class="button-container">
+                <button onclick="testAdminLogin()">관리자 로그인 테스트</button>
+                <button onclick="testUserLogin()">일반 사용자 로그인 테스트</button>
+                <button onclick="clearLogin()">로그아웃</button>
+            </div>
+            <div id="loginResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🏠 페이지 이동</h2>
+            <div class="button-container">
+                <a href="/" class="admin-btn">🏠 홈페이지</a>
+                <a href="/login" class="admin-btn">🔐 로그인 페이지</a>
+                <a href="/admin" class="admin-btn">⚙️ 관리자 페이지</a>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 테스트 결과</h2>
+            <div id="testResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 정보 확인
+        function checkStatus() {
+            // 사용자 정보 확인
+            const userEmail = localStorage.getItem('user_email');
+            const isAdmin = localStorage.getItem('is_admin');
+            const accessToken = localStorage.getItem('access_token');
+
+            document.getElementById('userInfo').innerHTML = `
+                <strong>사용자 정보:</strong><br>
+                이메일: ${userEmail || '없음'}<br>
+                관리자: ${isAdmin || '없음'}<br>
+                토큰: ${accessToken ? '있음' : '없음'}
+            `;
+
+            // 쿠키 정보 확인
+            const cookies = document.cookie.split(';').map(c => c.trim());
+            document.getElementById('cookieInfo').innerHTML = `
+                <strong>쿠키 정보:</strong><br>
+                ${cookies.join('<br>') || '쿠키 없음'}
+            `;
+
+            // LocalStorage 전체 정보
+            const localStorageData = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                localStorageData.push(`${key}: ${value.substring(0, 50)}...`);
+            }
+            document.getElementById('localStorageInfo').innerHTML = `
+                <strong>LocalStorage 정보:</strong><br>
+                ${localStorageData.join('<br>') || 'LocalStorage 비어 있음'}
+            `;
+        }
+
+        // 관리자 로그인 테스트
+        async function testAdminLogin() {
+            const result = document.getElementById('loginResult');
+            result.innerHTML = '<span class="status info">로그인 중...</span>';
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@eora.ai',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 로그인 정보 저장
+                    localStorage.setItem('user_email', data.user.email);
+                    localStorage.setItem('is_admin', data.user.is_admin ? 'true' : 'false');
+                    localStorage.setItem('access_token', data.access_token);
+                    document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+
+                    result.innerHTML = `
+                        <span class="status success">✅ 관리자 로그인 성공!</span><br>
+                        이메일: ${data.user.email}<br>
+                        관리자: ${data.user.is_admin ? '예' : '아니오'}
+                    `;
+
+                    // 상태 업데이트
+                    setTimeout(checkStatus, 100);
+                } else {
+                    result.innerHTML = `<span class="status error">❌ 로그인 실패: ${data.message}</span>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="status error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 일반 사용자 로그인 테스트
+        async function testUserLogin() {
+            const result = document.getElementById('loginResult');
+            result.innerHTML = '<span class="status info">로그인 중...</span>';
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@eora.ai',
+                        password: 'test123'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 로그인 정보 저장
+                    localStorage.setItem('user_email', data.user.email);
+                    localStorage.setItem('is_admin', data.user.is_admin ? 'true' : 'false');
+                    localStorage.setItem('access_token', data.access_token);
+                    document.cookie = `user_email=${data.user.email}; path=/; max-age=86400`;
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400`;
+
+                    result.innerHTML = `
+                        <span class="status success">✅ 일반 사용자 로그인 성공!</span><br>
+                        이메일: ${data.user.email}<br>
+                        관리자: ${data.user.is_admin ? '예' : '아니오'}
+                    `;
+
+                    // 상태 업데이트
+                    setTimeout(checkStatus, 100);
+                } else {
+                    result.innerHTML = `<span class="status error">❌ 로그인 실패: ${data.message}</span>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="status error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 로그아웃
+        function clearLogin() {
+            localStorage.clear();
+            document.cookie.split(";").forEach(function (c) {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+
+            document.getElementById('loginResult').innerHTML = '<span class="status success">✅ 로그아웃 완료</span>';
+            setTimeout(checkStatus, 100);
+        }
+
+        // 페이지 로드 시 실행
+        checkStatus();
+
+        // 5초마다 상태 업데이트
+        setInterval(checkStatus, 5000);
+    </script>
+</body>
+
+</html>
