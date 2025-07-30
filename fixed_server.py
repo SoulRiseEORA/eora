@@ -243,8 +243,16 @@ if railway_env_loaded:
             openai_vars[key] = "❌ 미설정"
     
     print("🔑 OpenAI 환경변수 상태:")
+    valid_keys_count = 0
     for key, status in openai_vars.items():
         print(f"   - {key}: {status}")
+        if "✅ 유효함" in status:
+            valid_keys_count += 1
+    
+    print(f"🔑 유효한 API 키 개수: {valid_keys_count}")
+    if valid_keys_count == 0:
+        print("❌ 경고: 유효한 OpenAI API 키가 없습니다!")
+        print("   Railway Dashboard → Variables → OPENAI_API_KEY 확인 필요")
     
     # Railway 서비스 정보
     railway_info = {
@@ -362,9 +370,10 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
     try:
         print(f"🧠 고급 응답 생성 시작: {message[:50]}...")
         
-        # 1. 고급 기능이 비활성화된 경우 기본 응답
+        # 1. 고급 기능이 비활성화된 경우 OpenAI API 직접 사용
         if not advanced_systems_ready or not ADVANCED_FEATURES_AVAILABLE:
-            return await generate_basic_response(message)
+            print("⚠️ 고급 기능 비활성화 - OpenAI API 직접 사용")
+            return await generate_openai_response(message, conversation_history, [])
         
         # 2. 고급 채팅 시스템 사용
         try:
@@ -478,45 +487,45 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
             for key, value in railway_debug.items():
                 print(f"   - {key}: {value if value else '미설정'}")
             
-                            # Railway 환경에서 강화된 OpenAI 클라이언트 재초기화
-                if valid_key_found:
-                    print("🔄 유효한 키가 발견되어 OpenAI 클라이언트 재초기화 시도...")
-                    try:
-                        from openai import AsyncOpenAI
-                        retry_key = get_openai_api_key()
-                        if retry_key:
-                            global openai_client
-                            # Railway 환경에 최적화된 설정
-                            if is_railway_now:
-                                print("🚂 Railway 환경에 맞춘 클라이언트 설정")
-                                openai_client = AsyncOpenAI(
-                                    api_key=retry_key,
-                                    timeout=90.0,  # Railway에서 더 긴 타임아웃
-                                    max_retries=7   # Railway에서 더 많은 재시도
-                                )
-                            else:
-                                openai_client = AsyncOpenAI(
-                                    api_key=retry_key,
-                                    timeout=30.0,
-                                    max_retries=3
-                                )
-                            print("✅ OpenAI 클라이언트 재초기화 성공!")
-                            print(f"🔧 설정: 타임아웃={90.0 if is_railway_now else 30.0}초, 재시도={7 if is_railway_now else 3}회")
-                            
-                            # 재귀 호출로 다시 시도
-                            return await generate_openai_response(message, history, memories)
-                        else:
-                            print("❌ 재초기화 실패: API 키를 가져올 수 없음")
-                    except Exception as retry_e:
-                        print(f"❌ 재초기화 실패: {retry_e}")
+            # Railway 환경에서 강화된 OpenAI 클라이언트 재초기화
+            if valid_key_found:
+                print("🔄 유효한 키가 발견되어 OpenAI 클라이언트 재초기화 시도...")
+                try:
+                    from openai import AsyncOpenAI
+                    retry_key = get_openai_api_key()
+                    if retry_key:
+                        global openai_client
+                        # Railway 환경에 최적화된 설정
                         if is_railway_now:
-                            print("🚂 Railway 환경 추가 디버깅:")
-                            print(f"   - 전체 환경변수 수: {len(os.environ)}")
-                            print(f"   - OpenAI 관련 키 수: {len([k for k in os.environ.keys() if 'OPENAI' in k.upper() or 'API' in k.upper()])}")
-                elif is_railway_now:
-                    print("🚂 Railway 환경에서 API 키 없음 - 환경변수 설정 필요!")
-                    print("   Railway Dashboard → Variables → OPENAI_API_KEY 추가")
-            
+                            print("🚂 Railway 환경에 맞춘 클라이언트 설정")
+                            openai_client = AsyncOpenAI(
+                                api_key=retry_key,
+                                timeout=90.0,  # Railway에서 더 긴 타임아웃
+                                max_retries=7   # Railway에서 더 많은 재시도
+                            )
+                        else:
+                            openai_client = AsyncOpenAI(
+                                api_key=retry_key,
+                                timeout=30.0,
+                                max_retries=3
+                            )
+                        print("✅ OpenAI 클라이언트 재초기화 성공!")
+                        print(f"🔧 설정: 타임아웃={90.0 if is_railway_now else 30.0}초, 재시도={7 if is_railway_now else 3}회")
+                        
+                        # 재귀 호출로 다시 시도
+                        return await generate_openai_response(message, history, memories)
+                    else:
+                        print("❌ 재초기화 실패: API 키를 가져올 수 없음")
+                except Exception as retry_e:
+                    print(f"❌ 재초기화 실패: {retry_e}")
+                    if is_railway_now:
+                        print("🚂 Railway 환경 추가 디버깅:")
+                        print(f"   - 전체 환경변수 수: {len(os.environ)}")
+                        print(f"   - OpenAI 관련 키 수: {len([k for k in os.environ.keys() if 'OPENAI' in k.upper() or 'API' in k.upper()])}")
+            elif is_railway_now:
+                print("🚂 Railway 환경에서 API 키 없음 - 환경변수 설정 필요!")
+                print("   Railway Dashboard → Variables → OPENAI_API_KEY 추가")
+        
             error_msg = "OpenAI 클라이언트가 초기화되지 않았습니다."
             if valid_key_found:
                 error_msg += " 유효한 API 키가 있지만 클라이언트 초기화에 실패했습니다."
