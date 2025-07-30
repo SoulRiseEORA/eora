@@ -305,7 +305,7 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
                 print(f"⚠️ 메모리 시스템 응답 생성 실패: {e}")
         
         # 5. OpenAI API 기반 응답 (fallback)
-        if OPENAI_AVAILABLE and openai.api_key:
+        if OPENAI_AVAILABLE and openai_client:
             try:
                 return await generate_openai_response(message, conversation_history, recalled_memories)
             except Exception as e:
