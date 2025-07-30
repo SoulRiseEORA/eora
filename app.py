@@ -56,9 +56,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 정적 파일 및 템플릿 설정
-app.mount("/static", StaticFiles(directory="src/static"), name="static")
-templates = Jinja2Templates(directory="src/templates")
+# 정적 파일 및 템플릿 설정 (Railway 환경 대응)
+from pathlib import Path
+
+# 현재 스크립트의 절대 경로 기준으로 디렉토리 설정
+current_dir = Path(__file__).parent
+static_dir = current_dir / "src" / "static"
+templates_dir = current_dir / "src" / "templates"
+
+# 경로가 존재하지 않으면 대체 경로 사용
+if not static_dir.exists():
+    static_dir = current_dir / "static"
+if not templates_dir.exists():
+    templates_dir = current_dir / "templates"
+
+# 최종 확인 후 기본값 설정
+if not static_dir.exists():
+    static_dir = Path("static")
+if not templates_dir.exists():
+    templates_dir = Path("templates")
+
+print(f"📂 Static 디렉토리: {static_dir}")
+print(f"📂 Templates 디렉토리: {templates_dir}")
+
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+templates = Jinja2Templates(directory=str(templates_dir))
 
 # 데이터 파일 경로
 DATA_DIR = "data"
