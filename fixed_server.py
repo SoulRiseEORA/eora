@@ -32,68 +32,132 @@ except ImportError as e:
     print(f"⚠️ EORA 고급 기능 모듈 로드 실패: {e}")
     ADVANCED_FEATURES_AVAILABLE = False
 
-# 환경변수 로딩 (Railway + 로컬 환경 지원)
+# 환경변수 로딩 및 Railway 환경 최적화
 from dotenv import load_dotenv
 
-# 1. Railway 환경변수 우선, 로컬 .env 파일 대체
-railway_env_loaded = False
-if os.getenv("RAILWAY_ENVIRONMENT"):  # Railway 환경 감지
-    print("🚂 Railway 환경 감지됨")
-    railway_env_loaded = True
-else:
-    # 로컬 환경에서는 .env 파일 로드
-    env_paths = ['.env', 'src/.env']
-    for env_path in env_paths:
-        if os.path.exists(env_path):
-            load_dotenv(env_path)
-            print(f"🔄 로컬 .env 파일 로드: {env_path}")
-            break
-
-# OpenAI API 키 설정 (다중 키 지원)
-def get_openai_api_key():
-    """Railway와 로컬 환경에서 OpenAI API 키를 가져옵니다."""
-    # 우선순위: OPENAI_API_KEY > OPENAI_API_KEY_1 > OPENAI_API_KEY_2 ...
-    api_keys = [
-        os.getenv("OPENAI_API_KEY"),
-        os.getenv("OPENAI_API_KEY_1"),
-        os.getenv("OPENAI_API_KEY_2"),
-        os.getenv("OPENAI_API_KEY_3"),
-        os.getenv("OPENAI_API_KEY_4"),
-        os.getenv("OPENAI_API_KEY_5")
+def detect_railway_environment():
+    """Railway 환경을 강력하게 감지합니다."""
+    railway_indicators = [
+        os.getenv("RAILWAY_ENVIRONMENT"),
+        os.getenv("RAILWAY_PROJECT_ID"), 
+        os.getenv("RAILWAY_SERVICE_ID"),
+        os.getenv("RAILWAY_DEPLOYMENT_ID"),
+        os.getenv("RAILWAY_REPLICA_ID"),
+        # Railway는 항상 PORT를 설정하고 특정 값들을 가짐
+        (os.getenv("PORT") and not os.getenv("DEVELOPMENT") and not os.getenv("VSCODE_GIT_ASKPASS_NODE"))
     ]
     
-    for i, key in enumerate(api_keys):
-        if key:
-            key_name = "OPENAI_API_KEY" if i == 0 else f"OPENAI_API_KEY_{i}"
-            print(f"✅ {key_name} 발견: {key[:20]}...")
-            return key
+    is_railway = any(railway_indicators)
+    if is_railway:
+        print("🚂 Railway 환경 감지됨!")
+        print(f"   PORT: {os.getenv('PORT', 'N/A')}")
+        print(f"   PROJECT_ID: {os.getenv('RAILWAY_PROJECT_ID', 'N/A')[:8]}...")
+        print(f"   SERVICE_ID: {os.getenv('RAILWAY_SERVICE_ID', 'N/A')[:8]}...")
+    else:
+        print("💻 로컬 환경으로 판단됨")
+    
+    return is_railway
+
+def load_environment_variables():
+    """환경에 따라 환경변수를 로드합니다."""
+    railway_env = detect_railway_environment()
+    
+    if not railway_env:
+        # 로컬 환경: .env 파일 로드
+        env_paths = ['.env', 'src/.env', '../.env']
+        env_loaded = False
+        for env_path in env_paths:
+            if os.path.exists(env_path):
+                load_dotenv(env_path)
+                print(f"🔄 로컬 .env 파일 로드: {env_path}")
+                env_loaded = True
+                break
+        
+        if not env_loaded:
+            print("⚠️ .env 파일을 찾을 수 없습니다.")
+    else:
+        print("🚂 Railway 환경변수를 사용합니다")
+    
+    return railway_env
+
+def get_openai_api_key():
+    """강화된 OpenAI API 키 찾기"""
+    # Railway와 로컬 환경에서 사용 가능한 모든 키 이름 시도
+    possible_keys = [
+        "OPENAI_API_KEY",
+        "OPENAI_API_KEY_1", 
+        "OPENAI_API_KEY_2",
+        "OPENAI_API_KEY_3",
+        "OPENAI_API_KEY_4",
+        "OPENAI_API_KEY_5",
+        "OPENAI_KEY",
+        "API_KEY",
+        "GPT_API_KEY"
+    ]
+    
+    print("🔍 OpenAI API 키 검색 중...")
+    found_keys = []
+    
+    for key_name in possible_keys:
+        key_value = os.getenv(key_name)
+        if key_value:
+            if key_value.startswith("sk-"):
+                print(f"✅ 유효한 API 키 발견: {key_name} = sk-...{key_value[-8:]}")
+                return key_value
+            else:
+                found_keys.append(f"{key_name}={key_value[:10]}...")
+    
+    print("❌ 유효한 OpenAI API 키를 찾을 수 없습니다!")
+    if found_keys:
+        print("📋 발견된 키들 (유효하지 않음):")
+        for key_info in found_keys:
+            print(f"   {key_info}")
+    else:
+        print("📋 OpenAI 관련 환경변수가 전혀 설정되지 않았습니다!")
+        print("📋 Railway에서 다음 환경변수를 설정하세요:")
+        print("   OPENAI_API_KEY=sk-proj-your-actual-key-here")
     
     return None
 
-# OpenAI 설정
-try:
-    import openai
-    api_key = get_openai_api_key()
-    
-    if api_key:
-        openai.api_key = api_key
-        print(f"✅ OpenAI API 키 설정 완료 ({'Railway' if railway_env_loaded else '로컬'})")
+def initialize_openai():
+    """최신 OpenAI 클라이언트 초기화"""
+    try:
+        from openai import AsyncOpenAI
         
-        # 추가 환경변수 설정
-        openai_project_id = os.getenv("OPENAI_PROJECT_ID")
-        if openai_project_id:
-            print(f"✅ OpenAI 프로젝트 ID 설정: {openai_project_id}")
+        api_key = get_openai_api_key()
+        if api_key:
+            # AsyncOpenAI 클라이언트 생성
+            global openai_client
+            openai_client = AsyncOpenAI(
+                api_key=api_key,
+                timeout=30.0,
+                max_retries=3
+            )
+            print("✅ OpenAI AsyncClient 초기화 성공!")
+            return True
+        else:
+            openai_client = None
+            print("❌ OpenAI API 키가 없어서 클라이언트 초기화 실패")
+            return False
             
-        OPENAI_AVAILABLE = True
-    else:
-        print("❌ OpenAI API 키를 찾을 수 없습니다!")
-        print(f"📍 환경: {'Railway' if railway_env_loaded else '로컬'}")
-        print("📋 확인할 환경변수: OPENAI_API_KEY, OPENAI_API_KEY_1~5")
-        OPENAI_AVAILABLE = False
-        
-except ImportError:
-    print("⚠️ OpenAI 라이브러리가 설치되지 않았습니다.")
-    OPENAI_AVAILABLE = False
+    except ImportError as e:
+        print(f"❌ OpenAI 라이브러리 가져오기 실패: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ OpenAI 클라이언트 초기화 실패: {e}")
+        return False
+
+# 환경변수 로드 및 OpenAI 초기화
+railway_env_loaded = load_environment_variables()
+OPENAI_AVAILABLE = initialize_openai()
+
+print("=" * 50)
+print("🌍 환경 설정 완료")
+print(f"   환경: {'Railway' if railway_env_loaded else '로컬'}")
+print(f"   OpenAI 사용 가능: {OPENAI_AVAILABLE}")
+if railway_env_loaded:
+    print(f"   Railway 포트: {os.getenv('PORT', 'N/A')}")
+print("=" * 50)
 
 # 앱 초기화
 app = FastAPI(title="EORA AI Fixed Server")
@@ -255,34 +319,50 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
         return await generate_basic_response(message)
 
 async def generate_openai_response(message: str, history: List[Dict], memories: List[Dict] = None) -> str:
-    """OpenAI API를 사용한 응답 생성"""
+    """OpenAI API를 사용한 응답 생성 (Railway 환경 최적화)"""
     try:
-        print(f"🤖 OpenAI API 호출 시작 - API 키 상태: {'설정됨' if openai.api_key else '설정안됨'}")
+        print(f"🤖 OpenAI API 호출 시작")
+        print(f"   - OpenAI 사용 가능: {OPENAI_AVAILABLE}")
+        print(f"   - 클라이언트 상태: {'초기화됨' if 'openai_client' in globals() and openai_client else '미초기화'}")
+        print(f"   - 환경: {'Railway' if railway_env_loaded else '로컬'}")
         
-        if not openai.api_key:
-            print("❌ OpenAI API 키가 설정되지 않음")
-            raise Exception("OpenAI API 키가 설정되지 않았습니다.")
-        
-        # OpenAI 클라이언트 생성 (최신 방식)
-        from openai import AsyncOpenAI
-        client = AsyncOpenAI(api_key=openai.api_key)
+        # OpenAI 클라이언트 확인
+        if not OPENAI_AVAILABLE or not openai_client:
+            print("❌ OpenAI 클라이언트가 초기화되지 않음")
+            # 환경변수 디버깅 정보 출력
+            env_debug = {
+                "OPENAI_API_KEY": "설정됨" if os.getenv("OPENAI_API_KEY") else "미설정",
+                "OPENAI_API_KEY_1": "설정됨" if os.getenv("OPENAI_API_KEY_1") else "미설정",
+                "RAILWAY_ENVIRONMENT": "설정됨" if os.getenv("RAILWAY_ENVIRONMENT") else "미설정",
+                "PORT": os.getenv("PORT", "미설정"),
+                "RAILWAY_PROJECT_ID": "설정됨" if os.getenv("RAILWAY_PROJECT_ID") else "미설정"
+            }
+            print("📍 환경변수 상태:")
+            for key, value in env_debug.items():
+                print(f"   - {key}: {value}")
+            
+            raise Exception("OpenAI 클라이언트가 초기화되지 않았습니다. Railway Variables에서 OPENAI_API_KEY를 확인하세요.")
         
         # 대화 기록 준비
+        system_prompt = """당신은 EORA AI입니다. 
+사용자에게 도움이 되는 통찰력 있고 창의적인 응답을 제공하세요.
+8종 회상 시스템, 직관, 통찰, 지혜 기능을 활용하여 깊이 있는 대화를 나누세요."""
+
         messages = [
-            {"role": "system", "content": "당신은 EORA AI입니다. 사용자에게 도움이 되는 통찰력 있는 응답을 제공하세요."}
+            {"role": "system", "content": system_prompt}
         ]
         
         # 회상된 기억 추가
         if memories:
-            memory_context = "\\n".join([m.get('content', '') for m in memories[:2]])
+            memory_context = "\\n".join([m.get('content', '') for m in memories[:3]])
             if memory_context:
                 messages.append({
                     "role": "system", 
-                    "content": f"관련 기억: {memory_context}"
+                    "content": f"관련 기억 및 맥락:\n{memory_context}"
                 })
         
-        # 최근 대화 기록 추가 (최대 5개)
-        for msg in history[-5:]:
+        # 최근 대화 기록 추가 (최대 6개)
+        for msg in history[-6:]:
             if msg.get('role') in ['user', 'assistant']:
                 messages.append({
                     "role": msg['role'],
@@ -292,26 +372,43 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
         # 현재 메시지 추가
         messages.append({"role": "user", "content": message})
         
-        print(f"🔄 OpenAI API 요청 - 메시지 수: {len(messages)}")
+        print(f"🔄 OpenAI API 요청 준비완료")
+        print(f"   - 메시지 수: {len(messages)}")
+        print(f"   - 모델: gpt-4o-mini")
+        print(f"   - 사용자 메시지: {message[:50]}...")
         
-        # OpenAI API 호출 (최신 방식)
-        response = await client.chat.completions.create(
-            model="gpt-4o-mini",  # 더 빠르고 경제적인 모델 사용
+        # OpenAI API 호출
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
             messages=messages,
-            max_tokens=1000,
-            temperature=0.7
+            max_tokens=1200,
+            temperature=0.7,
+            top_p=0.9,
+            frequency_penalty=0.1,
+            presence_penalty=0.1
         )
         
         api_response = response.choices[0].message.content.strip()
-        print(f"✅ OpenAI API 응답 생성 성공 - 길이: {len(api_response)} 문자")
+        print(f"✅ OpenAI API 응답 생성 성공!")
+        print(f"   - 응답 길이: {len(api_response)} 문자")
+        print(f"   - 응답 미리보기: {api_response[:100]}...")
         
         return api_response
         
     except Exception as e:
-        print(f"❌ OpenAI API 오류: {type(e).__name__}: {e}")
-        print(f"📍 환경변수 상태:")
-        print(f"   - OPENAI_API_KEY: {'설정됨' if os.getenv('OPENAI_API_KEY') else '미설정'}")
-        print(f"   - RAILWAY_ENVIRONMENT: {'설정됨' if os.getenv('RAILWAY_ENVIRONMENT') else '미설정'}")
+        print(f"❌ OpenAI API 호출 실패: {type(e).__name__}: {e}")
+        print(f"📍 상세 오류 정보:")
+        print(f"   - 오류 타입: {type(e).__name__}")
+        print(f"   - 오류 메시지: {str(e)}")
+        print(f"   - OpenAI 클라이언트: {'존재함' if 'openai_client' in globals() else '존재하지 않음'}")
+        
+        # Railway 환경에서 자주 발생하는 문제들 안내
+        if railway_env_loaded:
+            print("🚂 Railway 환경 문제 해결 가이드:")
+            print("   1. Railway Variables에서 OPENAI_API_KEY 설정 확인")
+            print("   2. API 키가 'sk-'로 시작하는지 확인")
+            print("   3. Railway 서비스 재배포 시도")
+        
         raise e
 
 async def generate_basic_response(message: str) -> str:
