@@ -220,6 +220,12 @@ if railway_env_loaded:
     # OpenAI 클라이언트 상태
     print(f"🤖 OpenAI 클라이언트: {'✅ 초기화됨' if (OPENAI_AVAILABLE and 'openai_client' in globals() and openai_client) else '❌ 미초기화'}")
     
+    # 자동응답 제거 알림
+    print("🚫 자동응답 완전 제거됨 - OpenAI API만 사용")
+    if not (OPENAI_AVAILABLE and 'openai_client' in globals() and openai_client):
+        print("⚠️ 경고: API 키가 없으면 채팅이 작동하지 않습니다!")
+        print("   → Railway Dashboard → Variables → OPENAI_API_KEY 설정 필요")
+    
     # Railway 환경에서 추가 디버깅 정보
     print("📊 Railway 디버깅 정보:")
     print(f"   - 전체 환경변수 수: {len(os.environ)}")
@@ -409,12 +415,19 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
             except Exception as e:
                 print(f"⚠️ OpenAI API 응답 생성 실패: {e}")
         
-        # 6. 최종 기본 응답
-        return await generate_basic_response(message)
+        # 6. OpenAI가 사용 불가능한 경우 오류 메시지 반환
+        error_msg = "죄송합니다. 현재 AI 시스템에 문제가 발생했습니다."
+        if not OPENAI_AVAILABLE:
+            error_msg += " OpenAI 서비스 연결을 확인해주세요."
+        elif not openai_client:
+            error_msg += " API 키 설정을 확인해주세요."
+        
+        print(f"⚠️ 응답 생성 불가: {error_msg}")
+        return error_msg
         
     except Exception as e:
         print(f"❌ 고급 응답 생성 전체 오류: {e}")
-        return await generate_basic_response(message)
+        return f"시스템 오류가 발생했습니다: {str(e)}"
 
 async def generate_openai_response(message: str, history: List[Dict], memories: List[Dict] = None) -> str:
     """OpenAI API를 사용한 응답 생성 (Railway 환경 최적화)"""
@@ -427,6 +440,10 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
         # OpenAI 클라이언트 확인
         if not OPENAI_AVAILABLE or not openai_client:
             print("❌ OpenAI 클라이언트가 초기화되지 않음")
+            
+            # Railway 환경 재감지
+            is_railway_now = detect_railway_environment()
+            print(f"🚂 현재 Railway 환경: {is_railway_now}")
             
             # 실시간 환경변수 재검사
             print("🔍 실시간 환경변수 재검사:")
@@ -461,26 +478,44 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
             for key, value in railway_debug.items():
                 print(f"   - {key}: {value if value else '미설정'}")
             
-            # OpenAI 클라이언트 초기화 재시도
-            if valid_key_found:
-                print("🔄 유효한 키가 발견되어 OpenAI 클라이언트 재초기화 시도...")
-                try:
-                    from openai import AsyncOpenAI
-                    retry_key = get_openai_api_key()
-                    if retry_key:
-                        global openai_client
-                        openai_client = AsyncOpenAI(
-                            api_key=retry_key,
-                            timeout=30.0,
-                            max_retries=3
-                        )
-                        print("✅ OpenAI 클라이언트 재초기화 성공!")
-                        # 재귀 호출로 다시 시도
-                        return await generate_openai_response(message, history, memories)
-                    else:
-                        print("❌ 재초기화 실패: API 키를 가져올 수 없음")
-                except Exception as retry_e:
-                    print(f"❌ 재초기화 실패: {retry_e}")
+                            # Railway 환경에서 강화된 OpenAI 클라이언트 재초기화
+                if valid_key_found:
+                    print("🔄 유효한 키가 발견되어 OpenAI 클라이언트 재초기화 시도...")
+                    try:
+                        from openai import AsyncOpenAI
+                        retry_key = get_openai_api_key()
+                        if retry_key:
+                            global openai_client
+                            # Railway 환경에 최적화된 설정
+                            if is_railway_now:
+                                print("🚂 Railway 환경에 맞춘 클라이언트 설정")
+                                openai_client = AsyncOpenAI(
+                                    api_key=retry_key,
+                                    timeout=90.0,  # Railway에서 더 긴 타임아웃
+                                    max_retries=7   # Railway에서 더 많은 재시도
+                                )
+                            else:
+                                openai_client = AsyncOpenAI(
+                                    api_key=retry_key,
+                                    timeout=30.0,
+                                    max_retries=3
+                                )
+                            print("✅ OpenAI 클라이언트 재초기화 성공!")
+                            print(f"🔧 설정: 타임아웃={90.0 if is_railway_now else 30.0}초, 재시도={7 if is_railway_now else 3}회")
+                            
+                            # 재귀 호출로 다시 시도
+                            return await generate_openai_response(message, history, memories)
+                        else:
+                            print("❌ 재초기화 실패: API 키를 가져올 수 없음")
+                    except Exception as retry_e:
+                        print(f"❌ 재초기화 실패: {retry_e}")
+                        if is_railway_now:
+                            print("🚂 Railway 환경 추가 디버깅:")
+                            print(f"   - 전체 환경변수 수: {len(os.environ)}")
+                            print(f"   - OpenAI 관련 키 수: {len([k for k in os.environ.keys() if 'OPENAI' in k.upper() or 'API' in k.upper()])}")
+                elif is_railway_now:
+                    print("🚂 Railway 환경에서 API 키 없음 - 환경변수 설정 필요!")
+                    print("   Railway Dashboard → Variables → OPENAI_API_KEY 추가")
             
             error_msg = "OpenAI 클라이언트가 초기화되지 않았습니다."
             if valid_key_found:
@@ -558,62 +593,7 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
         
         raise e
 
-async def generate_basic_response(message: str) -> str:
-    """향상된 기본 응답 생성 - 키워드 기반 스마트 응답"""
-    message_lower = message.lower()
-    
-    # 인사말 관련
-    if any(greeting in message_lower for greeting in ['안녕', 'hello', '처음', '반가워']):
-        responses = [
-            "안녕하세요! 저는 EORA AI입니다. 다양한 주제에 대해 깊이 있는 대화를 나눌 수 있어요. 무엇을 탐구해보고 싶으신가요?",
-            "반갑습니다! EORA AI와 함께 지혜로운 대화를 시작해보세요. 궁금한 것이 있으시면 언제든 말씀해주세요!",
-            "환영합니다! 저는 통찰과 지혜를 통해 도움을 드리는 EORA AI입니다. 어떤 주제로 이야기해볼까요?"
-        ]
-    
-    # 회상/기억 관련 질문
-    elif any(keyword in message_lower for keyword in ['회상', '기억', '8종', '직관', '통찰', '지혜']):
-        responses = [
-            "네, EORA AI는 8종 회상 시스템을 통해 다차원적 기억 처리가 가능합니다. 키워드, 임베딩, 감정, 신념 등 다양한 방식으로 관련 정보를 회상할 수 있어요.",
-            "고급 회상 기능이 활성화되어 있습니다! 직관적 반응과 통찰력 있는 분석을 통해 더 깊이 있는 대화가 가능합니다.",
-            "EORA의 회상 시스템은 단순한 검색을 넘어서 감정, 신념, 맥락을 종합하여 의미 있는 연결고리를 찾아드립니다."
-        ]
-    
-    # 질문/도움 요청
-    elif any(keyword in message_lower for keyword in ['?', '질문', '궁금', '알려', '도와', '방법', '어떻게']):
-        responses = [
-            "좋은 질문이네요! 더 구체적으로 설명해주시면 더 정확하고 유용한 답변을 드릴 수 있어요.",
-            "그 주제에 대해 깊이 있게 탐구해보겠습니다. 어떤 측면이 가장 궁금하신가요?",
-            "흥미로운 문제군요. 다각도로 접근해서 통찰력 있는 답변을 드려보겠습니다."
-        ]
-    
-    # 테스트/확인 관련
-    elif any(keyword in message_lower for keyword in ['테스트', '확인', '작동', '기능']):
-        responses = [
-            "네, EORA AI의 고급 기능들이 활성화되어 있습니다. 8종 회상, 직관 분석, 통찰 생성 등의 기능을 통해 깊이 있는 대화가 가능해요!",
-            "시스템이 정상 작동 중입니다! 회상 엔진, 메모리 시스템, 감정 분석 등 다양한 고급 기능들을 활용할 수 있습니다.",
-            "모든 고급 기능이 활성화되어 있어요. 복잡한 주제도 다차원적으로 분석하여 통찰력 있는 응답을 드릴 수 있습니다."
-        ]
-    
-    # 대화 지속
-    elif any(keyword in message_lower for keyword in ['계속', '더', '그리고', '또']):
-        responses = [
-            "계속해서 더 깊이 탐구해보겠습니다. 어떤 부분을 더 자세히 알고 싶으신가요?",
-            "네, 이어서 말씀해주세요. 주제를 더 발전시켜 나가겠습니다.",
-            "흥미로운 방향이네요. 계속해서 함께 생각해보겠습니다."
-        ]
-    
-    # 기본 응답
-    else:
-        responses = [
-            "흥미로운 주제네요! EORA AI의 다차원적 분석을 통해 깊이 있게 탐구해보겠습니다.",
-            "그 관점에서 접근해보니 새로운 통찰이 떠오르네요. 더 자세히 나눠볼까요?",
-            "복합적인 사고를 통해 답변드리겠습니다. 어떤 측면이 가장 중요하다고 생각하시나요?",
-            "EORA의 지혜 시스템을 활용하여 의미 있는 답변을 찾아보겠습니다.",
-            "다층적 회상을 통해 관련된 통찰들을 연결해보겠습니다."
-        ]
-    
-    import random
-    return random.choice(responses)
+# 자동응답 함수 제거 - OpenAI API만 사용
 
 async def save_conversation_to_memory(user_message: str, ai_response: str, user_id: str, session_id: str):
     """대화를 EORA 메모리 시스템에 저장하여 학습 및 회상에 활용"""
@@ -1328,6 +1308,23 @@ async def chat(request: Request):
         )
     
     try:
+        # OpenAI API 사용 가능성 체크 (자동응답 완전 차단)
+        if not OPENAI_AVAILABLE or not openai_client:
+            error_msg = "OpenAI API가 사용 불가능합니다."
+            if detect_railway_environment():
+                error_msg += " Railway Variables에서 OPENAI_API_KEY를 설정해주세요."
+            else:
+                error_msg += " .env 파일에서 OPENAI_API_KEY를 설정해주세요."
+            
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "success": False, 
+                    "error": error_msg,
+                    "need_api_key": True
+                }
+            )
+        
         data = await request.json()
         session_id = data.get("session_id")
         message = data.get("message")
@@ -2316,4 +2313,19 @@ if __name__ == "__main__":
     print(f"   - 포트: {port}")
     print(f"   - 환경: {'Railway' if railway_env_loaded else '로컬'}")
     
-    uvicorn.run(app, host=host, port=port) 
+    # Railway 프로덕션 최적화 설정
+    if railway_env_loaded:
+        print("🚂 Railway 프로덕션 최적화 설정 적용")
+        uvicorn.run(
+            app,
+            host=host,
+            port=port,
+            workers=1,  # Railway 메모리 제한 고려
+            access_log=False,  # Railway 로그 최적화
+            server_header=False,  # 보안 강화
+            date_header=False,  # 성능 최적화
+            proxy_headers=True,  # Railway 프록시 환경
+            forwarded_allow_ips="*"  # Railway 네트워크 설정
+        )
+    else:
+        uvicorn.run(app, host=host, port=port) 
