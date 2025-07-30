@@ -135,50 +135,28 @@ def get_openai_api_key():
     return None
 
 def initialize_openai():
-    """최신 OpenAI 클라이언트 초기화 (Railway 환경 강화)"""
+    """최신 OpenAI 클라이언트 초기화 (성능 최적화)"""
     global openai_client
     openai_client = None
     
     try:
-        print("🔄 OpenAI 라이브러리 가져오기 시도...")
         from openai import AsyncOpenAI
-        print("✅ OpenAI 라이브러리 임포트 성공")
         
         api_key = get_openai_api_key()
         if api_key:
-            print(f"🔑 API 키 발견: sk-...{api_key[-8:]}")
-            # AsyncOpenAI 클라이언트 생성
+            # 성능 최적화된 클라이언트 설정
             openai_client = AsyncOpenAI(
                 api_key=api_key,
-                timeout=30.0,
-                max_retries=3
+                timeout=15.0,  # 더 빠른 타임아웃
+                max_retries=1   # 재시도 최소화
             )
-            
-            # 클라이언트 테스트
-            print("🧪 OpenAI 클라이언트 연결 테스트 중...")
-            try:
-                # 간단한 동기식 테스트
-                test_client = AsyncOpenAI(api_key=api_key)
-                print("✅ OpenAI AsyncClient 초기화 및 테스트 성공!")
-                return True
-            except Exception as test_e:
-                print(f"⚠️ 클라이언트 테스트 실패: {test_e}")
-                print("✅ 클라이언트는 생성되었지만 테스트 실패 (실제 사용 시 확인)")
-                return True
+            return True
         else:
-            print("❌ OpenAI API 키가 없어서 클라이언트 초기화 실패")
             return False
             
-    except ImportError as e:
-        print(f"❌ OpenAI 라이브러리 가져오기 실패: {e}")
-        print("📋 해결 방법:")
-        print("   1. requirements.txt에 openai==1.97.1 추가됨")
-        print("   2. Railway에서 재배포 필요")
+    except ImportError:
         return False
-    except Exception as e:
-        print(f"❌ OpenAI 클라이언트 초기화 실패: {e}")
-        print(f"   오류 타입: {type(e).__name__}")
-        print(f"   오류 메시지: {str(e)}")
+    except Exception:
         return False
 
 # 환경변수 로드 및 OpenAI 초기화
@@ -366,173 +344,51 @@ advanced_systems_ready = initialize_advanced_systems()
 # ==================== EORA 고급 응답 생성 ====================
 
 async def generate_advanced_response(message: str, user_id: str, session_id: str, conversation_history: List[Dict]) -> str:
-    """EORA 고급 기능을 활용한 AI 응답 생성"""
+    """EORA 고급 기능을 활용한 AI 응답 생성 (성능 최적화)"""
     try:
-        print(f"🧠 고급 응답 생성 시작: {message[:50]}...")
-        
         # 1. 고급 기능이 비활성화된 경우 OpenAI API 직접 사용
         if not advanced_systems_ready or not ADVANCED_FEATURES_AVAILABLE:
-            print("⚠️ 고급 기능 비활성화 - OpenAI API 직접 사용")
             return await generate_openai_response(message, conversation_history, [])
         
-        # 2. 고급 채팅 시스템 사용
-        try:
-            advanced_response = await process_advanced_message(message, user_id)
-            if advanced_response and len(advanced_response.strip()) > 5:
-                print(f"✅ 고급 시스템 응답 생성 성공")
-                return advanced_response
-        except Exception as e:
-            print(f"⚠️ 고급 시스템 응답 생성 실패: {e}")
-        
-        # 3. 8종 회상 시스템 활용
+        # 2. 빠른 회상 시스템 (간소화)
         recalled_memories = []
         if recall_engine:
             try:
-                context = {
-                    "user_id": user_id,
-                    "session_id": session_id,
-                    "parent_id": None
-                }
-                recalled_memories = await recall_engine.recall(
-                    query=message,
-                    context=context,
-                    limit=3
-                )
-                print(f"🔍 회상된 기억: {len(recalled_memories)}개")
-            except Exception as e:
-                print(f"⚠️ 회상 엔진 오류: {e}")
+                context = {"user_id": user_id, "session_id": session_id}
+                recalled_memories = await recall_engine.recall(query=message, context=context, limit=2)
+            except:
+                pass
         
-        # 4. 메모리 기반 응답 생성
-        if eora_memory_system:
-            try:
-                memory_response = await eora_memory_system.generate_response(
-                    user_input=message,
-                    user_id=user_id,
-                    recalled_memories=recalled_memories,
-                    conversation_history=conversation_history
-                )
-                if memory_response and len(memory_response.strip()) > 5:
-                    print(f"✅ 메모리 시스템 응답 생성 성공")
-                    return memory_response
-            except Exception as e:
-                print(f"⚠️ 메모리 시스템 응답 생성 실패: {e}")
-        
-        # 5. OpenAI API 기반 응답 (fallback)
-        if OPENAI_AVAILABLE and openai_client:
-            try:
-                return await generate_openai_response(message, conversation_history, recalled_memories)
-            except Exception as e:
-                print(f"⚠️ OpenAI API 응답 생성 실패: {e}")
-        
-        # 6. OpenAI가 사용 불가능한 경우 오류 메시지 반환
-        error_msg = "죄송합니다. 현재 AI 시스템에 문제가 발생했습니다."
-        if not OPENAI_AVAILABLE:
-            error_msg += " OpenAI 서비스 연결을 확인해주세요."
-        elif not openai_client:
-            error_msg += " API 키 설정을 확인해주세요."
-        
-        print(f"⚠️ 응답 생성 불가: {error_msg}")
-        return error_msg
+        # 3. OpenAI API 기반 응답 (최적화된 fallback)
+        return await generate_openai_response(message, conversation_history, recalled_memories)
         
     except Exception as e:
         print(f"❌ 고급 응답 생성 전체 오류: {e}")
         return f"시스템 오류가 발생했습니다: {str(e)}"
 
 async def generate_openai_response(message: str, history: List[Dict], memories: List[Dict] = None) -> str:
-    """OpenAI API를 사용한 응답 생성 (Railway 환경 최적화)"""
+    """OpenAI API를 사용한 응답 생성 (성능 최적화)"""
     global openai_client
     try:
-        print(f"🤖 OpenAI API 호출 시작")
-        print(f"   - OpenAI 사용 가능: {OPENAI_AVAILABLE}")
-        print(f"   - 클라이언트 상태: {'초기화됨' if 'openai_client' in globals() and openai_client else '미초기화'}")
-        print(f"   - 환경: {'Railway' if railway_env_loaded else '로컬'}")
         
-        # OpenAI 클라이언트 확인
+        # OpenAI 클라이언트 확인 (성능 최적화)
         if not OPENAI_AVAILABLE or not openai_client:
-            print("❌ OpenAI 클라이언트가 초기화되지 않음")
-            
-            # Railway 환경 재감지
-            is_railway_now = detect_railway_environment()
-            print(f"🚂 현재 Railway 환경: {is_railway_now}")
-            
-            # 실시간 환경변수 재검사
-            print("🔍 실시간 환경변수 재검사:")
-            all_openai_keys = [
-                "OPENAI_API_KEY", "OPENAI_API_KEY_1", "OPENAI_API_KEY_2", 
-                "OPENAI_API_KEY_3", "OPENAI_API_KEY_4", "OPENAI_API_KEY_5",
-                "OPENAI_KEY", "API_KEY", "GPT_API_KEY"
-            ]
-            
-            valid_key_found = False
-            for key in all_openai_keys:
-                value = os.getenv(key)
-                if value:
-                    if value.startswith("sk-"):
-                        print(f"   ✅ {key}: 유효한 키 발견 (sk-...{value[-8:]})")
-                        valid_key_found = True
-                    else:
-                        print(f"   ⚠️ {key}: 유효하지 않은 키 ({value[:20]}...)")
-                else:
-                    print(f"   ❌ {key}: 미설정")
-            
-            # Railway 환경변수 상태
-            railway_debug = {
-                "RAILWAY_ENVIRONMENT": os.getenv("RAILWAY_ENVIRONMENT"),
-                "RAILWAY_PROJECT_ID": os.getenv("RAILWAY_PROJECT_ID"),
-                "RAILWAY_SERVICE_ID": os.getenv("RAILWAY_SERVICE_ID"),
-                "PORT": os.getenv("PORT"),
-                "전체_환경변수_수": len(os.environ)
-            }
-            
-            print("🚂 Railway 환경 상태:")
-            for key, value in railway_debug.items():
-                print(f"   - {key}: {value if value else '미설정'}")
-            
-            # Railway 환경에서 강화된 OpenAI 클라이언트 재초기화
-            if valid_key_found:
-                print("🔄 유효한 키가 발견되어 OpenAI 클라이언트 재초기화 시도...")
+            # 빠른 재초기화 시도
+            retry_key = get_openai_api_key()
+            if retry_key:
                 try:
                     from openai import AsyncOpenAI
-                    retry_key = get_openai_api_key()
-                    if retry_key:
-                        # Railway 환경에 최적화된 설정
-                        if is_railway_now:
-                            print("🚂 Railway 환경에 맞춘 클라이언트 설정")
-                            openai_client = AsyncOpenAI(
-                                api_key=retry_key,
-                                timeout=90.0,  # Railway에서 더 긴 타임아웃
-                                max_retries=7   # Railway에서 더 많은 재시도
-                            )
-                        else:
-                            openai_client = AsyncOpenAI(
-                                api_key=retry_key,
-                                timeout=30.0,
-                                max_retries=3
-                            )
-                        print("✅ OpenAI 클라이언트 재초기화 성공!")
-                        print(f"🔧 설정: 타임아웃={90.0 if is_railway_now else 30.0}초, 재시도={7 if is_railway_now else 3}회")
-                        
-                        # 재귀 호출로 다시 시도
-                        return await generate_openai_response(message, history, memories)
-                    else:
-                        print("❌ 재초기화 실패: API 키를 가져올 수 없음")
-                except Exception as retry_e:
-                    print(f"❌ 재초기화 실패: {retry_e}")
-                    if is_railway_now:
-                        print("🚂 Railway 환경 추가 디버깅:")
-                        print(f"   - 전체 환경변수 수: {len(os.environ)}")
-                        print(f"   - OpenAI 관련 키 수: {len([k for k in os.environ.keys() if 'OPENAI' in k.upper() or 'API' in k.upper()])}")
-            elif is_railway_now:
-                print("🚂 Railway 환경에서 API 키 없음 - 환경변수 설정 필요!")
-                print("   Railway Dashboard → Variables → OPENAI_API_KEY 추가")
-        
-            error_msg = "OpenAI 클라이언트가 초기화되지 않았습니다."
-            if valid_key_found:
-                error_msg += " 유효한 API 키가 있지만 클라이언트 초기화에 실패했습니다."
-            else:
-                error_msg += " Railway Variables에서 OPENAI_API_KEY를 확인하세요."
+                    openai_client = AsyncOpenAI(
+                        api_key=retry_key,
+                        timeout=15.0,  # 타임아웃 단축
+                        max_retries=1  # 재시도 횟수 최소화
+                    )
+                    # 재귀 호출로 다시 시도
+                    return await generate_openai_response(message, history, memories)
+                except Exception:
+                    pass
             
-            raise Exception(error_msg)
+            return "OpenAI API 사용 불가: 환경변수를 확인해주세요."
         
         # 대화 기록 준비
         system_prompt = """당신은 EORA AI입니다. 
@@ -552,8 +408,8 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
                     "content": f"관련 기억 및 맥락:\n{memory_context}"
                 })
         
-        # 최근 대화 기록 추가 (최대 6개)
-        for msg in history[-6:]:
+        # 최근 대화 기록 추가 (최대 4개로 단축하여 성능 향상)
+        for msg in history[-4:]:
             if msg.get('role') in ['user', 'assistant']:
                 messages.append({
                     "role": msg['role'],
@@ -563,42 +419,22 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
         # 현재 메시지 추가
         messages.append({"role": "user", "content": message})
         
-        print(f"🔄 OpenAI API 요청 준비완료")
-        print(f"   - 메시지 수: {len(messages)}")
-        print(f"   - 모델: gpt-4o-mini")
-        print(f"   - 사용자 메시지: {message[:50]}...")
-        
-        # OpenAI API 호출
+        # OpenAI API 호출 (성능 최적화)
         response = await openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            max_tokens=1200,
+            max_tokens=800,  # 토큰 수 줄여서 응답 속도 향상
             temperature=0.7,
-            top_p=0.9,
-            frequency_penalty=0.1,
-            presence_penalty=0.1
+            stream=False  # 스트리밍 비활성화로 단순화
         )
         
         api_response = response.choices[0].message.content.strip()
-        print(f"✅ OpenAI API 응답 생성 성공!")
-        print(f"   - 응답 길이: {len(api_response)} 문자")
-        print(f"   - 응답 미리보기: {api_response[:100]}...")
         
         return api_response
         
     except Exception as e:
-        print(f"❌ OpenAI API 호출 실패: {type(e).__name__}: {e}")
-        print(f"📍 상세 오류 정보:")
-        print(f"   - 오류 타입: {type(e).__name__}")
-        print(f"   - 오류 메시지: {str(e)}")
-        print(f"   - OpenAI 클라이언트: {'존재함' if 'openai_client' in globals() else '존재하지 않음'}")
-        
-        # Railway 환경에서 자주 발생하는 문제들 안내
-        if railway_env_loaded:
-            print("🚂 Railway 환경 문제 해결 가이드:")
-            print("   1. Railway Variables에서 OPENAI_API_KEY 설정 확인")
-            print("   2. API 키가 'sk-'로 시작하는지 확인")
-            print("   3. Railway 서비스 재배포 시도")
+        # 간단한 오류 로깅으로 성능 향상
+        return f"응답 생성 중 오류가 발생했습니다: {str(e)[:100]}"
         
         raise e
 
@@ -2322,19 +2158,24 @@ if __name__ == "__main__":
     print(f"   - 포트: {port}")
     print(f"   - 환경: {'Railway' if railway_env_loaded else '로컬'}")
     
-    # Railway 프로덕션 최적화 설정
+    # 성능 최적화된 서버 설정
     if railway_env_loaded:
-        print("🚂 Railway 프로덕션 최적화 설정 적용")
         uvicorn.run(
             app,
             host=host,
             port=port,
-            workers=1,  # Railway 메모리 제한 고려
-            access_log=False,  # Railway 로그 최적화
-            server_header=False,  # 보안 강화
-            date_header=False,  # 성능 최적화
-            proxy_headers=True,  # Railway 프록시 환경
-            forwarded_allow_ips="*"  # Railway 네트워크 설정
+            workers=1,
+            access_log=False,
+            server_header=False,
+            date_header=False,
+            proxy_headers=True,
+            forwarded_allow_ips="*",
+            loop="uvloop"  # 성능 향상
         )
     else:
-        uvicorn.run(app, host=host, port=port) 
+        uvicorn.run(
+            app, 
+            host=host, 
+            port=port,
+            loop="uvloop"  # 로컬에서도 성능 향상
+        ) 
