@@ -1430,8 +1430,11 @@ async def chat(request: Request):
             
             # MongoDB에 세션 저장
             if mongo_client and verify_connection() and db_mgr:
-                await db_mgr.create_session(new_session)
-                print(f"🆕 MongoDB에 새 세션 생성: {session_id}")
+                try:
+                    db_mgr.create_session(user["email"], new_session["name"])
+                    print(f"🆕 MongoDB에 새 세션 생성: {session_id}")
+                except Exception as create_error:
+                    print(f"⚠️ MongoDB 세션 생성 실패: {create_error}")
             
             # 메모리에도 저장 (호환성)
             sessions_db[session_id] = new_session
@@ -1472,14 +1475,12 @@ async def chat(request: Request):
         # ===== MongoDB에 장기 저장 =====
         try:
             if mongo_client and verify_connection() and db_mgr:
-                # 사용자 메시지를 MongoDB에 저장
-                await db_mgr.save_message(session_id, "user", message)
-                # AI 응답을 MongoDB에 저장
-                await db_mgr.save_message(session_id, "assistant", ai_response)
+                # 사용자 메시지와 AI 응답을 MongoDB에 저장
+                db_mgr.save_message(session_id, message, ai_response, user["email"])
                 print(f"✅ MongoDB에 대화 저장 완료: {session_id}")
                 
                 # 세션 업데이트
-                await db_mgr.update_session(session_id, {
+                db_mgr.update_session(session_id, {
                     "updated_at": datetime.now().isoformat(),
                     "last_activity": datetime.now().isoformat(),
                     "last_message": message[:50] + "..." if len(message) > 50 else message
@@ -1499,6 +1500,25 @@ async def chat(request: Request):
         
         # 세션의 메시지 카운트 업데이트
         sessions_db[session_id]["message_count"] = len(messages_db[session_id])
+        
+        # 첫 번째 메시지인 경우 세션 제목을 사용자 메시지로 설정
+        current_message_count = len(messages_db[session_id])
+        if current_message_count == 2:  # 사용자 메시지 + AI 응답 = 2개일 때가 첫 대화
+            # 사용자 메시지를 세션 제목으로 설정 (최대 50자)
+            new_title = message[:50] + "..." if len(message) > 50 else message
+            sessions_db[session_id]["name"] = new_title
+            
+            # MongoDB에도 세션 제목 업데이트
+            try:
+                if mongo_client and verify_connection() and db_mgr:
+                    db_mgr.update_session(session_id, {
+                        "session_name": new_title,
+                        "name": new_title,
+                        "updated_at": datetime.now().isoformat()
+                    })
+                    print(f"📝 세션 제목 업데이트: {session_id} -> '{new_title}'")
+            except Exception as title_error:
+                print(f"⚠️ 세션 제목 업데이트 실패: {title_error}")
         
         # JSON 파일 저장 (호환성 및 백업)
         save_json_data(MESSAGES_FILE, messages_db)
