@@ -54,20 +54,28 @@ class EORAMemorySystem:
     def _try_initialize(self) -> bool:
         """초기화 시도"""
         try:
-            # MongoDB 연결 시도
-            from database import db_manager
+            # 항상 기본 메모리 매니저 생성 (오류 방지)
+            self.memory_manager = SimpleMemoryManager(None)
             
-            db_mgr = db_manager()
-            if db_mgr.is_connected():
-                self.memory_db = db_mgr
-                self.memory_collection = None  # database.py에서 관리됨
-                
-                # memory_manager 객체 생성 (RecallEngine을 위한)
-                self.memory_manager = SimpleMemoryManager(db_mgr)
-                
-                logger.info("✅ 아우라 메모리 시스템 - MongoDB 연결 성공")
-                self.is_initialized = True
-                return True
+            # MongoDB 연결 시도
+            try:
+                from database import verify_connection, mongo_client
+                if mongo_client is not None and verify_connection():
+                    from database import db_manager
+                    db_mgr = db_manager()
+                    self.memory_db = db_mgr
+                    self.memory_collection = None  # database.py에서 관리됨
+                    
+                    # MongoDB 연결 성공 시 업데이트
+                    self.memory_manager = SimpleMemoryManager(db_mgr)
+                    logger.info("✅ 아우라 메모리 시스템 - MongoDB 연결 성공")
+                else:
+                    logger.warning("⚠️ MongoDB 연결 없음 - 기본 메모리 매니저 사용")
+            except Exception as db_error:
+                logger.warning(f"⚠️ MongoDB 연결 실패: {db_error} - 기본 메모리 매니저 사용")
+            
+            self.is_initialized = True
+            return True
             
             # FAISS 초기화 시도 (임베딩 기반 검색)
             try:
@@ -95,7 +103,9 @@ class EORAMemorySystem:
             return self.is_initialized
             
         except Exception as e:
+            import traceback
             logger.error(f"❌ 아우라 메모리 시스템 초기화 실패: {e}")
+            logger.error(f"상세 오류: {traceback.format_exc()}")
             return False
     
     async def initialize(self) -> bool:
@@ -911,18 +921,19 @@ class SimpleMemoryCollection:
     def find(self, query, sort=None, limit=None):
         """MongoDB find 메서드 모방"""
         try:
-            # 실제 MongoDB 컬렉션에서 조회
-            from database import memories_collection
-            if memories_collection is not None:
-                cursor = memories_collection.find(query)
-                if sort:
-                    cursor = cursor.sort(sort)
-                if limit:
-                    cursor = cursor.limit(limit)
-                return cursor
-            else:
-                # Fallback: 빈 결과 반환
-                return []
+            # DB 매니저가 있을 때만 실제 MongoDB 조회
+            if self.db_mgr is not None:
+                from database import memories_collection
+                if memories_collection is not None:
+                    cursor = memories_collection.find(query)
+                    if sort:
+                        cursor = cursor.sort(sort)
+                    if limit:
+                        cursor = cursor.limit(limit)
+                    return cursor
+            
+            # Fallback: 빈 결과 반환
+            return []
         except Exception as e:
             logger.error(f"❌ 메모리 조회 실패: {e}")
             return [] 
