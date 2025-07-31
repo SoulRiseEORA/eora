@@ -371,8 +371,10 @@ def init_mongodb_connection():
             logger.error("❌ 모든 MongoDB 연결 시도 실패")
             return False
             
-        # 데이터베이스 및 컬렉션 초기화
+                    # 데이터베이스 및 컬렉션 초기화
         try:
+            global sessions_collection, chat_logs_collection, memories_collection, users_collection, system_logs_collection, points_collection
+            
             db = mongo_client[DATABASE_NAME]
             sessions_collection = db["sessions"]
             chat_logs_collection = db["chat_logs"]
@@ -421,4 +423,96 @@ logger.info(f"🔌 MongoDB 연결 상태: {'✅ 연결됨' if is_connected else 
 def get_cached_mongodb_connection():
     """캐시된 MongoDB 연결을 반환합니다."""
     global mongo_client
-    return mongo_client 
+    return mongo_client
+
+# ========== 데이터베이스 관리자 클래스 ==========
+
+class DatabaseManager:
+    """데이터베이스 관리 클래스"""
+    
+    def __init__(self):
+        self.mongo_client = mongo_client
+        self.db = mongo_client[DATABASE_NAME] if mongo_client else None
+        self.sessions_collection = sessions_collection if 'sessions_collection' in globals() else None
+        self.chat_logs_collection = chat_logs_collection if 'chat_logs_collection' in globals() else None
+        self.memories_collection = memories_collection if 'memories_collection' in globals() else None
+        self.users_collection = users_collection if 'users_collection' in globals() else None
+    
+    def is_connected(self):
+        """MongoDB 연결 상태 확인"""
+        return verify_connection()
+    
+    def create_session(self, user_id: str, session_name: str = None) -> str:
+        """MongoDB에 새 세션을 생성합니다"""
+        if not self.is_connected() or not self.sessions_collection:
+            raise Exception("MongoDB가 연결되지 않았습니다")
+        
+        try:
+            session_id = f"session_{user_id.replace('@', '_').replace('.', '_')}_{int(time.time() * 1000)}"
+            
+            session_data = {
+                "session_id": session_id,
+                "user_id": user_id,
+                "session_name": session_name or "새 대화",
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat(),
+                "messages": []
+            }
+            
+            # MongoDB에 삽입
+            result = self.sessions_collection.insert_one(session_data)
+            
+            if result.inserted_id:
+                # ObjectId를 문자열로 변환하여 반환
+                session_id_str = str(result.inserted_id)
+                logger.info(f"✅ 세션 생성 성공: {session_id_str}")
+                return session_id_str
+            else:
+                raise Exception("세션 삽입 실패")
+                
+        except Exception as e:
+            logger.error(f"❌ 세션 생성 오류: {str(e)}")
+            raise e
+    
+    def save_message(self, session_id: str, user_message: str, ai_response: str, user_id: str = None):
+        """MongoDB에 메시지를 저장합니다"""
+        if not self.is_connected() or not self.chat_logs_collection:
+            logger.warning("MongoDB가 연결되지 않아 메시지 저장을 건너뜁니다")
+            return False
+        
+        try:
+            message_data = {
+                "session_id": session_id,
+                "user_id": user_id,
+                "user_message": user_message,
+                "ai_response": ai_response,
+                "timestamp": datetime.now().isoformat(),
+                "created_at": datetime.now()
+            }
+            
+            self.chat_logs_collection.insert_one(message_data)
+            logger.info(f"✅ 메시지 저장 성공: {session_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ 메시지 저장 오류: {str(e)}")
+            return False
+    
+    def update_session(self, session_id: str, updates: Dict[str, Any]):
+        """세션 정보를 업데이트합니다"""
+        if not self.is_connected() or not self.sessions_collection:
+            return False
+        
+        try:
+            updates["updated_at"] = datetime.now().isoformat()
+            self.sessions_collection.update_one(
+                {"session_id": session_id},
+                {"$set": updates}
+            )
+            return True
+        except Exception as e:
+            logger.error(f"❌ 세션 업데이트 오류: {str(e)}")
+            return False
+
+# 전역 데이터베이스 관리자 인스턴스
+db_mgr = DatabaseManager() 

@@ -47,6 +47,7 @@ try:
     from eora_advanced_chat_system import process_advanced_message
     from aura_system.recall_engine import RecallEngine
     from aura_memory_system import EORAMemorySystem
+    from database import mongo_client, verify_connection, db_mgr
     
     # EORA 메모리 시스템 초기화
     eora_memory_system = EORAMemorySystem()
@@ -434,10 +435,9 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
         return f"시스템 오류가 발생했습니다: {str(e)}"
 
 async def generate_openai_response(message: str, history: List[Dict], memories: List[Dict] = None) -> str:
-    """OpenAI API를 사용한 응답 생성 (성능 최적화)"""
+    """OpenAI API를 사용한 응답 생성 (성능 최적화 + AI1 프롬프트 적용)"""
     global openai_client
     try:
-        
         # OpenAI 클라이언트 확인 (성능 최적화)
         if not OPENAI_AVAILABLE or not openai_client:
             # 빠른 재초기화 시도
@@ -457,26 +457,9 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
             
             return "OpenAI API 사용 불가: 환경변수를 확인해주세요."
         
-        # 대화 기록 준비
-        system_prompt = """당신은 EORA AI입니다 - 고급 8종 회상 시스템과 직관, 통찰, 지혜 기능을 가진 AI입니다.
-
-🧠 **8종 회상 시스템 활용:**
-- 키워드 기반 회상: 정확한 용어와 개념 연결
-- 임베딩 기반 회상: 의미적 유사성 탐지  
-- 감정 기반 회상: 감정적 맥락과 분위기
-- 신념 기반 회상: 가치관과 철학적 관점
-- 맥락 기반 회상: 대화의 흐름과 상황
-- 시간 기반 회상: 최근성과 시간적 패턴
-- 연관 기반 회상: 개념 간 연결고리
-- 패턴 기반 회상: 반복되는 주제와 습관
-
-✨ **고급 기능 적용:**
-- 💡 통찰력: 숨겨진 패턴과 연결점 발견
-- 🔮 직관: 감정적이고 직관적인 이해
-- 🧠 지혜: 경험과 성찰을 통한 깊은 조언
-
-제공된 회상 정보를 적극 활용하여 개인화되고 맥락에 맞는 깊이 있는 응답을 제공하세요."""
-
+        # 🎯 AI1 프롬프트 동적 로드
+        system_prompt = await load_ai1_system_prompt()
+        
         messages = [
             {"role": "system", "content": system_prompt}
         ]
@@ -518,22 +501,103 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
         
         # OpenAI API 호출 (성능 최적화)
         response = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=messages,
-            max_tokens=800,  # 토큰 수 줄여서 응답 속도 향상
             temperature=0.7,
-            stream=False  # 스트리밍 비활성화로 단순화
+            max_tokens=2048,
+            timeout=15.0  # 응답 시간 단축
         )
         
-        api_response = response.choices[0].message.content.strip()
-        
-        return api_response
+        return response.choices[0].message.content
         
     except Exception as e:
-        # 간단한 오류 로깅으로 성능 향상
-        return f"응답 생성 중 오류가 발생했습니다: {str(e)[:100]}"
+        print(f"❌ OpenAI API 오류: {e}")
+        return f"응답 생성 중 오류가 발생했습니다: {str(e)}"
+
+async def load_ai1_system_prompt() -> str:
+    """ai_prompts.json에서 AI1 프롬프트를 로드하여 완전한 시스템 프롬프트를 구성합니다."""
+    try:
+        # 여러 경로에서 ai_prompts.json 파일을 찾기
+        possible_paths = [
+            "ai_prompts.json",
+            "ai_brain/ai_prompts.json", 
+            "templates/ai_prompts.json",
+            "prompts/ai_prompts.json",
+            "src/ai_prompts.json"
+        ]
         
-        raise e
+        for path in possible_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        prompts_data = json.load(f)
+                    
+                    # AI1 프롬프트 추출
+                    if "ai1" in prompts_data and isinstance(prompts_data["ai1"], dict):
+                        ai1_data = prompts_data["ai1"]
+                        system_parts = []
+                        
+                        # system, role, guide, format 순으로 결합
+                        for section in ["system", "role", "guide", "format"]:
+                            if section in ai1_data:
+                                content = ai1_data[section]
+                                if isinstance(content, list):
+                                    system_parts.extend(content)
+                                elif isinstance(content, str):
+                                    system_parts.append(content)
+                        
+                        if system_parts:
+                            # 🧠 회상 시스템 지시사항을 맨 앞에 추가
+                            memory_instruction = """🧠 **8종 회상 시스템 활용:**
+- 키워드 기반 회상: 정확한 용어와 개념 연결
+- 임베딩 기반 회상: 의미적 유사성 탐지  
+- 감정 기반 회상: 감정적 맥락과 분위기
+- 신념 기반 회상: 가치관과 철학적 관점
+- 맥락 기반 회상: 대화의 흐름과 상황
+- 시간 기반 회상: 최근성과 시간적 패턴
+- 연관 기반 회상: 개념 간 연결고리
+- 패턴 기반 회상: 반복되는 주제와 습관
+
+✨ **고급 기능 적용:**
+- 💡 통찰력: 숨겨진 패턴과 연결점 발견
+- 🔮 직관: 감정적이고 직관적인 이해
+- 🧠 지혜: 경험과 성찰을 통한 깊은 조언
+
+제공된 회상 정보를 적극 활용하여 개인화되고 맥락에 맞는 깊이 있는 응답을 제공하세요.
+
+"""
+                            combined_prompt = memory_instruction + "\n\n".join(system_parts)
+                            print(f"✅ AI1 프롬프트 로드 성공: {path}")
+                            return combined_prompt
+                        
+                except Exception as e:
+                    print(f"⚠️ 프롬프트 파일 로드 실패 ({path}): {e}")
+                    continue
+        
+        # 파일을 찾지 못한 경우 기본 프롬프트 사용
+        print("⚠️ ai_prompts.json 파일을 찾을 수 없어 기본 프롬프트를 사용합니다.")
+        return """당신은 EORA AI입니다 - 고급 8종 회상 시스템과 직관, 통찰, 지혜 기능을 가진 AI입니다.
+
+🧠 **8종 회상 시스템 활용:**
+- 키워드 기반 회상: 정확한 용어와 개념 연결
+- 임베딩 기반 회상: 의미적 유사성 탐지  
+- 감정 기반 회상: 감정적 맥락과 분위기
+- 신념 기반 회상: 가치관과 철학적 관점
+- 맥락 기반 회상: 대화의 흐름과 상황
+- 시간 기반 회상: 최근성과 시간적 패턴
+- 연관 기반 회상: 개념 간 연결고리
+- 패턴 기반 회상: 반복되는 주제와 습관
+
+✨ **고급 기능 적용:**
+- 💡 통찰력: 숨겨진 패턴과 연결점 발견
+- 🔮 직관: 감정적이고 직관적인 이해
+- 🧠 지혜: 경험과 성찰을 통한 깊은 조언
+
+제공된 회상 정보를 적극 활용하여 개인화되고 맥락에 맞는 깊이 있는 응답을 제공하세요."""
+        
+    except Exception as e:
+        print(f"❌ AI1 프롬프트 로드 오류: {e}")
+        return "당신은 EORA AI입니다. (프롬프트 로딩 실패)"
 
 # 자동응답 함수 제거 - OpenAI API만 사용
 
@@ -544,7 +608,7 @@ async def save_conversation_to_memory(user_message: str, ai_response: str, user_
         # MongoDB에 메모리 저장
         memory_id = f"memory_{int(datetime.now().timestamp() * 1000)}"
         
-        if mongo_connected:
+        if mongo_client and verify_connection():
             try:
                 from database import memories_collection
                 
@@ -1116,7 +1180,7 @@ async def create_session(request: Request):
     try:
         # MongoDB에 우선 저장
         mongodb_session_id = None
-        if mongo_connected and db_mgr:
+        if mongo_client and verify_connection() and db_mgr:
             mongodb_session_id = await db_mgr.create_session(new_session)
             if mongodb_session_id:
                 print(f"🆕 MongoDB에 새 세션 생성: {user['email']} -> {session_id}")
@@ -1365,7 +1429,7 @@ async def chat(request: Request):
             }
             
             # MongoDB에 세션 저장
-            if mongo_connected and db_mgr:
+            if mongo_client and verify_connection() and db_mgr:
                 await db_mgr.create_session(new_session)
                 print(f"🆕 MongoDB에 새 세션 생성: {session_id}")
             
@@ -1407,7 +1471,7 @@ async def chat(request: Request):
         
         # ===== MongoDB에 장기 저장 =====
         try:
-            if mongo_connected and db_mgr:
+            if mongo_client and verify_connection() and db_mgr:
                 # 사용자 메시지를 MongoDB에 저장
                 await db_mgr.save_message(session_id, "user", message)
                 # AI 응답을 MongoDB에 저장
