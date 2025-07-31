@@ -33,6 +33,34 @@
             padding: 40px;
         }
 
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .auth-container {
+                width: 100%;
+                padding: 30px 20px;
+                border-radius: 15px;
+            }
+
+            .auth-header h1 {
+                font-size: 24px;
+            }
+
+            .form-group input {
+                padding: 12px;
+                font-size: 16px;
+                /* iOS 확대 방지 */
+            }
+
+            .auth-button {
+                padding: 12px;
+                font-size: 16px;
+            }
+        }
+
         .auth-header {
             text-align: center;
             margin-bottom: 30px;

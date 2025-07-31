@@ -193,5 +193,61 @@
       "content": "그 관점에서 접근해보니 새로운 통찰이 떠오르네요. 더 자세히 나눠볼까요?",
       "timestamp": "2025-07-30T14:42:04.066315"
     }
+  ],
+  "session_local_1753947607093": [
+    {
+      "role": "user",
+      "content": "ㅓㅑ",
+      "timestamp": "2025-07-31T16:40:12.806370"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-***********************",
+      "timestamp": "2025-07-31T16:40:13.330881"
+    },
+    {
+      "role": "user",
+      "content": "ㅓㅑㅗㅑ",
+      "timestamp": "2025-07-31T16:40:14.505898"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-***********************",
+      "timestamp": "2025-07-31T16:40:14.865407"
+    }
+  ],
+  "session_admin_eora_ai_1753947607088": [
+    {
+      "role": "user",
+      "content": "hihi",
+      "timestamp": "2025-07-31T16:47:04.715410"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-***********************",
+      "timestamp": "2025-07-31T16:47:04.980440"
+    },
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "2025-07-31T16:47:06.593441"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-***********************",
+      "timestamp": "2025-07-31T16:47:06.923458"
+    }
+  ],
+  "test_session": [
+    {
+      "role": "user",
+      "content": "안녕하세요, 당신은 누구인가요? ai1 프롬프트가 적용되었는지 확인하고 싶습니다.",
+      "timestamp": "2025-07-31T17:16:37.200147"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-***********************",
+      "timestamp": "2025-07-31T17:16:37.657346"
+    }
   ]
 }

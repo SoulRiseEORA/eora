@@ -36,9 +36,11 @@ try:
     
     # 성능 최적화 모듈 추가
     from performance_optimizer import (
-        performance_monitor, cached_response, 
-        optimizer, initialize_optimizer, get_performance_stats
-    )
+    performance_monitor, cached_response,
+    optimizer, initialize_optimizer, get_performance_stats
+)
+
+
     
     # MongoDB 연결 초기화
     mongo_connected = init_mongodb_connection()
@@ -398,6 +400,82 @@ def initialize_advanced_systems():
 # 시스템 초기화 실행
 advanced_systems_ready = initialize_advanced_systems()
 
+# ==================== 프롬프트 로딩 함수 ====================
+
+async def get_ai1_system_prompt():
+    """ai_prompts.json에서 ai1의 전체 프롬프트를 로드하여 시스템 프롬프트로 구성"""
+    try:
+        # 전역 prompts_data에서 ai1 프롬프트 가져오기
+        from services.openai_service import prompts_data
+        
+        if prompts_data and "prompts" in prompts_data and "ai1" in prompts_data["prompts"]:
+            ai1_data = prompts_data["prompts"]["ai1"]
+            
+            # ai1의 모든 카테고리 결합
+            prompt_parts = []
+            
+            # system 프롬프트 추가 (가장 중요)
+            if "system" in ai1_data:
+                system_content = ai1_data["system"]
+                if isinstance(system_content, list):
+                    prompt_parts.append("=== 시스템 프롬프트 ===\n" + "\n".join(system_content))
+                else:
+                    prompt_parts.append("=== 시스템 프롬프트 ===\n" + str(system_content))
+            
+            # role 프롬프트 추가
+            if "role" in ai1_data:
+                role_content = ai1_data["role"]
+                if isinstance(role_content, list):
+                    prompt_parts.append("=== 역할 정의 ===\n" + "\n".join(role_content))
+                else:
+                    prompt_parts.append("=== 역할 정의 ===\n" + str(role_content))
+            
+            # guide 프롬프트 추가
+            if "guide" in ai1_data:
+                guide_content = ai1_data["guide"]
+                if isinstance(guide_content, list):
+                    prompt_parts.append("=== 가이드라인 ===\n" + "\n".join(guide_content))
+                else:
+                    prompt_parts.append("=== 가이드라인 ===\n" + str(guide_content))
+            
+            # format 프롬프트 추가
+            if "format" in ai1_data:
+                format_content = ai1_data["format"]
+                if isinstance(format_content, list):
+                    prompt_parts.append("=== 응답 포맷 ===\n" + "\n".join(format_content))
+                else:
+                    prompt_parts.append("=== 응답 포맷 ===\n" + str(format_content))
+            
+            # 모든 프롬프트 부분을 결합
+            if prompt_parts:
+                combined_prompt = "\n\n".join(prompt_parts)
+                print(f"✅ ai1 프롬프트 로드 완료: {len(combined_prompt)}자, {len(prompt_parts)}개 섹션")
+                return combined_prompt
+        
+        print("⚠️ ai1 프롬프트를 찾을 수 없어 기본 프롬프트 사용")
+        return """당신은 EORA AI입니다 - 고급 8종 회상 시스템과 직관, 통찰, 지혜 기능을 가진 AI입니다.
+
+🧠 **8종 회상 시스템 활용:**
+- 키워드 기반 회상: 정확한 용어와 개념 연결
+- 임베딩 기반 회상: 의미적 유사성 탐지  
+- 감정 기반 회상: 감정적 맥락과 분위기
+- 신념 기반 회상: 가치관과 철학적 관점
+- 맥락 기반 회상: 대화의 흐름과 상황
+- 시간 기반 회상: 최근성과 시간적 패턴
+- 연관 기반 회상: 개념 간 연결고리
+- 패턴 기반 회상: 반복되는 주제와 습관
+
+✨ **고급 기능 적용:**
+- 💡 통찰력: 숨겨진 패턴과 연결점 발견
+- 🔮 직관: 감정적이고 직관적인 이해
+- 🧠 지혜: 경험과 성찰을 통한 깊은 조언
+
+제공된 회상 정보를 적극 활용하여 개인화되고 맥락에 맞는 깊이 있는 응답을 제공하세요."""
+        
+    except Exception as e:
+        print(f"❌ ai1 프롬프트 로드 실패: {e}")
+        return """당신은 EORA AI입니다. 사용자의 질문에 정확하고 도움이 되는 답변을 제공하세요."""
+
 # ==================== EORA 고급 응답 생성 ====================
 
 @performance_monitor
@@ -482,25 +560,8 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
             
             return "OpenAI API 사용 불가: 환경변수를 확인해주세요."
         
-        # 대화 기록 준비
-        system_prompt = """당신은 EORA AI입니다 - 고급 8종 회상 시스템과 직관, 통찰, 지혜 기능을 가진 AI입니다.
-
-🧠 **8종 회상 시스템 활용:**
-- 키워드 기반 회상: 정확한 용어와 개념 연결
-- 임베딩 기반 회상: 의미적 유사성 탐지  
-- 감정 기반 회상: 감정적 맥락과 분위기
-- 신념 기반 회상: 가치관과 철학적 관점
-- 맥락 기반 회상: 대화의 흐름과 상황
-- 시간 기반 회상: 최근성과 시간적 패턴
-- 연관 기반 회상: 개념 간 연결고리
-- 패턴 기반 회상: 반복되는 주제와 습관
-
-✨ **고급 기능 적용:**
-- 💡 통찰력: 숨겨진 패턴과 연결점 발견
-- 🔮 직관: 감정적이고 직관적인 이해
-- 🧠 지혜: 경험과 성찰을 통한 깊은 조언
-
-제공된 회상 정보를 적극 활용하여 개인화되고 맥락에 맞는 깊이 있는 응답을 제공하세요."""
+        # ai_prompts.json에서 ai1 프롬프트 로드
+        system_prompt = await get_ai1_system_prompt()
 
         messages = [
             {"role": "system", "content": system_prompt}
