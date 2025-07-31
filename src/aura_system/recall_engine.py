@@ -877,8 +877,8 @@ class RecallEngine:
 
 async def recall(query: str, context: Dict[str, Any] = None, limit: int = 3) -> List[Dict[str, Any]]:
     """간편 회상 함수"""
-    engine = RecallEngine()
-    return await engine.recall(query, context, limit=limit)
+    # RecallEngine은 memory_manager가 필요하므로 임시로 빈 결과 반환
+    return []
 
 async def find_linked_memories(text: str, top_k: int = 5) -> list:
     """

@@ -30,13 +30,17 @@ try:
     # EORA 메모리 시스템 초기화
     eora_memory_system = EORAMemorySystem()
     
-    # 회상 엔진 초기화 
-    recall_engine = RecallEngine()
+    # 회상 엔진 초기화 (memory_manager와 함께)
+    if hasattr(eora_memory_system, 'memory_manager') and eora_memory_system.memory_manager:
+        recall_engine = RecallEngine(eora_memory_system.memory_manager)
+        print("✅ RecallEngine 초기화 완료 (memory_manager 연결)")
+    else:
+        recall_engine = None
+        print("⚠️ memory_manager 없음 - RecallEngine 비활성화")
     
     ADVANCED_FEATURES_AVAILABLE = True
     print("✅ EORA 고급 기능 모듈 로드 성공")
     print("✅ EORAMemorySystem 초기화 완료")
-    print("✅ RecallEngine 초기화 완료")
 except ImportError as e:
     print(f"⚠️ EORA 고급 기능 모듈 로드 실패: {e}")
     eora_memory_system = None

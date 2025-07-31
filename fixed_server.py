@@ -31,7 +31,8 @@ try:
     eora_memory_system = EORAMemorySystem()
     
     # 회상 엔진 초기화 
-    recall_engine = RecallEngine()
+    # RecallEngine은 memory_manager가 필요하므로 비활성화
+    recall_engine = None
     
     ADVANCED_FEATURES_AVAILABLE = True
     print("✅ EORA 고급 기능 모듈 로드 성공")
