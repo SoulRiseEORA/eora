@@ -27,20 +27,45 @@ try:
     from aura_system.recall_engine import RecallEngine
     from aura_memory_system import EORAMemorySystem
     
-    # EORA 메모리 시스템 초기화
-    eora_memory_system = EORAMemorySystem()
+    # MongoDB 연동을 위한 database 모듈 import
+    from database import db_manager, init_mongodb_connection
     
-    # 회상 엔진 초기화 
-    recall_engine = RecallEngine()
+    # MongoDB 연결 초기화
+    mongo_connected = init_mongodb_connection()
+    if mongo_connected:
+        print("✅ MongoDB 연결 성공 - 장기 기억 시스템 활성화")
+        # 데이터베이스 매니저 초기화
+        db_mgr = db_manager()
+    else:
+        print("⚠️ MongoDB 연결 실패 - 로컬 저장 방식 사용")
+        db_mgr = None
+    
+    # EORA 메모리 시스템 초기화
+    try:
+        eora_memory_system = EORAMemorySystem()
+        print("✅ EORAMemorySystem 초기화 완료")
+        
+        # 회상 엔진 초기화 (메모리 매니저와 함께)
+        if hasattr(eora_memory_system, 'memory_manager'):
+            recall_engine = RecallEngine(eora_memory_system.memory_manager)
+            print("✅ RecallEngine 초기화 완료 (메모리 매니저 연결)")
+        else:
+            print("⚠️ 메모리 매니저 없음 - RecallEngine 비활성화")
+            recall_engine = None
+            
+    except Exception as e:
+        print(f"⚠️ EORA 메모리 시스템 초기화 실패: {e}")
+        eora_memory_system = None
+        recall_engine = None
     
     ADVANCED_FEATURES_AVAILABLE = True
     print("✅ EORA 고급 기능 모듈 로드 성공")
-    print("✅ EORAMemorySystem 초기화 완료")
-    print("✅ RecallEngine 초기화 완료")
 except ImportError as e:
     print(f"⚠️ EORA 고급 기능 모듈 로드 실패: {e}")
     eora_memory_system = None
     recall_engine = None
+    db_mgr = None
+    mongo_connected = False
     ADVANCED_FEATURES_AVAILABLE = False
 
 # 환경변수 로딩 및 Railway 환경 최적화
@@ -993,7 +1018,7 @@ async def admin_login(request: Request):
 
 @app.get("/api/sessions")
 async def get_sessions(request: Request):
-    """사용자의 세션 목록 조회"""
+    """사용자의 세션 목록 조회 (MongoDB 기반)"""
     user = get_current_user(request)
     if not user:
         return JSONResponse(
@@ -1001,29 +1026,41 @@ async def get_sessions(request: Request):
             content={"success": False, "error": "로그인이 필요합니다."}
         )
     
-    # 사용자의 세션만 필터링
-    user_sessions = []
-    for session_id, session in sessions_db.items():
-        if session.get("user_email") == user["email"]:
-            # 메시지 수 계산
-            message_count = len(messages_db.get(session_id, []))
-            session_data = session.copy()
-            session_data["message_count"] = message_count
-            user_sessions.append(session_data)
-    
-    # 최신 순으로 정렬
-    user_sessions.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-    
-    print(f"📂 {user['email']}의 세션: {len(user_sessions)}개")
-    
-    return JSONResponse({
-        "success": True,
-        "sessions": user_sessions
-    })
+    try:
+        # MongoDB에서 세션 조회
+        if mongo_connected and db_mgr:
+            user_sessions = await db_mgr.get_user_sessions(user["email"])
+            print(f"📂 MongoDB에서 {user['email']}의 세션: {len(user_sessions)}개 조회")
+        else:
+            # Fallback: 기존 메모리 방식
+            user_sessions = []
+            for session_id, session in sessions_db.items():
+                if session.get("user_email") == user["email"]:
+                    # 메시지 수 계산
+                    message_count = len(messages_db.get(session_id, []))
+                    session_data = session.copy()
+                    session_data["message_count"] = message_count
+                    user_sessions.append(session_data)
+            print(f"📂 메모리에서 {user['email']}의 세션: {len(user_sessions)}개 조회")
+        
+        # 최신 순으로 정렬
+        user_sessions.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        
+        return JSONResponse({
+            "success": True,
+            "sessions": user_sessions
+        })
+        
+    except Exception as e:
+        print(f"❌ 세션 목록 조회 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "세션 목록을 불러올 수 없습니다."}
+        )
 
 @app.post("/api/sessions")
 async def create_session(request: Request):
-    """새 세션 생성"""
+    """새 세션 생성 (MongoDB 기반)"""
     user = get_current_user(request)
     if not user:
         return JSONResponse(
@@ -1042,28 +1079,50 @@ async def create_session(request: Request):
     timestamp = int(datetime.now().timestamp() * 1000)
     session_id = f"session_{user['email'].replace('@', '_').replace('.', '_')}_{timestamp}"
     
-    # 세션 생성
+    # 세션 생성 데이터
     new_session = {
+        "session_id": session_id,
         "id": session_id,
+        "user_id": user["email"],
         "user_email": user["email"],
         "name": session_name,
         "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
         "message_count": 0
     }
     
-    sessions_db[session_id] = new_session
-    messages_db[session_id] = []
-    
-    # 저장
-    save_json_data(SESSIONS_FILE, sessions_db)
-    save_json_data(MESSAGES_FILE, messages_db)
-    
-    print(f"🆕 새 세션 생성: {user['email']} -> {session_id}")
-    
-    return JSONResponse({
-        "success": True,
-        "session": new_session
-    })
+    try:
+        # MongoDB에 저장
+        if mongo_connected and db_mgr:
+            session_object_id = await db_mgr.create_session(new_session)
+            if session_object_id:
+                print(f"🆕 MongoDB에 새 세션 생성: {user['email']} -> {session_id}")
+            else:
+                print(f"⚠️ MongoDB 세션 생성 실패, 메모리 저장으로 대체")
+                # Fallback to memory storage
+                sessions_db[session_id] = new_session
+                messages_db[session_id] = []
+                save_json_data(SESSIONS_FILE, sessions_db)
+                save_json_data(MESSAGES_FILE, messages_db)
+        else:
+            # Fallback: 기존 메모리 방식
+            sessions_db[session_id] = new_session
+            messages_db[session_id] = []
+            save_json_data(SESSIONS_FILE, sessions_db)
+            save_json_data(MESSAGES_FILE, messages_db)
+            print(f"🆕 메모리에 새 세션 생성: {user['email']} -> {session_id}")
+        
+        return JSONResponse({
+            "success": True,
+            "session": new_session
+        })
+        
+    except Exception as e:
+        print(f"❌ 세션 생성 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "세션 생성에 실패했습니다."}
+        )
 
 @app.delete("/api/sessions/{session_id}")
 async def delete_session(session_id: str, request: Request):
@@ -1075,37 +1134,58 @@ async def delete_session(session_id: str, request: Request):
             content={"success": False, "error": "로그인이 필요합니다."}
         )
     
-    # 세션 존재 및 권한 확인
-    if session_id not in sessions_db:
+    try:
+        # MongoDB에서 세션 삭제
+        if mongo_connected and db_mgr:
+            deleted = await db_mgr.remove_session(session_id)
+            if deleted:
+                print(f"🗑️ MongoDB에서 세션 삭제: {user['email']} -> {session_id}")
+                return JSONResponse({"success": True})
+            else:
+                return JSONResponse(
+                    status_code=404,
+                    content={"success": False, "error": "세션을 찾을 수 없습니다."}
+                )
+        else:
+            # Fallback: 기존 메모리 방식
+            # 세션 존재 및 권한 확인
+            if session_id not in sessions_db:
+                return JSONResponse(
+                    status_code=404,
+                    content={"success": False, "error": "세션을 찾을 수 없습니다."}
+                )
+            
+            if sessions_db[session_id].get("user_email") != user["email"]:
+                return JSONResponse(
+                    status_code=403,
+                    content={"success": False, "error": "권한이 없습니다."}
+                )
+            
+            # 세션 및 메시지 삭제
+            del sessions_db[session_id]
+            if session_id in messages_db:
+                del messages_db[session_id]
+            
+            # 저장
+            save_json_data(SESSIONS_FILE, sessions_db)
+            save_json_data(MESSAGES_FILE, messages_db)
+            
+            print(f"🗑️ 메모리에서 세션 삭제: {user['email']} -> {session_id}")
+            
+            return JSONResponse({"success": True})
+            
+    except Exception as e:
+        print(f"❌ 세션 삭제 오류: {e}")
         return JSONResponse(
-            status_code=404,
-            content={"success": False, "error": "세션을 찾을 수 없습니다."}
+            status_code=500,
+            content={"success": False, "error": "세션 삭제에 실패했습니다."}
         )
-    
-    if sessions_db[session_id].get("user_email") != user["email"]:
-        return JSONResponse(
-            status_code=403,
-            content={"success": False, "error": "권한이 없습니다."}
-        )
-    
-    # 세션 및 메시지 삭제
-    del sessions_db[session_id]
-    if session_id in messages_db:
-        del messages_db[session_id]
-    
-    # 저장
-    save_json_data(SESSIONS_FILE, sessions_db)
-    save_json_data(MESSAGES_FILE, messages_db)
-    
-    print(f"🗑️ 세션 삭제: {user['email']} -> {session_id}")
-    
-    return JSONResponse({"success": True})
 
 # ==================== 메시지 API ====================
 
 @app.get("/api/sessions/{session_id}/messages")
 async def get_messages(session_id: str, request: Request):
-    """세션의 메시지 목록 조회"""
+    """세션의 메시지 목록 조회 (MongoDB 기반)"""
     user = get_current_user(request)
     if not user:
         return JSONResponse(
@@ -1113,34 +1193,47 @@ async def get_messages(session_id: str, request: Request):
             content={"success": False, "error": "로그인이 필요합니다."}
         )
     
-    # 세션이 없으면 빈 메시지 반환
-    if session_id not in sessions_db:
-        print(f"⚠️ 세션이 없음: {session_id}")
+    try:
+        # MongoDB에서 메시지 조회
+        if mongo_connected and db_mgr:
+            messages = await db_mgr.get_session_messages(session_id)
+            print(f"📥 MongoDB에서 {session_id}의 메시지: {len(messages)}개 조회")
+        else:
+            # Fallback: 기존 메모리 방식
+            # 세션이 없으면 빈 메시지 반환
+            if session_id not in sessions_db:
+                print(f"⚠️ 메모리에 세션이 없음: {session_id}")
+                return JSONResponse({
+                    "success": True,
+                    "messages": []
+                })
+            
+            # 권한 확인
+            if sessions_db[session_id].get("user_email") != user["email"]:
+                return JSONResponse(
+                    status_code=403,
+                    content={"success": False, "error": "권한이 없습니다."}
+                )
+            
+            # 메시지 조회
+            messages = messages_db.get(session_id, [])
+            print(f"📥 메모리에서 {session_id}의 메시지: {len(messages)}개 조회")
+        
         return JSONResponse({
             "success": True,
-            "messages": []
+            "messages": messages
         })
-    
-    # 권한 확인
-    if sessions_db[session_id].get("user_email") != user["email"]:
+        
+    except Exception as e:
+        print(f"❌ 메시지 조회 오류: {e}")
         return JSONResponse(
-            status_code=403,
-            content={"success": False, "error": "권한이 없습니다."}
+            status_code=500,
+            content={"success": False, "error": "메시지를 불러올 수 없습니다."}
         )
-    
-    # 메시지 조회
-    messages = messages_db.get(session_id, [])
-    
-    print(f"📥 {session_id}의 메시지: {len(messages)}개")
-    
-    return JSONResponse({
-        "success": True,
-        "messages": messages
-    })
 
 @app.post("/api/messages")
 async def save_message(request: Request):
-    """메시지 저장"""
+    """메시지 저장 (MongoDB 기반)"""
     user = get_current_user(request)
     if not user:
         return JSONResponse(
@@ -1160,6 +1253,28 @@ async def save_message(request: Request):
                 content={"success": False, "error": "세션 ID와 메시지가 필요합니다."}
             )
         
+        # MongoDB에 메시지 저장
+        if mongo_connected and db_mgr:
+            message_id = await db_mgr.save_message(session_id, role, content)
+            if message_id:
+                print(f"💾 MongoDB에 메시지 저장: {session_id} -> {role} ({len(content)}자)")
+                
+                # 세션 업데이트 (최근 활동 시간 등)
+                await db_mgr.update_session(session_id, {
+                    "updated_at": datetime.now().isoformat(),
+                    "last_activity": datetime.now().isoformat()
+                })
+                
+                return JSONResponse({
+                    "success": True,
+                    "message": "메시지가 저장되었습니다.",
+                    "message_id": message_id
+                })
+            else:
+                print(f"⚠️ MongoDB 메시지 저장 실패, 메모리 저장으로 대체")
+                # Fallback to memory storage
+        
+        # Fallback: 기존 메모리 방식 또는 MongoDB 저장 실패 시
         # 세션이 없으면 자동 생성
         if session_id not in sessions_db:
             sessions_db[session_id] = {
@@ -1198,7 +1313,7 @@ async def save_message(request: Request):
         save_json_data(MESSAGES_FILE, messages_db)
         save_json_data(SESSIONS_FILE, sessions_db)
         
-        print(f"💾 메시지 저장: {session_id} -> {role} ({len(content)}자)")
+        print(f"💾 메모리에 메시지 저장: {session_id} -> {role} ({len(content)}자)")
         
         return JSONResponse({
             "success": True,
@@ -2251,13 +2366,42 @@ if __name__ == "__main__":
             server_header=False,
             date_header=False,
             proxy_headers=True,
-            forwarded_allow_ips="*",
-            loop="uvloop"  # 성능 향상
+            forwarded_allow_ips="*"
         )
     else:
         uvicorn.run(
             app, 
             host=host, 
+            port=port
+        )
+
+# 메인 실행
+if __name__ == "__main__":
+    import uvicorn
+    
+    # 환경 감지
+    railway_env = detect_railway_environment()
+    
+    if railway_env:
+        port = int(os.getenv("PORT", 8080))
+        host = "0.0.0.0"
+        print(f"🚂 Railway 환경에서 서버 시작: {host}:{port}")
+    else:
+        port = 8000
+        host = "127.0.0.1"
+        print(f"💻 로컬 환경에서 서버 시작: {host}:{port}")
+        print(f"🌐 브라우저에서 접속: http://localhost:{port}")
+    
+    print(f"🔄 MongoDB 연결 상태: {'✅ 활성화' if mongo_connected else '❌ 비활성화'}")
+    
+    try:
+        uvicorn.run(
+            app,
+            host=host,
             port=port,
-            loop="uvloop"  # 로컬에서도 성능 향상
-        ) 
+            log_level="info"
+        )
+    except Exception as e:
+        print(f"❌ 서버 시작 실패: {e}")
+        import traceback
+        traceback.print_exc() 

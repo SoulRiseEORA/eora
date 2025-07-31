@@ -132,7 +132,8 @@ def db_manager():
                 if chat_logs_collection is None:
                     return []
                 
-                messages = list(chat_logs_collection.find({"session_id": session_id}).sort("timestamp", 1))
+                # timestamp 기준으로 오름차순 정렬 (시간 순서대로)
+                messages = list(chat_logs_collection.find({"session_id": session_id}).sort([("timestamp", 1), ("_id", 1)]))
                 
                 # ObjectId와 datetime 직렬화
                 for message in messages:
@@ -211,7 +212,8 @@ def db_manager():
                 
                 message_data = {
                     "session_id": session_id,
-                    "sender": sender,  # "user" 또는 "ai"
+                    "role": sender,  # "user" 또는 "assistant"
+                    "sender": sender,  # 호환성을 위해 유지
                     "content": content,
                     "timestamp": datetime.now().isoformat()
                 }

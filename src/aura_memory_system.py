@@ -56,14 +56,14 @@ class EORAMemorySystem:
             # MongoDB 연결 시도
             from database import db_manager
             
-            if db_manager.is_connected:
-                self.memory_db = db_manager.db
-                self.memory_collection = db_manager.collections.get("memories")
+            db_mgr = db_manager()
+            if db_mgr.is_connected():
+                self.memory_db = db_mgr
+                self.memory_collection = None  # database.py에서 관리됨
                 
-                if self.memory_collection:
-                    logger.info("✅ 아우라 메모리 시스템 - MongoDB 연결 성공")
-                    self.is_initialized = True
-                    return True
+                logger.info("✅ 아우라 메모리 시스템 - MongoDB 연결 성공")
+                self.is_initialized = True
+                return True
             
             # FAISS 초기화 시도 (임베딩 기반 검색)
             try:
