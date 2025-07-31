@@ -548,6 +548,13 @@ class EORAMemorySystem:
             unique_memories = self._deduplicate_memories(all_memories)
             sorted_memories = self._rank_memories(unique_memories, query)
             
+            # 시간 컨텍스트 조정 적용
+            try:
+                from time_manager import adjust_time_context
+                sorted_memories = adjust_time_context(query, sorted_memories)
+            except ImportError:
+                logger.warning("⚠️ 시간 관리자 모듈 로드 실패 - 기본 정렬 사용")
+            
             print(f"🧠 8종 회상 시스템 결과:")
             print(f"   - 키워드: {len(keyword_memories)}개")
             print(f"   - 임베딩: {len(embedding_memories)}개") 

@@ -30,6 +30,10 @@ try:
     # MongoDB 연동을 위한 database 모듈 import
     from database import db_manager, init_mongodb_connection
     
+    # 새로운 기능 모듈 추가
+    from markdown_processor import format_api_response, process_markdown_text, create_beautiful_response
+    from time_manager import adjust_time_context, parse_relative_time, get_relative_description
+    
     # MongoDB 연결 초기화
     mongo_connected = init_mongodb_connection()
     if mongo_connected:
@@ -1426,11 +1430,24 @@ async def chat(request: Request):
         
         print(f"💬 채팅: {session_id} -> {len(messages_db[session_id])}개 메시지")
         
-        return JSONResponse({
-            "success": True,
-            "response": ai_response,
-            "session_id": session_id
-        })
+        # 마크다운 처리된 응답 생성
+        try:
+            formatted_response = format_api_response(ai_response, "chat")
+            return JSONResponse({
+                "success": True,
+                "response": ai_response,  # 원본 텍스트
+                "formatted_response": formatted_response["formatted_content"],  # HTML 마크다운
+                "has_markdown": formatted_response["has_markdown"],
+                "session_id": session_id,
+                "metadata": formatted_response["metadata"]
+            })
+        except Exception as markdown_error:
+            print(f"⚠️ 마크다운 처리 오류: {markdown_error} - 원본 텍스트 반환")
+            return JSONResponse({
+                "success": True,
+                "response": ai_response,
+                "session_id": session_id
+            })
         
     except Exception as e:
         print(f"❌ 채팅 오류: {e}")
