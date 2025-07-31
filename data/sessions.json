@@ -47,5 +47,35 @@
     "name": "대화 2025-07-31 17:16",
     "created_at": "2025-07-31T17:16:37.200147",
     "message_count": 2
+  },
+  "session_admin_eora_ai_1753959459155": {
+    "id": "session_admin_eora_ai_1753959459155",
+    "session_id": "session_admin_eora_ai_1753959459155",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "이것은 매우 긴 메시지입니다. 50자를 초과하는 메시지가 세션 제목으로 설정될 때 어떻게 ...",
+    "created_at": "2025-07-31T19:57:39.155811",
+    "updated_at": "2025-07-31T19:57:39.155811",
+    "message_count": 2
+  },
+  "session_admin_eora_ai_1753959498973": {
+    "id": "session_admin_eora_ai_1753959498973",
+    "session_id": "session_admin_eora_ai_1753959498973",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "안녕하세요! 오늘 날씨가 정말 좋네요. 어떻게 보내셨나요?",
+    "created_at": "2025-07-31T19:58:18.973031",
+    "updated_at": "2025-07-31T19:58:18.973031",
+    "message_count": 2
+  },
+  "session_admin_eora_ai_1753959501283": {
+    "id": "session_admin_eora_ai_1753959501283",
+    "session_id": "session_admin_eora_ai_1753959501283",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "이것은 매우 긴 메시지입니다. 50자를 초과하는 메시지가 세션 제목으로 설정될 때 어떻게 ...",
+    "created_at": "2025-07-31T19:58:21.283038",
+    "updated_at": "2025-07-31T19:58:21.283038",
+    "message_count": 2
   }
 }

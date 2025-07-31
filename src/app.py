@@ -1181,11 +1181,11 @@ async def create_session(request: Request):
         # MongoDB에 우선 저장
         mongodb_session_id = None
         if mongo_client and verify_connection() and db_mgr:
-            mongodb_session_id = await db_mgr.create_session(new_session)
-            if mongodb_session_id:
+            try:
+                mongodb_session_id = db_mgr.create_session(user["email"], session_name)
                 print(f"🆕 MongoDB에 새 세션 생성: {user['email']} -> {session_id}")
-            else:
-                print(f"⚠️ MongoDB 세션 생성 실패, JSON 파일로만 저장")
+            except Exception as mongo_error:
+                print(f"⚠️ MongoDB 세션 생성 실패: {mongo_error}, JSON 파일로만 저장")
         else:
             print("⚠️ MongoDB 연결 없음 - JSON 파일로만 저장")
         

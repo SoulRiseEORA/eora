@@ -249,5 +249,41 @@
       "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-***********************",
       "timestamp": "2025-07-31T17:16:37.657346"
     }
+  ],
+  "session_admin_eora_ai_1753959459155": [
+    {
+      "role": "user",
+      "content": "이것은 매우 긴 메시지입니다. 50자를 초과하는 메시지가 세션 제목으로 설정될 때 어떻게 처리되는지 확인하는 테스트입니다. 줄임표가 제대로 추가되는지 확인해보겠습니다.",
+      "timestamp": "2025-07-31T19:57:39.159813"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T19:57:39.624812"
+    }
+  ],
+  "session_admin_eora_ai_1753959498973": [
+    {
+      "role": "user",
+      "content": "안녕하세요! 오늘 날씨가 정말 좋네요. 어떻게 보내셨나요?",
+      "timestamp": "2025-07-31T19:58:18.978029"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T19:58:19.271127"
+    }
+  ],
+  "session_admin_eora_ai_1753959501283": [
+    {
+      "role": "user",
+      "content": "이것은 매우 긴 메시지입니다. 50자를 초과하는 메시지가 세션 제목으로 설정될 때 어떻게 처리되는지 확인하는 테스트입니다. 줄임표가 제대로 추가되는지 확인해보겠습니다.",
+      "timestamp": "2025-07-31T19:58:21.287040"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T19:58:21.564039"
+    }
   ]
 }
