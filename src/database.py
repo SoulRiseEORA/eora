@@ -29,8 +29,39 @@ try:
 except Exception as e:
     logger.warning(f"⚠️ dotenv 로드 실패: {e}")
 
-# MongoDB 연결 정보
-MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+# MongoDB 연결 정보 (레일웨이 환경변수 우선순위)
+def get_mongodb_url():
+    """레일웨이 환경에 맞는 MongoDB URL 반환"""
+    # 레일웨이 환경 감지
+    is_railway = any([
+        os.getenv("RAILWAY_ENVIRONMENT"),
+        os.getenv("RAILWAY_PROJECT_ID"),
+        os.getenv("RAILWAY_SERVICE_ID")
+    ])
+    
+    if is_railway:
+        # 레일웨이 환경에서 우선순위대로 확인
+        mongodb_urls = [
+            os.getenv("MONGODB_URL"),  # 레일웨이에서 설정한 URL
+            os.getenv("MONGO_URL"),    # 레일웨이 템플릿 변수
+            # 개별 변수로 구성
+            f"mongodb://{os.getenv('MONGOUSER')}:{os.getenv('MONGOPASSWORD')}@{os.getenv('MONGOHOST')}:{os.getenv('MONGOPORT')}" if all([
+                os.getenv('MONGOUSER'), os.getenv('MONGOPASSWORD'), 
+                os.getenv('MONGOHOST'), os.getenv('MONGOPORT')
+            ]) else None,
+            os.getenv("MONGODB_URI"),  # 백업 URI
+        ]
+        
+        for url in mongodb_urls:
+            if url and url.strip():
+                logger.info(f"🚂 레일웨이 MongoDB URL 사용: {url[:50]}...")
+                return url.strip()
+    
+    # 로컬 환경 기본값
+    logger.info("💻 로컬 MongoDB URL 사용")
+    return "mongodb://localhost:27017"
+
+MONGODB_URL = get_mongodb_url()
 DATABASE_NAME = os.getenv("DATABASE_NAME", "eora_ai")
 
 # 전역 변수
@@ -94,7 +125,18 @@ def db_manager():
                 if sessions_collection is None:
                     return None
                 
-                result = sessions_collection.insert_one(session_data)
+                # ObjectId 직렬화를 위한 데이터 정리
+                clean_session_data = {}
+                for key, value in session_data.items():
+                    if hasattr(value, 'isoformat'):  # datetime 객체
+                        clean_session_data[key] = value.isoformat() if hasattr(value, 'isoformat') else str(value)
+                    elif isinstance(value, ObjectId):  # ObjectId 객체
+                        clean_session_data[key] = str(value)
+                    else:
+                        clean_session_data[key] = value
+                
+                result = sessions_collection.insert_one(clean_session_data)
+                logger.info(f"✅ 세션 생성 성공: {result.inserted_id}")
                 return str(result.inserted_id)
             except Exception as e:
                 logger.error(f"❌ 세션 생성 실패: {e}")
@@ -215,10 +257,12 @@ def db_manager():
                     "role": sender,  # "user" 또는 "assistant"
                     "sender": sender,  # 호환성을 위해 유지
                     "content": content,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
+                    "created_at": datetime.now()  # MongoDB용 datetime 객체
                 }
                 
                 result = chat_logs_collection.insert_one(message_data)
+                logger.info(f"✅ 메시지 저장 성공: {session_id} - {sender}")
                 return str(result.inserted_id)
             except Exception as e:
                 logger.error(f"❌ 메시지 저장 실패: {e}")
@@ -239,19 +283,49 @@ def init_mongodb_connection():
         logger.info("🔌 MongoDB 라이브러리 로드 성공")
         
         # 환경 감지
-        is_railway = os.getenv("RAILWAY", "false").lower() == "true"
+        is_railway = any([
+            os.getenv("RAILWAY_ENVIRONMENT"),
+            os.getenv("RAILWAY_PROJECT_ID"),
+            os.getenv("RAILWAY_SERVICE_ID"),
+            os.getenv("RAILWAY", "false").lower() == "true"
+        ])
         is_production = os.getenv("PRODUCTION", "false").lower() == "true"
         
-        if is_railway or is_production:
-            logger.info("☁️ 클라우드 환경 감지")
+        if is_railway:
+            logger.info("🚂 Railway 클라우드 환경 감지")
+        elif is_production:
+            logger.info("☁️ 프로덕션 환경 감지")
         else:
             logger.info("💻 로컬 환경 감지")
         
-        # 연결 URLs 목록 준비
+        # 연결 URLs 목록 준비 (우선순위 순서)
         urls = []
-        if MONGODB_URL:
-            urls.append(MONGODB_URL)
-        urls.append("mongodb://localhost:27017")
+        
+        # 레일웨이 환경에서는 레일웨이 URL만 시도
+        if is_railway:
+            railway_urls = [
+                os.getenv("MONGODB_URL"),
+                os.getenv("MONGO_URL"),
+                # 개별 변수로 구성된 URL
+                f"mongodb://{os.getenv('MONGOUSER')}:{os.getenv('MONGOPASSWORD')}@{os.getenv('MONGOHOST')}:{os.getenv('MONGOPORT')}" if all([
+                    os.getenv('MONGOUSER'), os.getenv('MONGOPASSWORD'), 
+                    os.getenv('MONGOHOST'), os.getenv('MONGOPORT')
+                ]) else None,
+                os.getenv("MONGODB_URI")
+            ]
+            
+            for url in railway_urls:
+                if url and url.strip():
+                    urls.append(url.strip())
+                    
+            if not urls:
+                logger.error("❌ 레일웨이 환경에서 MongoDB URL을 찾을 수 없습니다")
+                return False
+        else:
+            # 로컬 환경
+            if MONGODB_URL and MONGODB_URL != "mongodb://localhost:27017":
+                urls.append(MONGODB_URL)
+            urls.append("mongodb://localhost:27017")
         
         logger.info(f"🔗 연결 시도할 URL 수: {len(urls)}")
         
@@ -263,9 +337,25 @@ def init_mongodb_connection():
                 
                 # URL 정리 (특수문자 등 처리)
                 cleaned_url = url.strip()
-                logger.info(f"🧹 정리된 URL: {cleaned_url}")
+                logger.info(f"🧹 정리된 URL: {cleaned_url[:50]}...")
                 
-                mongo_client = pymongo.MongoClient(cleaned_url, serverSelectionTimeoutMS=5000)
+                # 레일웨이 환경에 맞는 연결 옵션
+                connect_options = {
+                    "serverSelectionTimeoutMS": 10000,  # 10초
+                    "connectTimeoutMS": 10000,           # 10초
+                    "socketTimeoutMS": 20000,            # 20초
+                }
+                
+                if is_railway:
+                    connect_options.update({
+                        "retryWrites": True,
+                        "w": "majority",
+                        "readPreference": "primary",
+                        "maxPoolSize": 10,
+                        "minPoolSize": 1
+                    })
+                
+                mongo_client = pymongo.MongoClient(cleaned_url, **connect_options)
                 
                 # 연결 확인
                 mongo_client.admin.command('ping')

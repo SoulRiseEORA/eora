@@ -22,6 +22,27 @@ from starlette.middleware.cors import CORSMiddleware
 
 # EORA 고급 기능 모듈 임포트
 sys.path.append('src')
+
+# 성능 최적화 모듈 임포트
+try:
+    from performance_optimizer import performance_monitor, cached_response, initialize_optimizer, get_performance_stats
+    PERFORMANCE_OPTIMIZATION_AVAILABLE = True
+    print("✅ 성능 최적화 모듈 로드 성공")
+except ImportError as e:
+    print(f"⚠️ 성능 최적화 모듈 로드 실패: {e}")
+    # 기본 데코레이터 정의
+    def performance_monitor(func):
+        return func
+    def cached_response(ttl=300):
+        def decorator(func):
+            return func
+        return decorator
+    async def initialize_optimizer():
+        pass
+    def get_performance_stats():
+        return {}
+    PERFORMANCE_OPTIMIZATION_AVAILABLE = False
+
 try:
     from eora_advanced_chat_system import process_advanced_message
     from aura_system.recall_engine import RecallEngine
@@ -516,36 +537,70 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
 
 # 자동응답 함수 제거 - OpenAI API만 사용
 
+@performance_monitor
 async def save_conversation_to_memory(user_message: str, ai_response: str, user_id: str, session_id: str):
-    """대화를 EORA 메모리 시스템에 저장하여 학습 및 회상에 활용"""
+    """대화를 EORA 메모리 시스템과 MongoDB에 장기 저장하여 학습 및 회상에 활용"""
     try:
-        if not eora_memory_system:
-            return
+        # MongoDB에 메모리 저장
+        memory_id = f"memory_{int(datetime.now().timestamp() * 1000)}"
         
-        # 사용자 메시지 저장
-        await eora_memory_system.store_memory(
-            content=user_message,
-            memory_type="user_message",
-            user_id=user_id,
-            metadata={
-                "session_id": session_id,
-                "timestamp": datetime.now().isoformat(),
-                "source": "chat"
-            }
-        )
+        if mongo_connected:
+            try:
+                from database import memories_collection
+                
+                # 대화 메모리 생성
+                memory_data = {
+                    "memory_id": memory_id,
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "user_message": user_message,
+                    "ai_response": ai_response,
+                    "timestamp": datetime.now(),
+                    "created_at": datetime.now(),
+                    "memory_type": "conversation",
+                    "source": "chat",
+                    "metadata": {
+                        "message_length": len(user_message),
+                        "response_length": len(ai_response),
+                        "session_context": session_id
+                    }
+                }
+                
+                if memories_collection:
+                    result = memories_collection.insert_one(memory_data)
+                    print(f"💾 메모리 저장소 저장: {memory_id}")
+                
+            except Exception as mongo_error:
+                print(f"⚠️ MongoDB 메모리 저장 실패: {mongo_error}")
         
-        # AI 응답 저장
-        await eora_memory_system.store_memory(
-            content=ai_response,
-            memory_type="ai_response",
-            user_id=user_id,
-            metadata={
-                "session_id": session_id,
-                "timestamp": datetime.now().isoformat(),
-                "source": "chat",
-                "response_to": user_message[:100]
-            }
-        )
+        # EORA 메모리 시스템에도 저장 (고급 기능용)
+        if eora_memory_system:
+            # 사용자 메시지 저장
+            await eora_memory_system.store_memory(
+                content=user_message,
+                memory_type="user_message",
+                user_id=user_id,
+                metadata={
+                    "session_id": session_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "source": "chat",
+                    "memory_id": memory_id
+                }
+            )
+            
+            # AI 응답 저장
+            await eora_memory_system.store_memory(
+                content=ai_response,
+                memory_type="ai_response",
+                user_id=user_id,
+                metadata={
+                    "session_id": session_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "source": "chat",
+                    "response_to": user_message[:100],
+                    "memory_id": memory_id
+                }
+            )
         
         print(f"💾 대화 메모리 저장 완료: {user_id}")
         
@@ -1027,7 +1082,7 @@ async def get_sessions(request: Request):
 
 @app.post("/api/sessions")
 async def create_session(request: Request):
-    """새 세션 생성"""
+    """새 세션 생성 (MongoDB 우선 저장)"""
     user = get_current_user(request)
     if not user:
         return JSONResponse(
@@ -1046,28 +1101,67 @@ async def create_session(request: Request):
     timestamp = int(datetime.now().timestamp() * 1000)
     session_id = f"session_{user['email'].replace('@', '_').replace('.', '_')}_{timestamp}"
     
-    # 세션 생성
+    # 세션 데이터 생성
     new_session = {
         "id": session_id,
+        "session_id": session_id,
+        "user_id": user["email"],
         "user_email": user["email"],
         "name": session_name,
         "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
         "message_count": 0
     }
     
-    sessions_db[session_id] = new_session
-    messages_db[session_id] = []
-    
-    # 저장
-    save_json_data(SESSIONS_FILE, sessions_db)
-    save_json_data(MESSAGES_FILE, messages_db)
-    
-    print(f"🆕 새 세션 생성: {user['email']} -> {session_id}")
-    
-    return JSONResponse({
-        "success": True,
-        "session": new_session
-    })
+    try:
+        # MongoDB에 우선 저장
+        mongodb_session_id = None
+        if mongo_connected and db_mgr:
+            mongodb_session_id = await db_mgr.create_session(new_session)
+            if mongodb_session_id:
+                print(f"🆕 MongoDB에 새 세션 생성: {user['email']} -> {session_id}")
+            else:
+                print(f"⚠️ MongoDB 세션 생성 실패, JSON 파일로만 저장")
+        else:
+            print("⚠️ MongoDB 연결 없음 - JSON 파일로만 저장")
+        
+        # 메모리 및 JSON 파일에도 저장 (호환성)
+        sessions_db[session_id] = new_session
+        messages_db[session_id] = []
+        
+        # JSON 파일 저장
+        save_json_data(SESSIONS_FILE, sessions_db)
+        save_json_data(MESSAGES_FILE, messages_db)
+        
+        print(f"🆕 새 세션 생성 완료: {user['email']} -> {session_id}")
+        
+        # JSON 직렬화 가능한 응답 데이터 준비
+        response_session = {
+            "id": session_id,
+            "session_id": session_id,
+            "user_id": user["email"],
+            "user_email": user["email"],
+            "name": session_name,
+            "created_at": new_session["created_at"],
+            "updated_at": new_session["updated_at"],
+            "message_count": 0
+        }
+        
+        if mongodb_session_id:
+            response_session["mongodb_id"] = mongodb_session_id
+        
+        return JSONResponse({
+            "success": True,
+            "session": response_session,
+            "session_id": session_id
+        })
+        
+    except Exception as e:
+        print(f"❌ 세션 생성 중 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "세션 생성에 실패했습니다."}
+        )
 
 @app.delete("/api/sessions/{session_id}")
 async def delete_session(session_id: str, request: Request):
@@ -1219,8 +1313,9 @@ async def save_message(request: Request):
 # ==================== 채팅 API ====================
 
 @app.post("/api/chat")
+@performance_monitor
 async def chat(request: Request):
-    """채팅 응답 생성"""
+    """채팅 응답 생성 - MongoDB 장기 저장 포함"""
     user = get_current_user(request)
     if not user:
         return JSONResponse(
@@ -1256,29 +1351,40 @@ async def chat(request: Request):
                 content={"success": False, "error": "세션 ID와 메시지가 필요합니다."}
             )
         
-        # 세션이 없으면 자동 생성
+        # 세션이 없으면 자동 생성 (MongoDB 우선)
         if session_id not in sessions_db:
-            sessions_db[session_id] = {
+            new_session = {
                 "id": session_id,
+                "session_id": session_id,
+                "user_id": user["email"],
                 "user_email": user["email"],
                 "name": f"대화 {datetime.now().strftime('%Y-%m-%d %H:%M')}",
                 "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat(),
                 "message_count": 0
             }
+            
+            # MongoDB에 세션 저장
+            if mongo_connected and db_mgr:
+                await db_mgr.create_session(new_session)
+                print(f"🆕 MongoDB에 새 세션 생성: {session_id}")
+            
+            # 메모리에도 저장 (호환성)
+            sessions_db[session_id] = new_session
             messages_db[session_id] = []
             save_json_data(SESSIONS_FILE, sessions_db)
             print(f"🆕 채팅 시 새 세션 자동 생성: {session_id}")
         
-        # 사용자 메시지 저장
+        # 사용자 메시지 준비
         user_message = {
             "role": "user",
             "content": message,
             "timestamp": datetime.now().isoformat()
         }
         
+        # 메모리에 임시 저장 (호환성)
         if session_id not in messages_db:
             messages_db[session_id] = []
-        
         messages_db[session_id].append(user_message)
         
         # AI 응답 생성 - EORA 고급 기능 활용
@@ -1289,14 +1395,35 @@ async def chat(request: Request):
             conversation_history=messages_db.get(session_id, [])
         )
         
-        # AI 응답 저장
+        # AI 응답 메시지 준비
         ai_message = {
             "role": "assistant",
             "content": ai_response,
             "timestamp": datetime.now().isoformat()
         }
         
+        # 메모리에 AI 응답 저장 (호환성)
         messages_db[session_id].append(ai_message)
+        
+        # ===== MongoDB에 장기 저장 =====
+        try:
+            if mongo_connected and db_mgr:
+                # 사용자 메시지를 MongoDB에 저장
+                await db_mgr.save_message(session_id, "user", message)
+                # AI 응답을 MongoDB에 저장
+                await db_mgr.save_message(session_id, "assistant", ai_response)
+                print(f"✅ MongoDB에 대화 저장 완료: {session_id}")
+                
+                # 세션 업데이트
+                await db_mgr.update_session(session_id, {
+                    "updated_at": datetime.now().isoformat(),
+                    "last_activity": datetime.now().isoformat(),
+                    "last_message": message[:50] + "..." if len(message) > 50 else message
+                })
+            else:
+                print("⚠️ MongoDB 연결 없음 - JSON 파일로만 저장")
+        except Exception as mongo_error:
+            print(f"⚠️ MongoDB 저장 실패: {mongo_error}")
         
         # EORA 메모리 시스템에 대화 저장 (학습 및 회상용)
         await save_conversation_to_memory(
@@ -1309,17 +1436,30 @@ async def chat(request: Request):
         # 세션의 메시지 카운트 업데이트
         sessions_db[session_id]["message_count"] = len(messages_db[session_id])
         
-        # 저장
+        # JSON 파일 저장 (호환성 및 백업)
         save_json_data(MESSAGES_FILE, messages_db)
         save_json_data(SESSIONS_FILE, sessions_db)
         
         print(f"💬 채팅: {session_id} -> {len(messages_db[session_id])}개 메시지")
         
-        return JSONResponse({
-            "success": True,
-            "response": ai_response,
-            "session_id": session_id
-        })
+        # 마크다운 처리된 응답 반환
+        try:
+            formatted_response = format_api_response(ai_response, "chat")
+            return JSONResponse({
+                "success": True,
+                "response": ai_response,
+                "formatted_response": formatted_response["formatted_content"],
+                "has_markdown": formatted_response["has_markdown"],
+                "session_id": session_id,
+                "metadata": formatted_response["metadata"]
+            })
+        except Exception as markdown_error:
+            print(f"⚠️ 마크다운 처리 실패: {markdown_error}")
+            return JSONResponse({
+                "success": True,
+                "response": ai_response,
+                "session_id": session_id
+            })
         
     except Exception as e:
         print(f"❌ 채팅 오류: {e}")
@@ -2255,13 +2395,11 @@ if __name__ == "__main__":
             server_header=False,
             date_header=False,
             proxy_headers=True,
-            forwarded_allow_ips="*",
-            loop="uvloop"  # 성능 향상
+            forwarded_allow_ips="*"
         )
     else:
         uvicorn.run(
             app, 
             host=host, 
-            port=port,
-            loop="uvloop"  # 로컬에서도 성능 향상
+            port=port
         ) 
