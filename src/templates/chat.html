@@ -1660,8 +1660,18 @@
             const finalLang = savedLang || detectedLang;
             changeLanguage(finalLang);
 
+            // 실시간 시간 업데이트 시작
+            startTimeUpdates();
+            console.log('⏰ 실시간 시간 업데이트 시작');
+
             // 채팅 초기화
             initializeChat();
+        });
+
+        // 페이지 언로드 시 정리
+        window.addEventListener('beforeunload', function () {
+            stopTimeUpdates();
+            console.log('⏰ 실시간 시간 업데이트 중지');
         });
 
         let currentSessionId = null;
@@ -2296,6 +2306,107 @@
             return null;
         }
 
+        // 실시간 시간 업데이트를 위한 전역 변수
+        let timeUpdateInterval = null;
+
+        // 모든 메시지와 세션의 시간을 업데이트하는 함수
+        function updateAllTimes() {
+            // 메시지 시간 업데이트
+            const messageTimes = document.querySelectorAll('.message-time');
+            messageTimes.forEach(timeElement => {
+                const timestamp = timeElement.getAttribute('data-timestamp');
+                if (timestamp) {
+                    const timeInfo = formatMessageTime(timestamp);
+                    timeElement.textContent = timeInfo.displayText;
+                    timeElement.title = timeInfo.tooltipText;
+                }
+            });
+
+            // 세션 시간 업데이트
+            const sessionTimes = document.querySelectorAll('.session-time');
+            sessionTimes.forEach(timeElement => {
+                const timestamp = timeElement.getAttribute('data-timestamp');
+                if (timestamp) {
+                    const timeInfo = formatMessageTime(timestamp);
+                    timeElement.textContent = timeInfo.displayText;
+                    timeElement.title = timeInfo.tooltipText;
+                }
+            });
+        }
+
+        // 실시간 시간 업데이트 시작
+        function startTimeUpdates() {
+            if (timeUpdateInterval) {
+                clearInterval(timeUpdateInterval);
+            }
+            // 1분마다 시간 업데이트
+            timeUpdateInterval = setInterval(updateAllTimes, 60000);
+        }
+
+        // 실시간 시간 업데이트 중지
+        function stopTimeUpdates() {
+            if (timeUpdateInterval) {
+                clearInterval(timeUpdateInterval);
+                timeUpdateInterval = null;
+            }
+        }
+
+        // 시간 포맷팅 유틸리티 함수
+        function formatMessageTime(timestamp, userLanguage = null) {
+            if (!userLanguage) {
+                userLanguage = navigator.language || navigator.languages[0] || document.documentElement.lang || 'ko-KR';
+            }
+
+            const messageDate = new Date(timestamp);
+            const today = new Date();
+            const isToday = messageDate.toDateString() === today.toDateString();
+
+            // 기본 시간 옵션
+            const timeOptions = {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false, // 24시간 형식
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
+
+            let displayText;
+            if (isToday) {
+                // 오늘이면 시간만 표시
+                displayText = messageDate.toLocaleTimeString(userLanguage, timeOptions);
+            } else {
+                // 오늘이 아니면 날짜와 시간 모두 표시
+                const dateTimeOptions = {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                };
+                displayText = messageDate.toLocaleString(userLanguage, dateTimeOptions);
+            }
+
+            // 툴팁을 위한 전체 정보
+            const tooltipText = messageDate.toLocaleString(userLanguage, {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                timeZoneName: 'short'
+            });
+
+            return {
+                displayText: displayText,
+                tooltipText: tooltipText
+            };
+        }
+
         // 메시지 추가 (중복 방지)
         function addMessage(sender, content, timestamp = new Date().toISOString(), isMarkdown = false) {
             // 메시지 내용 검증 (에코 방지)
@@ -2356,7 +2467,12 @@
 
             const messageTime = document.createElement('div');
             messageTime.className = 'message-time';
-            messageTime.textContent = new Date(timestamp).toLocaleTimeString();
+
+            // 유틸리티 함수를 사용하여 시간 포맷팅
+            const timeInfo = formatMessageTime(timestamp);
+            messageTime.textContent = timeInfo.displayText;
+            messageTime.title = timeInfo.tooltipText;
+            messageTime.setAttribute('data-timestamp', timestamp); // 실시간 업데이트를 위한 타임스탬프 저장
 
             messageContent.appendChild(messageTime);
             messageDiv.appendChild(avatar);
@@ -2537,11 +2653,15 @@
                     console.log(`✅ 활성 세션 표시: ${session.id}`);
                 }
 
+                // 세션 시간 포맷팅
+                const sessionTimestamp = session.created_at || session.updated_at || new Date().toISOString();
+                const sessionTimeInfo = formatMessageTime(sessionTimestamp);
+
                 sessionItem.innerHTML = `
                     <input type="checkbox" class="session-checkbox" 
                            onchange="toggleSessionSelection('${session.id}', this.checked)">
                     <div class="session-name">${session.name || '새 세션'}</div>
-                    <div class="session-time">${new Date(session.created_at).toLocaleDateString()}</div>
+                    <div class="session-time" title="${sessionTimeInfo.tooltipText}" data-timestamp="${sessionTimestamp}">${sessionTimeInfo.displayText}</div>
                 `;
 
                 sessionItem.addEventListener('click', (e) => {

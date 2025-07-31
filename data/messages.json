@@ -285,5 +285,37 @@
       "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
       "timestamp": "2025-07-31T19:58:21.564039"
     }
+  ],
+  "session_admin_eora_ai_1753960314651": [
+    {
+      "role": "user",
+      "content": "안녕하세요! 현재 시간을 확인하는 첫 번째 메시지입니다.",
+      "timestamp": "2025-07-31T20:11:54.656766"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T20:11:55.214267"
+    },
+    {
+      "role": "user",
+      "content": "두 번째 메시지 - 시간 표시가 정확한지 확인해보세요.",
+      "timestamp": "2025-07-31T20:11:57.221777"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T20:11:57.425823"
+    },
+    {
+      "role": "user",
+      "content": "세 번째 메시지 - 사용자 로컬 시간대가 반영되는지 테스트입니다.",
+      "timestamp": "2025-07-31T20:11:59.431690"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T20:11:59.710613"
+    }
   ]
 }
