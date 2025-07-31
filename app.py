@@ -34,6 +34,12 @@ try:
     from markdown_processor import format_api_response, process_markdown_text, create_beautiful_response
     from time_manager import adjust_time_context, parse_relative_time, get_relative_description
     
+    # 성능 최적화 모듈 추가
+    from performance_optimizer import (
+        performance_monitor, cached_response, 
+        optimizer, initialize_optimizer, get_performance_stats
+    )
+    
     # MongoDB 연결 초기화
     mongo_connected = init_mongodb_connection()
     if mongo_connected:
@@ -64,6 +70,17 @@ try:
     
     ADVANCED_FEATURES_AVAILABLE = True
     print("✅ EORA 고급 기능 모듈 로드 성공")
+    
+    # 성능 최적화 시스템 초기화
+    try:
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(initialize_optimizer())
+        print("✅ 성능 최적화 시스템 초기화 완료")
+    except Exception as e:
+        print(f"⚠️ 성능 최적화 시스템 초기화 실패: {e}")
+        print("✅ 성능 최적화 모듈 로드 완료 (캐시 및 모니터링 준비)")
 except ImportError as e:
     print(f"⚠️ EORA 고급 기능 모듈 로드 실패: {e}")
     eora_memory_system = None
@@ -383,6 +400,8 @@ advanced_systems_ready = initialize_advanced_systems()
 
 # ==================== EORA 고급 응답 생성 ====================
 
+@performance_monitor
+@cached_response(ttl=120)  # 2분 캐시
 async def generate_advanced_response(message: str, user_id: str, session_id: str, conversation_history: List[Dict]) -> str:
     """EORA 고급 기능을 활용한 AI 응답 생성 (성능 최적화)"""
     try:
@@ -437,6 +456,8 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
         print(f"❌ 고급 응답 생성 전체 오류: {e}")
         return f"시스템 오류가 발생했습니다: {str(e)}"
 
+@performance_monitor
+@cached_response(ttl=60)  # 1분 캐시
 async def generate_openai_response(message: str, history: List[Dict], memories: List[Dict] = None) -> str:
     """OpenAI API를 사용한 응답 생성 (성능 최적화)"""
     global openai_client
@@ -541,6 +562,7 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
 
 # 자동응답 함수 제거 - OpenAI API만 사용
 
+@performance_monitor
 async def save_conversation_to_memory(user_message: str, ai_response: str, user_id: str, session_id: str):
     """대화를 EORA 메모리 시스템에 저장하여 학습 및 회상에 활용"""
     try:
@@ -1334,8 +1356,9 @@ async def save_message(request: Request):
 # ==================== 채팅 API ====================
 
 @app.post("/api/chat")
+@performance_monitor
 async def chat(request: Request):
-    """채팅 응답 생성"""
+    """채팅 응답 생성 (성능 최적화 적용)"""
     user = get_current_user(request)
     if not user:
         return JSONResponse(
@@ -1477,6 +1500,28 @@ async def get_user_points(request: Request):
         return JSONResponse({"points": 0})
     
     return JSONResponse({"points": 1000})
+
+@app.get("/api/performance/stats")
+async def get_performance_stats_api(request: Request):
+    """성능 통계 조회 (관리자 전용)"""
+    user = get_current_user(request)
+    if not user or user.get("email") != "admin@eora.ai":
+        return JSONResponse(
+            status_code=403,
+            content={"error": "관리자 권한이 필요합니다."}
+        )
+    
+    try:
+        stats = get_performance_stats()
+        return JSONResponse({
+            "success": True,
+            "stats": stats
+        })
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"성능 통계 조회 실패: {str(e)}"}
+        )
 
 @app.get("/api/admin/env-status")
 async def check_env_status(request: Request):
