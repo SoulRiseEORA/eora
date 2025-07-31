@@ -26,6 +26,7 @@ class EORAMemorySystem:
         self.embeddings_model = None
         self.vector_index = None
         self.memory_collection = None
+        self.memory_manager = None  # RecallEngine을 위한 memory_manager 속성 추가
         
         # 메모리 기반 저장소 (DB 연결 실패 시 사용)
         self.memory_store = {}
@@ -60,6 +61,9 @@ class EORAMemorySystem:
             if db_mgr.is_connected():
                 self.memory_db = db_mgr
                 self.memory_collection = None  # database.py에서 관리됨
+                
+                # memory_manager 객체 생성 (RecallEngine을 위한)
+                self.memory_manager = SimpleMemoryManager(db_mgr)
                 
                 logger.info("✅ 아우라 메모리 시스템 - MongoDB 연결 성공")
                 self.is_initialized = True
@@ -871,4 +875,54 @@ class EORAMemorySystem:
 # 이전 호환성을 위한 별칭 클래스
 class AuraMemorySystem(EORAMemorySystem):
     """이전 호환성을 위한 별칭"""
-    pass 
+    pass
+
+
+# RecallEngine을 위한 보조 클래스들
+class SimpleMemoryManager:
+    """RecallEngine을 위한 간단한 memory_manager 구현"""
+    
+    def __init__(self, db_mgr):
+        self.db_mgr = db_mgr
+        self.is_initialized = True
+        
+        # ResourceManager 모방 클래스
+        self.resource_manager = SimpleResourceManager(db_mgr)
+    
+    def cleanup(self):
+        """정리 메서드"""
+        pass
+
+
+class SimpleResourceManager:
+    """ResourceManager를 모방한 간단한 클래스"""
+    
+    def __init__(self, db_mgr):
+        self.db_mgr = db_mgr
+        self.memories = SimpleMemoryCollection(db_mgr)
+
+
+class SimpleMemoryCollection:
+    """MongoDB 컬렉션을 모방한 간단한 클래스"""
+    
+    def __init__(self, db_mgr):
+        self.db_mgr = db_mgr
+    
+    def find(self, query, sort=None, limit=None):
+        """MongoDB find 메서드 모방"""
+        try:
+            # 실제 MongoDB 컬렉션에서 조회
+            from database import memories_collection
+            if memories_collection is not None:
+                cursor = memories_collection.find(query)
+                if sort:
+                    cursor = cursor.sort(sort)
+                if limit:
+                    cursor = cursor.limit(limit)
+                return cursor
+            else:
+                # Fallback: 빈 결과 반환
+                return []
+        except Exception as e:
+            logger.error(f"❌ 메모리 조회 실패: {e}")
+            return [] 
