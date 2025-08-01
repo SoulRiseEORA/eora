@@ -535,5 +535,17 @@
       "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
       "timestamp": "2025-08-01T19:50:00.056464"
     }
+  ],
+  "session_newuser1754046443_test_eora_ai_1754046445211": [
+    {
+      "role": "user",
+      "content": "안녕하세요! 저는 새로운 사용자입니다. 간단한 인사를 해주세요.",
+      "timestamp": "2025-08-01T20:07:25.216085"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-08-01T20:07:25.500171"
+    }
   ]
 }

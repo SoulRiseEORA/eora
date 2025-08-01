@@ -317,5 +317,15 @@
     "created_at": "2025-08-01T19:49:59.049880",
     "updated_at": "2025-08-01T19:49:59.049880",
     "message_count": 2
+  },
+  "session_newuser1754046443_test_eora_ai_1754046445211": {
+    "id": "session_newuser1754046443_test_eora_ai_1754046445211",
+    "session_id": "session_newuser1754046443_test_eora_ai_1754046445211",
+    "user_id": "newuser1754046443@test.eora.ai",
+    "user_email": "newuser1754046443@test.eora.ai",
+    "name": "안녕하세요! 저는 새로운 사용자입니다. 간단한 인사를 해주세요.",
+    "created_at": "2025-08-01T20:07:25.211053",
+    "updated_at": "2025-08-01T20:07:25.211053",
+    "message_count": 2
   }
 }

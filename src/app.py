@@ -347,6 +347,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 users_db = {}
 sessions_db = {}
 messages_db = {}
+points_db = {}
 
 # ==================== EORA 고급 시스템 초기화 ====================
 
@@ -672,7 +673,7 @@ async def save_conversation_to_memory(user_message: str, ai_response: str, user_
                     }
                 }
                 
-                if memories_collection:
+                if memories_collection is not None:
                     result = memories_collection.insert_one(memory_data)
                     print(f"💾 메모리 저장소 저장: {memory_id}")
                 
@@ -1322,7 +1323,7 @@ async def auth_register(request: Request):
         if mongo_client and verify_connection():
             try:
                 from database import users_collection
-                if users_collection:
+                if users_collection is not None:
                     users_collection.insert_one({
                         **user_metadata,
                         "_id": user_id,

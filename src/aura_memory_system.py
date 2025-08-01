@@ -162,7 +162,7 @@ class EORAMemorySystem:
             }
             
             # MongoDB에 저장
-            if self.memory_collection:
+            if self.memory_collection is not None:
                 await self.memory_collection.insert_one(memory)
                 print(f"💾 MongoDB 메모리 저장: {memory_id}")
             else:
@@ -249,7 +249,7 @@ class EORAMemorySystem:
                 memory = None
                 
                 # MongoDB에서 조회
-                if self.memory_collection:
+                if self.memory_collection is not None:
                     memory = await self.memory_collection.find_one({"embedding_id": int(idx)})
                 
                 # 메모리 저장소에서 조회
@@ -277,7 +277,7 @@ class EORAMemorySystem:
             keywords = [k for k in keywords if len(k) > 3]  # 짧은 단어 제외
             
             # MongoDB에서 조회
-            if self.memory_collection:
+            if self.memory_collection is not None:
                 query_conditions = []
                 
                 # 사용자 필터
@@ -363,7 +363,7 @@ class EORAMemorySystem:
     async def count_all_memories(self) -> int:
         """전체 메모리 개수 조회"""
         try:
-            if self.memory_collection:
+            if self.memory_collection is not None:
                 return await self.memory_collection.count_documents({})
             return len(self.memory_store)
         except Exception as e:
@@ -373,7 +373,7 @@ class EORAMemorySystem:
     async def count_user_memories(self, user_id: str) -> int:
         """사용자별 메모리 개수 조회"""
         try:
-            if self.memory_collection:
+            if self.memory_collection is not None:
                 return await self.memory_collection.count_documents({"user_id": user_id})
             
             # 메모리 저장소에서 조회
@@ -390,7 +390,7 @@ class EORAMemorySystem:
     async def get_user_memories(self, user_id: str, limit: int = 100) -> List[Dict]:
         """사용자별 메모리 조회"""
         try:
-            if self.memory_collection:
+            if self.memory_collection is not None:
                 cursor = self.memory_collection.find({"user_id": user_id}).sort("timestamp", -1).limit(limit)
                 memories = await cursor.to_list(length=limit)
                 return memories
@@ -578,7 +578,7 @@ class EORAMemorySystem:
             keywords = query.lower().split()
             memories = []
             
-            if self.memory_collection:
+            if self.memory_collection is not None:
                 # MongoDB에서 키워드 검색
                 filter_query = {
                     "user_id": user_id,
@@ -613,7 +613,7 @@ class EORAMemorySystem:
             
             # 감정이 포함된 메모리 찾기
             memories = []
-            if self.memory_collection:
+            if self.memory_collection is not None:
                 filter_query = {
                     "user_id": user_id,
                     "$or": [
@@ -635,7 +635,7 @@ class EORAMemorySystem:
             belief_keywords = ["믿는다", "생각한다", "확신", "신념", "가치관", "철학", "원칙"]
             
             memories = []
-            if self.memory_collection:
+            if self.memory_collection is not None:
                 filter_query = {
                     "user_id": user_id,
                     "$or": [
@@ -660,7 +660,7 @@ class EORAMemorySystem:
         """6. 시간 기반 회상"""
         try:
             memories = []
-            if self.memory_collection:
+            if self.memory_collection is not None:
                 # 최근 24시간 이내의 메모리 우선
                 filter_query = {"user_id": user_id}
                 cursor = self.memory_collection.find(filter_query).sort("timestamp", -1).limit(limit)
