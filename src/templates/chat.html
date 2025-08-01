@@ -2253,22 +2253,42 @@
                         await saveMessageToDatabase(currentSessionId, 'assistant', data.response);
                     }
 
-                    // === [포인트 차감 실시간 반영: 전체 토큰 기준] ===
-                    let totalTokens = 0;
-                    if (typeof data.total_tokens === 'number') {
-                        totalTokens = data.total_tokens;
-                    } else if (data.token_info && typeof data.token_info.total_tokens === 'number') {
-                        totalTokens = data.token_info.total_tokens;
-                    } else {
-                        totalTokens = 1;
-                    }
-                    updatePointStatus(-totalTokens);
-                    // 안내문구 표시
-                    const el = document.getElementById('pointChange');
-                    if (el) {
-                        el.textContent = `- ${totalTokens} 토큰 차감`;
-                        el.style.color = '#e53935';
-                        setTimeout(() => { el.textContent = ''; }, 2500);
+                    // === [포인트 차감 실시간 반영] ===
+                    if (data.points_info) {
+                        const pointsInfo = data.points_info;
+                        const pointsDeducted = pointsInfo.points_deducted || 0;
+                        const currentPoints = pointsInfo.current_points || 0;
+                        const tokenUsage = pointsInfo.token_usage;
+                        const isAdmin = pointsInfo.is_admin || false;
+
+                        // 포인트 정보 업데이트
+                        const pointsElement = document.getElementById('currentPoints');
+                        if (pointsElement) {
+                            pointsElement.textContent = currentPoints.toLocaleString();
+                        }
+
+                        // 관리자가 아닌 경우에만 포인트 차감 표시
+                        if (!isAdmin && pointsDeducted > 0) {
+                            const el = document.getElementById('pointChange');
+                            if (el) {
+                                let deductionText = `-${pointsDeducted}`;
+                                if (tokenUsage && tokenUsage.total_tokens) {
+                                    deductionText += ` (토큰: ${tokenUsage.total_tokens})`;
+                                }
+                                el.textContent = deductionText;
+                                el.style.color = '#e53935';
+                                setTimeout(() => { el.textContent = ''; }, 3000);
+                            }
+                        } else if (isAdmin) {
+                            const el = document.getElementById('pointChange');
+                            if (el) {
+                                el.textContent = '관리자 무제한';
+                                el.style.color = '#4caf50';
+                                setTimeout(() => { el.textContent = ''; }, 2000);
+                            }
+                        }
+
+                        console.log(`💰 포인트 정보 업데이트: 현재 ${currentPoints}, 차감 ${pointsDeducted}, 관리자: ${isAdmin}`);
                     }
                     // =============================
                 } else {

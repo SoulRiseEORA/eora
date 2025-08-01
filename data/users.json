@@ -6,5 +6,13 @@
     "role": "admin",
     "is_admin": true,
     "created_at": "2025-07-29T22:04:43.004897"
+  },
+  "test@eora.ai": {
+    "email": "test@eora.ai",
+    "password": "ecd71870d1963316a97e3ac3408c9835ad8cf0f3c1bc703527c30265534f75ae",
+    "name": "테스트 사용자",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-07-31T21:52:20.026267"
   }
 }

@@ -23,6 +23,15 @@ from starlette.middleware.cors import CORSMiddleware
 # EORA 고급 기능 모듈 임포트
 sys.path.append('src')
 
+# 토큰 계산기 임포트
+try:
+    from token_calculator import get_token_calculator
+    TOKEN_CALCULATOR_AVAILABLE = True
+    print("✅ 토큰 계산기 모듈 로드 성공")
+except ImportError as e:
+    print(f"⚠️ 토큰 계산기 모듈 로드 실패: {e}")
+    TOKEN_CALCULATOR_AVAILABLE = False
+
 # 성능 최적화 모듈 임포트
 try:
     from performance_optimizer import performance_monitor, cached_response, initialize_optimizer, get_performance_stats
@@ -385,7 +394,8 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
     try:
         # 1. 고급 기능이 비활성화된 경우 OpenAI API 직접 사용
         if not ADVANCED_FEATURES_AVAILABLE or not eora_memory_system:
-            return await generate_openai_response(message, conversation_history, [])
+            result = await generate_openai_response(message, conversation_history, [])
+            return result["response"] if isinstance(result, dict) else result
         
         # 2. 강화된 8종 회상 시스템 + 고급 기능 활성화
         recalled_memories = []
@@ -426,15 +436,17 @@ async def generate_advanced_response(message: str, user_id: str, session_id: str
                 "type": "eora_enhancement",
                 "recall_type": "advanced_features"
             })
-            return await generate_openai_response(message, conversation_history, enhanced_memories)
+            result = await generate_openai_response(message, conversation_history, enhanced_memories)
+            return result["response"] if isinstance(result, dict) else result
         else:
-            return await generate_openai_response(message, conversation_history, recalled_memories)
+            result = await generate_openai_response(message, conversation_history, recalled_memories)
+            return result["response"] if isinstance(result, dict) else result
         
     except Exception as e:
         print(f"❌ 고급 응답 생성 전체 오류: {e}")
         return f"시스템 오류가 발생했습니다: {str(e)}"
 
-async def generate_openai_response(message: str, history: List[Dict], memories: List[Dict] = None) -> str:
+async def generate_openai_response(message: str, history: List[Dict], memories: List[Dict] = None) -> Dict[str, Any]:
     """OpenAI API를 사용한 응답 생성 (성능 최적화 + AI1 프롬프트 적용)"""
     global openai_client
     try:
@@ -455,7 +467,10 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
                 except Exception:
                     pass
             
-            return "OpenAI API 사용 불가: 환경변수를 확인해주세요."
+            return {
+                "response": "OpenAI API 사용 불가: 환경변수를 확인해주세요.",
+                "token_usage": None
+            }
         
         # 🎯 AI1 프롬프트 동적 로드
         system_prompt = await load_ai1_system_prompt()
@@ -508,11 +523,38 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
             timeout=15.0  # 응답 시간 단축
         )
         
-        return response.choices[0].message.content
+        ai_response = response.choices[0].message.content
+        
+        # 토큰 사용량 계산
+        token_usage = None
+        if TOKEN_CALCULATOR_AVAILABLE:
+            try:
+                token_calc = get_token_calculator("gpt-4o")
+                token_usage = token_calc.extract_usage_from_response(response)
+                if not token_usage:
+                    # API 응답에서 토큰 정보가 없으면 추정
+                    total_prompt = "\n".join([msg["content"] for msg in messages])
+                    prompt_tokens = token_calc.count_tokens(total_prompt)
+                    completion_tokens = token_calc.count_tokens(ai_response)
+                    token_usage = {
+                        "prompt_tokens": prompt_tokens,
+                        "completion_tokens": completion_tokens,
+                        "total_tokens": prompt_tokens + completion_tokens
+                    }
+            except Exception as token_error:
+                print(f"⚠️ 토큰 계산 오류: {token_error}")
+        
+        return {
+            "response": ai_response,
+            "token_usage": token_usage
+        }
         
     except Exception as e:
         print(f"❌ OpenAI API 오류: {e}")
-        return f"응답 생성 중 오류가 발생했습니다: {str(e)}"
+        return {
+            "response": f"응답 생성 중 오류가 발생했습니다: {str(e)}",
+            "token_usage": None
+        }
 
 async def load_ai1_system_prompt() -> str:
     """ai_prompts.json에서 AI1 프롬프트를 로드하여 완전한 시스템 프롬프트를 구성합니다."""
@@ -949,6 +991,35 @@ def get_current_user(request: Request):
     
     return None
 
+def format_api_response(response_text: str, response_type: str = "chat"):
+    """API 응답을 포맷팅합니다"""
+    try:
+        # 마크다운 처리 (간단한 버전)
+        has_markdown = any(marker in response_text for marker in ['**', '*', '`', '#', '-', '1.'])
+        
+        formatted_content = response_text
+        
+        # 기본 메타데이터
+        metadata = {
+            "type": response_type,
+            "length": len(response_text),
+            "has_markdown": has_markdown,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        return {
+            "formatted_content": formatted_content,
+            "has_markdown": has_markdown,
+            "metadata": metadata
+        }
+    except Exception as e:
+        print(f"⚠️ 응답 포맷팅 오류: {e}")
+        return {
+            "formatted_content": response_text,
+            "has_markdown": False,
+            "metadata": {"type": response_type, "error": str(e)}
+        }
+
 # ==================== 데이터 초기화 ====================
 
 # 관리자 계정 생성
@@ -1083,11 +1154,88 @@ async def auth_login(request: Request):
         # 세션에도 저장
         request.session["user_email"] = email
         
+        # 포인트 시스템 초기화 (신규 사용자에게 100,000 포인트 지급)
+        if mongo_client and verify_connection() and db_mgr:
+            try:
+                db_mgr.initialize_user_points(email)
+            except Exception as point_error:
+                print(f"⚠️ 포인트 초기화 실패: {point_error}")
+        
         print(f"✅ 로그인 성공: {email}")
         return response
         
     except Exception as e:
         print(f"❌ 로그인 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "서버 오류가 발생했습니다."}
+        )
+
+@app.post("/api/auth/register")
+async def auth_register(request: Request):
+    """회원가입 API"""
+    try:
+        body = await request.json()
+        email = body.get("email", "").strip()
+        password = body.get("password", "").strip()
+        name = body.get("name", "").strip()
+        
+        # 입력 유효성 검사
+        if not all([email, password, name]):
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "모든 필드를 입력해주세요."}
+            )
+        
+        # 이메일 중복 확인
+        if email in users_db:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "이미 존재하는 이메일입니다."}
+            )
+        
+        # 비밀번호 해싱
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        
+        # 새 사용자 생성
+        user_data = {
+            "email": email,
+            "password": password_hash,
+            "name": name,
+            "role": "user",
+            "is_admin": False,
+            "created_at": datetime.now().isoformat()
+        }
+        
+        # 사용자 정보 저장
+        users_db[email] = user_data
+        save_json_data(USERS_FILE, users_db)
+        
+        # 포인트 시스템 초기화 (100,000 포인트 지급)
+        if mongo_client and verify_connection() and db_mgr:
+            try:
+                success = db_mgr.initialize_user_points(email, 100000)
+                if success:
+                    print(f"💰 신규 회원가입 포인트 지급: {email} - 100,000포인트")
+                else:
+                    print(f"⚠️ 포인트 초기화 실패: {email}")
+            except Exception as point_error:
+                print(f"⚠️ 포인트 초기화 오류: {point_error}")
+        
+        print(f"✅ 신규 회원가입: {email}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "회원가입이 완료되었습니다. 100,000 포인트가 지급되었습니다.",
+            "user": {
+                "email": email,
+                "name": name,
+                "is_admin": False
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ 회원가입 오류: {e}")
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": "서버 오류가 발생했습니다."}
@@ -1454,13 +1602,104 @@ async def chat(request: Request):
             messages_db[session_id] = []
         messages_db[session_id].append(user_message)
         
-        # AI 응답 생성 - EORA 고급 기능 활용
-        ai_response = await generate_advanced_response(
-            message=message,
-            user_id=user["email"],
-            session_id=session_id,
-            conversation_history=messages_db.get(session_id, [])
-        )
+        # ===== 포인트 확인 및 사전 차감 =====
+        is_admin = user.get("is_admin", False)
+        points_deducted = 0
+        
+        if not is_admin:  # 관리자는 포인트 제한 없음
+            if mongo_client and verify_connection() and db_mgr:
+                current_points = db_mgr.get_user_points(user["email"])
+                
+                # 포인트가 0인 경우 즉시 차단
+                if current_points <= 0:
+                    return JSONResponse(
+                        status_code=402,  # Payment Required
+                        content={
+                            "success": False,
+                            "error": "포인트가 모두 소진되었습니다. 포인트를 충전한 후 다시 시도해주세요.",
+                            "current_points": current_points,
+                            "required_points": 1,
+                            "point_exhausted": True
+                        }
+                    )
+                
+                # 최소 포인트 확인 (추정 토큰 * 2)
+                if TOKEN_CALCULATOR_AVAILABLE:
+                    token_calc = get_token_calculator("gpt-4o")
+                    estimated_usage = token_calc.estimate_tokens_before_request(message)
+                    estimated_cost = token_calc.calculate_points_cost(estimated_usage)
+                    
+                    if current_points < estimated_cost:
+                        return JSONResponse(
+                            status_code=402,  # Payment Required
+                            content={
+                                "success": False,
+                                "error": f"포인트가 부족합니다. 현재 포인트: {current_points:,}, 필요 포인트: {estimated_cost:,}",
+                                "current_points": current_points,
+                                "required_points": estimated_cost,
+                                "insufficient_points": True
+                            }
+                        )
+                    
+                    print(f"💰 포인트 확인: {user['email']} - 현재: {current_points:,}, 예상 차감: {estimated_cost:,}")
+                else:
+                    # 토큰 계산기가 없으면 기본 포인트 확인
+                    if current_points < 10:
+                        return JSONResponse(
+                            status_code=402,
+                            content={
+                                "success": False,
+                                "error": f"포인트가 부족합니다. 현재 포인트: {current_points:,}, 필요 포인트: 10",
+                                "current_points": current_points,
+                                "required_points": 10,
+                                "insufficient_points": True
+                            }
+                        )
+            else:
+                # MongoDB 연결이 없으면 기본 차단
+                return JSONResponse(
+                    status_code=503,
+                    content={
+                        "success": False,
+                        "error": "포인트 시스템이 일시적으로 사용할 수 없습니다. 관리자에게 문의하세요.",
+                        "database_error": True
+                    }
+                )
+        else:
+            # 관리자인 경우 로그 출력
+            print(f"👑 관리자 사용: {user['email']} - 포인트 제한 없음")
+        
+        # AI 응답 생성 - 토큰 정보 수집을 위해 직접 OpenAI 호출
+        try:
+            # EORA 회상 시스템 활용
+            recalled_memories = []
+            if ADVANCED_FEATURES_AVAILABLE and eora_memory_system:
+                try:
+                    print("🧠 EORA 8종 회상 시스템 시작...")
+                    recalled_memories = await eora_memory_system.enhanced_recall(
+                        query=message,
+                        user_id=user["email"],
+                        session_id=session_id,
+                        max_results=5
+                    )
+                    print(f"🧠 8종 회상 시스템 결과: {len(recalled_memories)}개 기억 회상")
+                except Exception as recall_error:
+                    print(f"⚠️ 회상 시스템 오류: {recall_error}")
+            
+            # 토큰 정보를 얻기 위해 generate_openai_response 직접 호출
+            response_result = await generate_openai_response(
+                message=message,
+                history=messages_db.get(session_id, []),
+                memories=recalled_memories
+            )
+            
+            ai_response = response_result.get("response", "")
+            token_usage = response_result.get("token_usage")
+            
+        except Exception as response_error:
+            print(f"❌ AI 응답 생성 오류: {response_error}")
+            ai_response = f"응답 생성 중 오류가 발생했습니다: {str(response_error)}"
+            token_usage = None
         
         # AI 응답 메시지 준비
         ai_message = {
@@ -1471,6 +1710,40 @@ async def chat(request: Request):
         
         # 메모리에 AI 응답 저장 (호환성)
         messages_db[session_id].append(ai_message)
+        
+        # ===== 포인트 차감 처리 =====
+        if not is_admin and token_usage and mongo_client and verify_connection() and db_mgr:
+            try:
+                if TOKEN_CALCULATOR_AVAILABLE:
+                    token_calc = get_token_calculator("gpt-4o")
+                    points_cost = token_calc.calculate_points_cost(token_usage)
+                    
+                    # 포인트 차감 실행
+                    success = db_mgr.deduct_points(
+                        user["email"], 
+                        points_cost, 
+                        f"채팅 사용 (토큰: {token_usage.get('total_tokens', 0)})"
+                    )
+                    
+                    if success:
+                        points_deducted = points_cost
+                        print(f"💰 포인트 차감 완료: {user['email']} -{points_cost} (토큰: {token_usage.get('total_tokens', 0)})")
+                    else:
+                        print(f"⚠️ 포인트 차감 실패: {user['email']}")
+                        # 차감 실패시에도 대화는 계속 진행 (이미 응답 생성됨)
+            except Exception as points_error:
+                print(f"⚠️ 포인트 처리 오류: {points_error}")
+        elif not is_admin:
+            # 토큰 정보가 없거나 MongoDB가 없는 경우 기본 차감
+            try:
+                if mongo_client and verify_connection() and db_mgr:
+                    default_cost = max(10, len(message) // 10)  # 기본 비용
+                    success = db_mgr.deduct_points(user["email"], default_cost, "채팅 사용 (기본)")
+                    if success:
+                        points_deducted = default_cost
+                        print(f"💰 기본 포인트 차감: {user['email']} -{default_cost}")
+            except Exception as points_error:
+                print(f"⚠️ 기본 포인트 처리 오류: {points_error}")
         
         # ===== MongoDB에 장기 저장 =====
         try:
@@ -1526,23 +1799,48 @@ async def chat(request: Request):
         
         print(f"💬 채팅: {session_id} -> {len(messages_db[session_id])}개 메시지")
         
+        # 현재 포인트 조회 (응답에 포함)
+        current_points = 0
+        if mongo_client and verify_connection() and db_mgr:
+            try:
+                current_points = db_mgr.get_user_points(user["email"])
+            except Exception:
+                pass
+        
         # 마크다운 처리된 응답 반환
         try:
             formatted_response = format_api_response(ai_response, "chat")
-            return JSONResponse({
+            response_data = {
                 "success": True,
                 "response": ai_response,
                 "formatted_response": formatted_response["formatted_content"],
                 "has_markdown": formatted_response["has_markdown"],
                 "session_id": session_id,
-                "metadata": formatted_response["metadata"]
-            })
+                "metadata": formatted_response["metadata"],
+                "points_info": {
+                    "points_deducted": points_deducted,
+                    "current_points": current_points,
+                    "token_usage": token_usage
+                }
+            }
+            
+            # 관리자가 아닌 경우만 포인트 정보 포함
+            if is_admin:
+                response_data["points_info"]["is_admin"] = True
+                
+            return JSONResponse(response_data)
         except Exception as markdown_error:
             print(f"⚠️ 마크다운 처리 실패: {markdown_error}")
             return JSONResponse({
                 "success": True,
                 "response": ai_response,
-                "session_id": session_id
+                "session_id": session_id,
+                "points_info": {
+                    "points_deducted": points_deducted,
+                    "current_points": current_points,
+                    "token_usage": token_usage,
+                    "is_admin": is_admin
+                }
             })
         
     except Exception as e:
@@ -1565,14 +1863,19 @@ async def set_language(request: Request):
     
     return response
 
-@app.get("/api/user/points")
-async def get_user_points(request: Request):
-    """사용자 포인트 조회"""
+@app.get("/api/user/points/legacy")
+async def get_user_points_legacy(request: Request):
+    """레거시 사용자 포인트 조회 (사용 중단)"""
     user = get_current_user(request)
     if not user:
         return JSONResponse({"points": 0})
     
-    return JSONResponse({"points": 1000})
+    # 새로운 포인트 API로 리디렉션하기 위해 실제 포인트 시스템 사용
+    if mongo_client and verify_connection() and db_mgr:
+        points = db_mgr.get_user_points(user["email"])
+        return JSONResponse({"success": True, "points": points})
+    
+    return JSONResponse({"success": True, "points": 100000})
 
 @app.get("/api/admin/env-status")
 async def check_env_status(request: Request):
@@ -2432,6 +2735,287 @@ async def get_admin_resources(request: Request):
                 "python_version": "3.9.0"
             }
         }
+
+# ==================== 포인트 시스템 API ====================
+
+@app.get("/api/user/points")
+async def get_user_points(request: Request):
+    """현재 사용자의 포인트 조회"""
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "error": "로그인이 필요합니다."}
+        )
+    
+    try:
+        # MongoDB에서 포인트 조회
+        if mongo_client and verify_connection() and db_mgr:
+            points = db_mgr.get_user_points(user["email"])
+            return JSONResponse({
+                "success": True,
+                "points": points,
+                "user_id": user["email"]
+            })
+        else:
+            # MongoDB가 없으면 기본값 반환
+            return JSONResponse({
+                "success": True,
+                "points": 100000,
+                "user_id": user["email"]
+            })
+    except Exception as e:
+        print(f"❌ 포인트 조회 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "포인트 조회 중 오류가 발생했습니다."}
+        )
+
+@app.get("/api/user/points/history")
+async def get_points_history(request: Request):
+    """사용자의 포인트 거래 내역 조회"""
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "error": "로그인이 필요합니다."}
+        )
+    
+    try:
+        # MongoDB에서 포인트 내역 조회
+        if mongo_client and verify_connection() and db_mgr:
+            history = db_mgr.get_points_history(user["email"])
+            return JSONResponse({
+                "success": True,
+                "history": history,
+                "user_id": user["email"]
+            })
+        else:
+            return JSONResponse({
+                "success": True,
+                "history": [],
+                "user_id": user["email"]
+            })
+    except Exception as e:
+        print(f"❌ 포인트 내역 조회 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "포인트 내역 조회 중 오류가 발생했습니다."}
+        )
+
+@app.post("/api/admin/points/add")
+async def admin_add_points(request: Request):
+    """관리자용 포인트 추가 API"""
+    user = get_current_user(request)
+    if not user or not user.get("is_admin"):
+        return JSONResponse(
+            status_code=403,
+            content={"success": False, "error": "관리자 권한이 필요합니다."}
+        )
+    
+    try:
+        data = await request.json()
+        target_user = data.get("user_id", "").strip()
+        amount = int(data.get("amount", 0))
+        description = data.get("description", "관리자 지급")
+        
+        if not target_user or amount <= 0:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "유효한 사용자 ID와 금액을 입력하세요."}
+            )
+        
+        # MongoDB에서 포인트 추가
+        if mongo_client and verify_connection() and db_mgr and db_mgr.points_collection is not None:
+            success = db_mgr.add_points(target_user, amount, description)
+            if success:
+                return JSONResponse({
+                    "success": True,
+                    "message": f"{target_user}에게 {amount} 포인트를 추가했습니다."
+                })
+            else:
+                return JSONResponse(
+                    status_code=500,
+                    content={"success": False, "error": "포인트 추가에 실패했습니다."}
+                )
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "error": "데이터베이스 연결이 필요합니다."}
+            )
+            
+    except Exception as e:
+        print(f"❌ 관리자 포인트 추가 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "포인트 추가 중 오류가 발생했습니다."}
+        )
+
+@app.get("/api/admin/points/stats")
+async def admin_points_stats(request: Request):
+    """관리자용 포인트 통계 API"""
+    user = get_current_user(request)
+    if not user or not user.get("is_admin"):
+        return JSONResponse(
+            status_code=403,
+            content={"success": False, "error": "관리자 권한이 필요합니다."}
+        )
+    
+    try:
+        if not mongo_client or not verify_connection() or not db_mgr or db_mgr.points_collection is None:
+            return JSONResponse({
+                "success": False,
+                "error": "데이터베이스 연결이 필요합니다."
+            })
+        
+        # 포인트 통계 계산
+        points_collection = db_mgr.points_collection
+        
+        # 총 지급된 포인트
+        total_earned = points_collection.aggregate([
+            {"$group": {"_id": None, "total": {"$sum": "$total_earned"}}}
+        ])
+        total_earned_value = list(total_earned)
+        total_earned_value = total_earned_value[0]["total"] if total_earned_value else 0
+        
+        # 총 사용된 포인트
+        total_spent = points_collection.aggregate([
+            {"$group": {"_id": None, "total": {"$sum": "$total_spent"}}}
+        ])
+        total_spent_value = list(total_spent)
+        total_spent_value = total_spent_value[0]["total"] if total_spent_value else 0
+        
+        # 현재 잔여 포인트
+        current_points = points_collection.aggregate([
+            {"$group": {"_id": None, "total": {"$sum": "$points"}}}
+        ])
+        current_points_value = list(current_points)
+        current_points_value = current_points_value[0]["total"] if current_points_value else 0
+        
+        return JSONResponse({
+            "success": True,
+            "stats": {
+                "total_sold": total_earned_value,
+                "total_used": total_spent_value,
+                "remaining": current_points_value,
+                "total_points": current_points_value
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ 포인트 통계 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "포인트 통계 조회 중 오류가 발생했습니다."}
+        )
+
+@app.get("/api/admin/points/users")
+async def admin_points_users(request: Request):
+    """관리자용 사용자 포인트 목록 API"""
+    user = get_current_user(request)
+    if not user or not user.get("is_admin"):
+        return JSONResponse(
+            status_code=403,
+            content={"success": False, "error": "관리자 권한이 필요합니다."}
+        )
+    
+    try:
+        if not mongo_client or not verify_connection() or not db_mgr or db_mgr.points_collection is None:
+            return JSONResponse({
+                "success": False,
+                "error": "데이터베이스 연결이 필요합니다."
+            })
+        
+        # 모든 사용자의 포인트 정보 조회
+        points_data = list(db_mgr.points_collection.find({}))
+        
+        users_list = []
+        for point_data in points_data:
+            user_id = point_data.get("user_id", "")
+            users_list.append({
+                "user_id": user_id,
+                "name": user_id,  # 실제로는 사용자 이름을 가져와야 함
+                "current_points": point_data.get("points", 0),
+                "total_earned": point_data.get("total_earned", 0),
+                "total_spent": point_data.get("total_spent", 0),
+                "last_updated": point_data.get("updated_at", "")
+            })
+        
+        return JSONResponse({
+            "success": True,
+            "users": users_list
+        })
+        
+    except Exception as e:
+        print(f"❌ 사용자 포인트 목록 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "사용자 포인트 목록 조회 중 오류가 발생했습니다."}
+        )
+
+@app.post("/api/admin/points/adjust")
+async def admin_adjust_points(request: Request):
+    """관리자용 포인트 조정 API"""
+    user = get_current_user(request)
+    if not user or not user.get("is_admin"):
+        return JSONResponse(
+            status_code=403,
+            content={"success": False, "error": "관리자 권한이 필요합니다."}
+        )
+    
+    try:
+        data = await request.json()
+        user_id = data.get("user_id", "").strip()
+        amount = int(data.get("amount", 0))
+        action = data.get("action", "add")  # add, subtract, set
+        
+        if not user_id or amount < 0:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "유효한 사용자 ID와 금액을 입력하세요."}
+            )
+        
+        if not mongo_client or not verify_connection() or not db_mgr or db_mgr.points_collection is None:
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "error": "데이터베이스 연결이 필요합니다."}
+            )
+        
+        description = f"관리자 {action}"
+        success = False
+        
+        if action == "add":
+            success = db_mgr.add_points(user_id, amount, description)
+        elif action == "subtract":
+            success = db_mgr.deduct_points(user_id, amount, description)
+        elif action == "set":
+            # 현재 포인트를 얻어서 차이만큼 조정
+            current_points = db_mgr.get_user_points(user_id)
+            diff = amount - current_points
+            if diff > 0:
+                success = db_mgr.add_points(user_id, diff, f"관리자 설정 ({amount})")
+            elif diff < 0:
+                success = db_mgr.deduct_points(user_id, abs(diff), f"관리자 설정 ({amount})")
+            else:
+                success = True  # 변경 없음
+        
+        if success:
+            return JSONResponse({
+                "success": True,
+                "message": f"포인트가 성공적으로 조정되었습니다."
+            })
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "error": "포인트 조정에 실패했습니다."}
+            )
+            
+    except Exception as e:
+        print(f"❌ 포인트 조정 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "포인트 조정 중 오류가 발생했습니다."}
+        )
 
 # ==================== 서버 실행 ====================
 

@@ -317,5 +317,157 @@
       "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
       "timestamp": "2025-07-31T20:11:59.710613"
     }
-  ]
+  ],
+  "session_test_eora_ai_1753966342036": [
+    {
+      "role": "user",
+      "content": "안녕하세요! 간단한 인사말을 해주세요.",
+      "timestamp": "2025-07-31T21:52:22.040359"
+    }
+  ],
+  "session_admin_eora_ai_1753966344082": [
+    {
+      "role": "user",
+      "content": "관리자 무제한 채팅 테스트입니다.",
+      "timestamp": "2025-07-31T21:52:24.085964"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T21:52:24.668979"
+    }
+  ],
+  "session_test_eora_ai_1753966345682": [],
+  "session_test_eora_ai_1753966467197": [
+    {
+      "role": "user",
+      "content": "안녕하세요! 간단한 인사말을 해주세요.",
+      "timestamp": "2025-07-31T21:54:27.201810"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T21:54:27.667320"
+    }
+  ],
+  "session_admin_eora_ai_1753966469697": [
+    {
+      "role": "user",
+      "content": "관리자 무제한 채팅 테스트입니다.",
+      "timestamp": "2025-07-31T21:54:29.701396"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T21:54:29.916431"
+    }
+  ],
+  "session_test_eora_ai_1753966470932": [
+    {
+      "role": "user",
+      "content": "포인트가 0인 상태에서 채팅 시도",
+      "timestamp": "2025-07-31T21:54:30.936433"
+    }
+  ],
+  "session_test_eora_ai_1753966474252": [
+    {
+      "role": "user",
+      "content": "안녕하세요! 간단한 인사말을 해주세요.",
+      "timestamp": "2025-07-31T21:54:34.256502"
+    }
+  ],
+  "session_admin_eora_ai_1753966476281": [
+    {
+      "role": "user",
+      "content": "관리자 무제한 채팅 테스트입니다.",
+      "timestamp": "2025-07-31T21:54:36.285095"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T21:54:36.467094"
+    }
+  ],
+  "session_test_eora_ai_1753966477481": [
+    {
+      "role": "user",
+      "content": "포인트가 0인 상태에서 채팅 시도",
+      "timestamp": "2025-07-31T21:54:37.486636"
+    }
+  ],
+  "session_test_eora_ai_1753966528345": [
+    {
+      "role": "user",
+      "content": "안녕하세요! 간단한 인사말을 해주세요.",
+      "timestamp": "2025-07-31T21:55:28.349152"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T21:55:28.606665"
+    }
+  ],
+  "session_admin_eora_ai_1753966530632": [
+    {
+      "role": "user",
+      "content": "관리자 무제한 채팅 테스트입니다.",
+      "timestamp": "2025-07-31T21:55:30.636257"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T21:55:30.812257"
+    }
+  ],
+  "session_test_eora_ai_1753966531829": [],
+  "session_test_eora_ai_1753966759882": [
+    {
+      "role": "user",
+      "content": "안녕하세요! 간단한 인사말을 해주세요.",
+      "timestamp": "2025-07-31T21:59:19.888591"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T21:59:20.381100"
+    }
+  ],
+  "session_admin_eora_ai_1753966762408": [
+    {
+      "role": "user",
+      "content": "관리자 무제한 채팅 테스트입니다.",
+      "timestamp": "2025-07-31T21:59:22.412737"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-07-31T21:59:23.045264"
+    }
+  ],
+  "session_test_eora_ai_1753966764059": [],
+  "session_test_eora_ai_1754042132863": [
+    {
+      "role": "user",
+      "content": "안녕하세요! 간단한 인사말을 해주세요.",
+      "timestamp": "2025-08-01T18:55:32.868119"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-08-01T18:55:33.749519"
+    }
+  ],
+  "session_admin_eora_ai_1754042135777": [
+    {
+      "role": "user",
+      "content": "관리자 무제한 채팅 테스트입니다.",
+      "timestamp": "2025-08-01T18:55:35.780261"
+    },
+    {
+      "role": "assistant",
+      "content": "응답 생성 중 오류가 발생했습니다: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************lnMA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+      "timestamp": "2025-08-01T18:55:35.999267"
+    }
+  ],
+  "session_test_eora_ai_1754042137015": []
 }

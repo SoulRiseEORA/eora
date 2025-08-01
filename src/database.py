@@ -87,17 +87,28 @@ def db_manager():
         init_mongodb_connection()
     
     class DBManager:
+        def __init__(self):
+            """DBManager 초기화"""
+            self.mongo_client = mongo_client
+            self.db = db
+            self.sessions_collection = sessions_collection
+            self.chat_logs_collection = chat_logs_collection
+            self.memories_collection = memories_collection
+            self.users_collection = users_collection
+            self.system_logs_collection = system_logs_collection
+            self.points_collection = points_collection
+            
         def is_connected(self):
             """데이터베이스 연결 상태를 확인합니다."""
-            return mongo_client is not None and verify_connection()
+            return self.mongo_client is not None and verify_connection()
             
         async def get_user_sessions(self, user_id):
             """사용자의 세션 목록을 조회합니다."""
             try:
-                if sessions_collection is None:
+                if self.sessions_collection is None:
                     return []
                 
-                sessions = list(sessions_collection.find({"user_id": user_id}))
+                sessions = list(self.sessions_collection.find({"user_id": user_id}))
                 
                 # ObjectId와 datetime 직렬화
                 for session in sessions:
@@ -122,7 +133,7 @@ def db_manager():
         async def create_session(self, session_data):
             """새 세션을 생성합니다."""
             try:
-                if sessions_collection is None:
+                if self.sessions_collection is None:
                     return None
                 
                 # ObjectId 직렬화를 위한 데이터 정리
@@ -135,7 +146,7 @@ def db_manager():
                     else:
                         clean_session_data[key] = value
                 
-                result = sessions_collection.insert_one(clean_session_data)
+                result = self.sessions_collection.insert_one(clean_session_data)
                 logger.info(f"✅ 세션 생성 성공: {result.inserted_id}")
                 return str(result.inserted_id)
             except Exception as e:
@@ -437,6 +448,7 @@ class DatabaseManager:
         self.chat_logs_collection = chat_logs_collection if 'chat_logs_collection' in globals() else None
         self.memories_collection = memories_collection if 'memories_collection' in globals() else None
         self.users_collection = users_collection if 'users_collection' in globals() else None
+        self.points_collection = points_collection if 'points_collection' in globals() else None
     
     def is_connected(self):
         """MongoDB 연결 상태 확인"""
@@ -500,7 +512,7 @@ class DatabaseManager:
     
     def update_session(self, session_id: str, updates: Dict[str, Any]):
         """세션 정보를 업데이트합니다"""
-        if not self.is_connected() or not self.sessions_collection:
+        if not self.is_connected() or self.sessions_collection is None:
             return False
         
         try:
@@ -513,6 +525,154 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"❌ 세션 업데이트 오류: {str(e)}")
             return False
+    
+    # ===== 포인트 시스템 관련 메서드 =====
+    
+    def initialize_user_points(self, user_id: str, initial_points: int = 100000):
+        """새 사용자에게 초기 포인트를 부여합니다"""
+        if not self.is_connected() or self.points_collection is None:
+            logger.warning("MongoDB가 연결되지 않아 포인트 초기화를 건너뜁니다")
+            return False
+        
+        try:
+            # 이미 포인트 데이터가 있는지 확인
+            existing_points = self.points_collection.find_one({"user_id": user_id})
+            if existing_points:
+                logger.info(f"💰 사용자 {user_id}는 이미 포인트가 있습니다")
+                return True
+            
+            # 새 포인트 데이터 생성
+            points_data = {
+                "user_id": user_id,
+                "points": initial_points,
+                "total_earned": initial_points,
+                "total_spent": 0,
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat(),
+                "transactions": [{
+                    "type": "initial",
+                    "amount": initial_points,
+                    "description": "회원가입 보너스",
+                    "timestamp": datetime.now().isoformat()
+                }]
+            }
+            
+            self.points_collection.insert_one(points_data)
+            logger.info(f"💰 사용자 {user_id}에게 초기 포인트 {initial_points} 지급")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ 포인트 초기화 오류: {str(e)}")
+            return False
+    
+    def get_user_points(self, user_id: str) -> int:
+        """사용자의 현재 포인트를 조회합니다"""
+        if not self.is_connected() or self.points_collection is None:
+            return 0
+        
+        try:
+            points_data = self.points_collection.find_one({"user_id": user_id})
+            if points_data:
+                return points_data.get("points", 0)
+            else:
+                # 포인트 데이터가 없으면 초기화
+                self.initialize_user_points(user_id)
+                return 100000  # 초기 포인트
+                
+        except Exception as e:
+            logger.error(f"❌ 포인트 조회 오류: {str(e)}")
+            return 0
+    
+    def deduct_points(self, user_id: str, amount: int, description: str = "채팅 사용") -> bool:
+        """사용자의 포인트를 차감합니다"""
+        if not self.is_connected() or self.points_collection is None:
+            return False
+        
+        try:
+            current_points = self.get_user_points(user_id)
+            if current_points < amount:
+                logger.warning(f"⚠️ 포인트 부족: {user_id} (현재: {current_points}, 필요: {amount})")
+                return False
+            
+            new_points = current_points - amount
+            transaction = {
+                "type": "deduction",
+                "amount": -amount,
+                "description": description,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            self.points_collection.update_one(
+                {"user_id": user_id},
+                {
+                    "$set": {
+                        "points": new_points,
+                        "updated_at": datetime.now().isoformat()
+                    },
+                    "$inc": {"total_spent": amount},
+                    "$push": {"transactions": transaction}
+                }
+            )
+            
+            logger.info(f"💰 포인트 차감: {user_id} -{amount} (잔액: {new_points})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ 포인트 차감 오류: {str(e)}")
+            return False
+    
+    def add_points(self, user_id: str, amount: int, description: str = "포인트 지급") -> bool:
+        """사용자에게 포인트를 추가합니다"""
+        if not self.is_connected() or self.points_collection is None:
+            return False
+        
+        try:
+            current_points = self.get_user_points(user_id)
+            new_points = current_points + amount
+            
+            transaction = {
+                "type": "addition",
+                "amount": amount,
+                "description": description,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            self.points_collection.update_one(
+                {"user_id": user_id},
+                {
+                    "$set": {
+                        "points": new_points,
+                        "updated_at": datetime.now().isoformat()
+                    },
+                    "$inc": {"total_earned": amount},
+                    "$push": {"transactions": transaction}
+                }
+            )
+            
+            logger.info(f"💰 포인트 추가: {user_id} +{amount} (잔액: {new_points})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ 포인트 추가 오류: {str(e)}")
+            return False
+    
+    def get_points_history(self, user_id: str, limit: int = 50) -> List[Dict]:
+        """사용자의 포인트 거래 내역을 조회합니다"""
+        if not self.is_connected() or self.points_collection is None:
+            return []
+        
+        try:
+            points_data = self.points_collection.find_one({"user_id": user_id})
+            if points_data and "transactions" in points_data:
+                # 최신 거래 내역부터 반환
+                transactions = points_data["transactions"][-limit:]
+                transactions.reverse()
+                return transactions
+            return []
+            
+        except Exception as e:
+            logger.error(f"❌ 포인트 내역 조회 오류: {str(e)}")
+            return []
 
 # 전역 데이터베이스 관리자 인스턴스
 db_mgr = DatabaseManager() 
