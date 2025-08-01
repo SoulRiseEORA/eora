@@ -208,13 +208,15 @@ class NewUserRegistrationTester:
             if response.status_code == 200:
                 users = response.json().get('users', [])
                 
-                # 테스트 사용자 찾기
+                # 테스트 사용자 찾기 (user_id 또는 email 필드 확인)
                 test_user_found = False
                 for user in users:
-                    if user.get('email') == test_email:
+                    # user_id 또는 email 필드에서 테스트 이메일 확인
+                    user_email = user.get('email') or user.get('user_id')
+                    if user_email == test_email:
                         test_user_found = True
                         self.log(f"✅ 관리자 화면에서 신규 사용자 확인:")
-                        self.log(f"   📧 Email: {user.get('email')}")
+                        self.log(f"   📧 Email/User ID: {user_email}")
                         self.log(f"   👤 Name: {user.get('name')}")
                         self.log(f"   💰 Points: {user.get('current_points', 0):,}")
                         break

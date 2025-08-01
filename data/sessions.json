@@ -297,5 +297,25 @@
     "created_at": "2025-08-01T19:28:59.212179",
     "updated_at": "2025-08-01T19:28:59.212179",
     "message_count": 2
+  },
+  "session_newuser1754044308_test_eora_ai_1754044310412": {
+    "id": "session_newuser1754044308_test_eora_ai_1754044310412",
+    "session_id": "session_newuser1754044308_test_eora_ai_1754044310412",
+    "user_id": "newuser1754044308@test.eora.ai",
+    "user_email": "newuser1754044308@test.eora.ai",
+    "name": "안녕하세요! 저는 새로운 사용자입니다. 간단한 인사를 해주세요.",
+    "created_at": "2025-08-01T19:31:50.412039",
+    "updated_at": "2025-08-01T19:31:50.412039",
+    "message_count": 2
+  },
+  "session_newuser1754045397_test_eora_ai_1754045399049": {
+    "id": "session_newuser1754045397_test_eora_ai_1754045399049",
+    "session_id": "session_newuser1754045397_test_eora_ai_1754045399049",
+    "user_id": "newuser1754045397@test.eora.ai",
+    "user_email": "newuser1754045397@test.eora.ai",
+    "name": "안녕하세요! 저는 새로운 사용자입니다. 간단한 인사를 해주세요.",
+    "created_at": "2025-08-01T19:49:59.049880",
+    "updated_at": "2025-08-01T19:49:59.049880",
+    "message_count": 2
   }
 }

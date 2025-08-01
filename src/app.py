@@ -3117,6 +3117,12 @@ async def admin_points_users(request: Request):
         
         print(f"📊 관리자 포인트 사용자 목록: 총 {total_users}명, 활성 {active_users}명, 총 포인트 {total_points:,}")
         
+        # 디버깅: 사용자 목록 로그
+        print(f"🔍 디버깅 - 메모리 DB 사용자 수: {len(users_db)}")
+        print(f"🔍 디버깅 - 포인트 DB 사용자 수: {len(points_db)}")
+        for i, user in enumerate(users_list[:5]):  # 처음 5명만 로그
+            print(f"  User {i+1}: {user.get('email', 'NO_EMAIL')} | {user.get('name', 'NO_NAME')} | {user.get('current_points', 0)} pts")
+        
         return JSONResponse({
             "success": True,
             "users": users_list,

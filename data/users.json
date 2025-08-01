@@ -38,5 +38,53 @@
     "role": "user",
     "is_admin": false,
     "created_at": "2025-08-01T19:28:57.198510"
+  },
+  "newuser1754044308@test.eora.ai": {
+    "email": "newuser1754044308@test.eora.ai",
+    "password": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+    "name": "신규사용자1754044308",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T19:31:48.399094"
+  },
+  "debuguser1754044706@test.eora.ai": {
+    "email": "debuguser1754044706@test.eora.ai",
+    "password": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+    "name": "디버그사용자1754044706",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T19:38:27.001771"
+  },
+  "debuguser1754044763@test.eora.ai": {
+    "email": "debuguser1754044763@test.eora.ai",
+    "password": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+    "name": "디버그사용자1754044763",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T19:39:23.577305"
+  },
+  "debuguser1754044837@test.eora.ai": {
+    "email": "debuguser1754044837@test.eora.ai",
+    "password": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+    "name": "디버그사용자1754044837",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T19:40:37.899412"
+  },
+  "debuguser1754044870@test.eora.ai": {
+    "email": "debuguser1754044870@test.eora.ai",
+    "password": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+    "name": "디버그사용자1754044870",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T19:41:10.422436"
+  },
+  "newuser1754045397@test.eora.ai": {
+    "email": "newuser1754045397@test.eora.ai",
+    "password": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+    "name": "신규사용자1754045397",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T19:49:57.037603"
   }
 }
