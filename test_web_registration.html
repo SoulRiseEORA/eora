@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA 회원가입 테스트</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 EORA 회원가입 테스트</h1>
+
+        <form id="registrationForm">
+            <div class="form-group">
+                <label for="email">이메일</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">비밀번호</label>
+                <input type="password" id="password" name="password" required minlength="6">
+            </div>
+
+            <div class="form-group">
+                <label for="name">이름</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+
+            <button type="submit">회원가입</button>
+        </form>
+
+        <div id="result" class="result"></div>
+
+        <div style="margin-top: 30px; text-align: center;">
+            <button onclick="generateTestUser()" style="background: #28a745; width: auto; padding: 10px 20px;">
+                테스트 사용자 자동 생성
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const baseURL = 'http://127.0.0.1:8300';
+
+        // 테스트 사용자 자동 생성
+        function generateTestUser() {
+            const timestamp = Date.now();
+            document.getElementById('email').value = `testuser${timestamp}@eora.ai`;
+            document.getElementById('password').value = 'test123456';
+            document.getElementById('name').value = '테스트사용자';
+        }
+
+        // 회원가입 폼 처리
+        document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '⏳ 회원가입 중...';
+
+            try {
+                const response = await fetch(`${baseURL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password, name })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ 회원가입 성공!</h3>
+                        <p><strong>사용자 ID:</strong> ${data.user.user_id}</p>
+                        <p><strong>이메일:</strong> ${data.user.email}</p>
+                        <p><strong>이름:</strong> ${data.user.name}</p>
+                        <p><strong>초기 포인트:</strong> ${data.user.initial_points.toLocaleString()} 포인트</p>
+                        <p><strong>저장소:</strong> ${data.user.storage_quota_mb}MB</p>
+                        <p style="margin-top: 15px; color: #155724;">
+                            🎉 ${data.message}
+                        </p>
+                    `;
+
+                    // 폼 초기화
+                    document.getElementById('registrationForm').reset();
+
+                    // 로그인 테스트
+                    setTimeout(() => testLogin(email, password), 2000);
+
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ 회원가입 실패</h3>
+                        <p>${data.error || '알 수 없는 오류가 발생했습니다.'}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ 연결 오류</h3>
+                    <p>서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.</p>
+                    <p><small>오류: ${error.message}</small></p>
+                `;
+            }
+        });
+
+        // 로그인 테스트
+        async function testLogin(email, password) {
+            const resultDiv = document.getElementById('result');
+
+            try {
+                const response = await fetch(`${baseURL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML += `
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #c3e6cb;">
+                            <h4>🔐 로그인 테스트 성공!</h4>
+                            <p><strong>현재 포인트:</strong> ${data.user.points.toLocaleString()} 포인트</p>
+                            <p><strong>저장소:</strong> ${data.user.storage_quota_mb}MB</p>
+                            <p style="color: #155724;">✅ 모든 기능이 정상적으로 작동합니다!</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML += `
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #c3e6cb;">
+                            <h4>⚠️ 로그인 테스트 실패</h4>
+                            <p>${data.error || '로그인에 실패했습니다.'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #c3e6cb;">
+                        <h4>⚠️ 로그인 테스트 오류</h4>
+                        <p>로그인 테스트 중 오류가 발생했습니다.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 페이지 로드 시 서버 상태 확인
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${baseURL}/`);
+                if (response.ok) {
+                    console.log('✅ 서버 연결 확인됨');
+                } else {
+                    console.warn('⚠️ 서버 응답 이상');
+                }
+            } catch (error) {
+                console.error('❌ 서버 연결 실패:', error);
+                const resultDiv = document.getElementById('result');
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>⚠️ 서버 연결 실패</h3>
+                    <p>EORA 서버가 실행되지 않고 있습니다.</p>
+                    <p><strong>해결 방법:</strong> <code>python src/app.py</code> 명령으로 서버를 시작해주세요.</p>
+                `;
+            }
+        });
+    </script>
+</body>
+
+</html>

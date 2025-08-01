@@ -125,5 +125,67 @@
       "delete_own"
     ],
     "status": "active"
+  },
+  "testuser1754049870@eora.ai": {
+    "user_id": "8b637533-097b-4d4f-9c83-91b54e7326f9",
+    "email": "testuser1754049870@eora.ai",
+    "username": "testuser1754049870",
+    "password": "85777f270ad7cf2a790981bbae3c4e484a1dc55e24a77390d692fbf1cffa12fa",
+    "name": "테스트 사용자",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T21:04:30.274561",
+    "last_login": null,
+    "storage_quota": 104857600,
+    "storage_used": 0,
+    "session_count": 0,
+    "total_messages": 0,
+    "profile": {
+      "avatar": null,
+      "bio": "",
+      "location": "",
+      "preferences": {
+        "theme": "auto",
+        "language": "ko",
+        "notifications": true
+      }
+    },
+    "permissions": [
+      "read",
+      "write",
+      "delete_own"
+    ],
+    "status": "active"
+  },
+  "finaltest1754050011@eora.ai": {
+    "user_id": "00b816cd-e094-416f-9142-5f1eaab2f687",
+    "email": "finaltest1754050011@eora.ai",
+    "username": "finaltest1754050011",
+    "password": "85777f270ad7cf2a790981bbae3c4e484a1dc55e24a77390d692fbf1cffa12fa",
+    "name": "최종테스트사용자",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T21:06:51.013243",
+    "last_login": null,
+    "storage_quota": 104857600,
+    "storage_used": 0,
+    "session_count": 0,
+    "total_messages": 0,
+    "profile": {
+      "avatar": null,
+      "bio": "",
+      "location": "",
+      "preferences": {
+        "theme": "auto",
+        "language": "ko",
+        "notifications": true
+      }
+    },
+    "permissions": [
+      "read",
+      "write",
+      "delete_own"
+    ],
+    "status": "active"
   }
 }

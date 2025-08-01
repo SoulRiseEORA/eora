@@ -1134,13 +1134,30 @@ async def auth_login(request: Request):
                 content={"success": False, "error": "비밀번호가 일치하지 않습니다."}
             )
         
+        # 사용자 포인트 조회
+        user_points = 0
+        try:
+            # 메모리에서 포인트 확인
+            if email in points_db:
+                user_points = points_db[email].get("current_points", 0)
+            # MongoDB에서 포인트 확인 (백업)
+            elif mongo_client and verify_connection() and db_mgr:
+                points_data = db_mgr.get_user_points(email)
+                if points_data:
+                    user_points = points_data.get("current_points", 0)
+        except Exception as e:
+            print(f"⚠️ 포인트 조회 오류: {e}")
+        
         # 로그인 성공
         response = JSONResponse({
             "success": True,
             "user": {
                 "email": user["email"],
                 "name": user["name"],
-                "is_admin": user.get("is_admin", False)
+                "is_admin": user.get("is_admin", False),
+                "points": user_points,
+                "user_id": user.get("user_id", ""),
+                "storage_quota_mb": user.get("storage_quota", 0) // (1024 * 1024)
             }
         })
         
