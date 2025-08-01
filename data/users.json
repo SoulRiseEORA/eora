@@ -14,5 +14,29 @@
     "role": "user",
     "is_admin": false,
     "created_at": "2025-07-31T21:52:20.026267"
+  },
+  "newuser1754044029@test.eora.ai": {
+    "email": "newuser1754044029@test.eora.ai",
+    "password": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+    "name": "신규사용자1754044029",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T19:27:09.661405"
+  },
+  "newuser1754044110@test.eora.ai": {
+    "email": "newuser1754044110@test.eora.ai",
+    "password": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+    "name": "신규사용자1754044110",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T19:28:30.175941"
+  },
+  "newuser1754044137@test.eora.ai": {
+    "email": "newuser1754044137@test.eora.ai",
+    "password": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+    "name": "신규사용자1754044137",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-01T19:28:57.198510"
   }
 }

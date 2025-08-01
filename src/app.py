@@ -1173,7 +1173,7 @@ async def auth_login(request: Request):
 
 @app.post("/api/auth/register")
 async def auth_register(request: Request):
-    """회원가입 API"""
+    """회원가입 API - 완전한 사용자 독립성과 포인트 시스템 연동"""
     try:
         body = await request.json()
         email = body.get("email", "").strip()
@@ -1187,6 +1187,22 @@ async def auth_register(request: Request):
                 content={"success": False, "error": "모든 필드를 입력해주세요."}
             )
         
+        # 이메일 형식 검증
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "올바른 이메일 형식을 입력해주세요."}
+            )
+        
+        # 비밀번호 강도 검증
+        if len(password) < 6:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "비밀번호는 6자 이상이어야 합니다."}
+            )
+        
         # 이메일 중복 확인
         if email in users_db:
             return JSONResponse(
@@ -1194,51 +1210,168 @@ async def auth_register(request: Request):
                 content={"success": False, "error": "이미 존재하는 이메일입니다."}
             )
         
+        # 고유 사용자 ID 생성 (UUID 기반)
+        import uuid
+        user_id = str(uuid.uuid4())
+        username = email.split("@")[0]  # 이메일 앞부분을 기본 사용자명으로
+        
         # 비밀번호 해싱
         password_hash = hashlib.sha256(password.encode()).hexdigest()
         
-        # 새 사용자 생성
+        # 새 사용자 기본 정보 생성
         user_data = {
+            "user_id": user_id,  # 고유 ID
             "email": email,
+            "username": username,
             "password": password_hash,
             "name": name,
             "role": "user",
             "is_admin": False,
-            "created_at": datetime.now().isoformat()
+            "created_at": datetime.now().isoformat(),
+            "last_login": None,
+            "storage_quota": 100 * 1024 * 1024,  # 100MB 저장소 할당
+            "storage_used": 0,
+            "session_count": 0,
+            "total_messages": 0,
+            "profile": {
+                "avatar": None,
+                "bio": "",
+                "location": "",
+                "preferences": {
+                    "theme": "auto",
+                    "language": "ko",
+                    "notifications": True
+                }
+            },
+            "permissions": ["read", "write", "delete_own"],
+            "status": "active"
         }
         
-        # 사용자 정보 저장
+        # 사용자 정보 저장 (이메일을 키로 사용)
         users_db[email] = user_data
         save_json_data(USERS_FILE, users_db)
         
         # 포인트 시스템 초기화 (100,000 포인트 지급)
+        initial_points = 100000
+        point_init_success = False
+        
+        # MongoDB 포인트 시스템 초기화
         if mongo_client and verify_connection() and db_mgr:
             try:
-                success = db_mgr.initialize_user_points(email, 100000)
+                success = db_mgr.initialize_user_points(email, initial_points)
                 if success:
-                    print(f"💰 신규 회원가입 포인트 지급: {email} - 100,000포인트")
+                    point_init_success = True
+                    print(f"💰 MongoDB 포인트 초기화 성공: {email} - {initial_points:,}포인트")
                 else:
-                    print(f"⚠️ 포인트 초기화 실패: {email}")
+                    print(f"⚠️ MongoDB 포인트 초기화 실패: {email}")
             except Exception as point_error:
-                print(f"⚠️ 포인트 초기화 오류: {point_error}")
+                print(f"⚠️ MongoDB 포인트 초기화 오류: {point_error}")
         
-        print(f"✅ 신규 회원가입: {email}")
+        # 메모리 기반 포인트 시스템도 초기화 (백업)
+        points_db[email] = {
+            "user_id": user_id,
+            "email": email,
+            "current_points": initial_points,
+            "total_earned": initial_points,
+            "total_spent": 0,
+            "last_updated": datetime.now().isoformat(),
+            "history": [{
+                "type": "signup_bonus",
+                "amount": initial_points,
+                "description": f"신규 회원가입 보너스 ({initial_points:,} 포인트)",
+                "timestamp": datetime.now().isoformat(),
+                "balance_after": initial_points
+            }]
+        }
+        
+        # 개별 사용자 세션 저장소 초기화
+        user_sessions_key = f"sessions_{user_id}"
+        user_messages_key = f"messages_{user_id}"
+        
+        # 사용자별 세션 및 메시지 저장소 생성
+        if user_sessions_key not in sessions_db:
+            sessions_db[user_sessions_key] = {}
+        if user_messages_key not in messages_db:
+            messages_db[user_messages_key] = {}
+        
+        # 사용자 메타데이터 저장
+        user_metadata = {
+            "user_id": user_id,
+            "email": email,
+            "name": name,
+            "registration_date": datetime.now().isoformat(),
+            "storage_allocation": {
+                "total_mb": 100,
+                "used_mb": 0,
+                "available_mb": 100
+            },
+            "point_account": {
+                "initial_points": initial_points,
+                "mongodb_initialized": point_init_success,
+                "memory_backup": True
+            },
+            "feature_access": {
+                "chat": True,
+                "file_upload": True,
+                "advanced_memory": True,
+                "admin_features": False
+            }
+        }
+        
+        # MongoDB에 사용자 메타데이터 저장
+        if mongo_client and verify_connection():
+            try:
+                from database import users_collection
+                if users_collection:
+                    users_collection.insert_one({
+                        **user_metadata,
+                        "_id": user_id,
+                        "created_at": datetime.now()
+                    })
+                    print(f"📊 MongoDB 사용자 메타데이터 저장 성공: {email}")
+            except Exception as meta_error:
+                print(f"⚠️ 사용자 메타데이터 저장 오류: {meta_error}")
+        
+        print(f"✅ 신규 회원가입 완료: {email}")
+        print(f"   🆔 사용자 ID: {user_id}")
+        print(f"   💾 저장소 할당: 100MB")
+        print(f"   💰 초기 포인트: {initial_points:,}포인트")
+        print(f"   🔗 MongoDB 연동: {'성공' if point_init_success else '백업모드'}")
         
         return JSONResponse({
             "success": True,
-            "message": "회원가입이 완료되었습니다. 100,000 포인트가 지급되었습니다.",
+            "message": f"회원가입이 완료되었습니다! {initial_points:,} 포인트가 지급되었습니다.",
             "user": {
+                "user_id": user_id,
                 "email": email,
+                "username": username,
                 "name": name,
-                "is_admin": False
+                "is_admin": False,
+                "storage_quota_mb": 100,
+                "initial_points": initial_points
+            },
+            "features": {
+                "point_system": True,  # 메모리 DB에는 항상 저장되므로 True
+                "storage_allocation": True,
+                "independent_sessions": True,
+                "advanced_memory": True
             }
         })
         
     except Exception as e:
         print(f"❌ 회원가입 오류: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # 오류 발생 시 정리 작업
+        if 'email' in locals() and email in users_db:
+            del users_db[email]
+        if 'email' in locals() and email in points_db:
+            del points_db[email]
+            
         return JSONResponse(
             status_code=500,
-            content={"success": False, "error": "서버 오류가 발생했습니다."}
+            content={"success": False, "error": "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요."}
         )
 
 @app.post("/api/auth/logout")
@@ -2911,7 +3044,7 @@ async def admin_points_stats(request: Request):
 
 @app.get("/api/admin/points/users")
 async def admin_points_users(request: Request):
-    """관리자용 사용자 포인트 목록 API"""
+    """관리자용 사용자 포인트 목록 API - 메모리 DB와 MongoDB 통합"""
     user = get_current_user(request)
     if not user or not user.get("is_admin"):
         return JSONResponse(
@@ -2920,34 +3053,85 @@ async def admin_points_users(request: Request):
         )
     
     try:
-        if not mongo_client or not verify_connection() or not db_mgr or db_mgr.points_collection is None:
-            return JSONResponse({
-                "success": False,
-                "error": "데이터베이스 연결이 필요합니다."
-            })
-        
-        # 모든 사용자의 포인트 정보 조회
-        points_data = list(db_mgr.points_collection.find({}))
-        
         users_list = []
-        for point_data in points_data:
-            user_id = point_data.get("user_id", "")
+        processed_emails = set()
+        
+        # 1. 메모리 DB에서 사용자 정보 수집 (신규 사용자 포함)
+        for email, user_data in users_db.items():
+            if email in processed_emails:
+                continue
+            processed_emails.add(email)
+            
+            # 포인트 정보 가져오기 (메모리 DB 우선)
+            points_info = points_db.get(email, {})
+            current_points = points_info.get("current_points", 0)
+            total_earned = points_info.get("total_earned", 0)
+            total_spent = points_info.get("total_spent", 0)
+            last_updated = points_info.get("last_updated", "")
+            
             users_list.append({
-                "user_id": user_id,
-                "name": user_id,  # 실제로는 사용자 이름을 가져와야 함
-                "current_points": point_data.get("points", 0),
-                "total_earned": point_data.get("total_earned", 0),
-                "total_spent": point_data.get("total_spent", 0),
-                "last_updated": point_data.get("updated_at", "")
+                "user_id": user_data.get("user_id", email),
+                "email": email,
+                "name": user_data.get("name", "Unknown"),
+                "current_points": current_points,
+                "total_earned": total_earned,
+                "total_spent": total_spent,
+                "last_updated": last_updated,
+                "created_at": user_data.get("created_at", ""),
+                "is_admin": user_data.get("is_admin", False),
+                "source": "memory_db"
             })
+        
+        # 2. MongoDB에서 추가 포인트 정보 수집 (메모리 DB에 없는 사용자들)
+        if mongo_client and verify_connection() and db_mgr and db_mgr.points_collection is not None:
+            try:
+                points_data = list(db_mgr.points_collection.find({}))
+                
+                for point_data in points_data:
+                    user_id = point_data.get("user_id", "")
+                    if user_id and user_id not in processed_emails:
+                        processed_emails.add(user_id)
+                        
+                        users_list.append({
+                            "user_id": user_id,
+                            "email": user_id,
+                            "name": user_id.split("@")[0] if "@" in user_id else user_id,
+                            "current_points": point_data.get("points", 0),
+                            "total_earned": point_data.get("total_earned", 0),
+                            "total_spent": point_data.get("total_spent", 0),
+                            "last_updated": point_data.get("updated_at", ""),
+                            "created_at": point_data.get("created_at", ""),
+                            "is_admin": False,
+                            "source": "mongodb"
+                        })
+            except Exception as mongo_error:
+                print(f"⚠️ MongoDB 포인트 데이터 조회 오류: {mongo_error}")
+        
+        # 포인트순으로 정렬 (높은 순)
+        users_list.sort(key=lambda x: x.get("current_points", 0), reverse=True)
+        
+        # 통계 계산
+        total_users = len(users_list)
+        total_points = sum(user.get("current_points", 0) for user in users_list)
+        active_users = len([user for user in users_list if user.get("current_points", 0) > 0])
+        
+        print(f"📊 관리자 포인트 사용자 목록: 총 {total_users}명, 활성 {active_users}명, 총 포인트 {total_points:,}")
         
         return JSONResponse({
             "success": True,
-            "users": users_list
+            "users": users_list,
+            "stats": {
+                "total_users": total_users,
+                "active_users": active_users,
+                "total_points": total_points,
+                "average_points": round(total_points / total_users, 2) if total_users > 0 else 0
+            }
         })
         
     except Exception as e:
         print(f"❌ 사용자 포인트 목록 오류: {e}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": "사용자 포인트 목록 조회 중 오류가 발생했습니다."}
