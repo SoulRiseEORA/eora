@@ -1,0 +1,77 @@
+# 환경변수 파일
+.env
+.env.local
+.env.production
+.env.development
+ECHO is off.
+# Python 관련
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+ECHO is off.
+# 로그 파일
+*.log
+logs/
+chat_logs/
+ECHO is off.
+# 데이터베이스 파일
+*.db
+*.sqlite
+*.sqlite3
+ECHO is off.
+# 시스템 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+ECHO is off.
+# IDE 파일
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+ECHO is off.
+# 임시 파일
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+ECHO is off.
+# Node.js 관련 (혹시 있을 경우)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+ECHO is off.
+# Railway 관련
+.railway/
+ECHO is off.
+# 테스트 파일
+test_*.html
+debug_*.py
+quick_test_*.py
+ECHO is off.
+# 압축 파일
+*.zip
+*.rar
+*.7z
+*.tar.gz

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프롬프트 관리 문제 해결</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            color: #00ff88;
+        }
+
+        .solution-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            border-left: 5px solid #00ff88;
+        }
+
+        .solution-box h2 {
+            color: #00ff88;
+            margin-top: 0;
+        }
+
+        .problem {
+            background: rgba(255, 100, 100, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 2px solid #ff6464;
+        }
+
+        .fix {
+            background: rgba(100, 255, 100, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 2px solid #64ff64;
+        }
+
+        .code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+
+        .link-btn {
+            display: inline-block;
+            background: #00ff88;
+            color: #333;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin: 10px;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .link-btn:hover {
+            background: #00cc70;
+            transform: scale(1.05);
+        }
+
+        .test-links {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        ul {
+            line-height: 2;
+        }
+
+        .highlight {
+            background: rgba(255, 255, 0, 0.3);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 프롬프트 관리 문제 해결</h1>
+
+        <div class="problem">
+            <h2>❌ 문제: 프롬프트 불러오기가 안 됨</h2>
+            <p>프롬프트 관리자에서 ai_prompts.json 파일을 불러오지 못하는 문제가 발생했습니다.</p>
+        </div>
+
+        <div class="fix">
+            <h2>✅ 해결 방법</h2>
+            <p>stable_server.py가 수정되어 다음과 같이 작동합니다:</p>
+            <ul>
+                <li>✅ ai_prompts.json 파일을 여러 경로에서 검색</li>
+                <li>✅ AI1의 system은 <span class="highlight">문자열</span>로 처리</li>
+                <li>✅ AI1의 role, guide, format은 <span class="highlight">배열</span>로 처리</li>
+                <li>✅ 프롬프트 관리 API 엔드포인트 구현 완료</li>
+            </ul>
+        </div>
+
+        <div class="solution-box">
+            <h2>📁 ai_prompts.json 파일 위치</h2>
+            <p>서버는 다음 순서로 파일을 찾습니다:</p>
+            <div class="code">
+                1. ai_prompts.json (루트 디렉토리)
+                2. src/ai_prompts.json
+                3. src/templates/ai_prompts.json
+                4. src/ai_brain/ai_prompts.json
+            </div>
+        </div>
+
+        <div class="solution-box">
+            <h2>🔍 AI1 프롬프트 구조</h2>
+            <p>ai_prompts.json에서 AI1의 구조:</p>
+            <div class="code">
+                {
+                "ai1": {
+                "system": "문자열 형태의 시스템 프롬프트",
+                "role": ["역할1", "역할2", "역할3"],
+                "guide": ["가이드1", "가이드2"],
+                "format": ["포맷1", "포맷2"]
+                }
+                }
+            </div>
+        </div>
+
+        <div class="solution-box">
+            <h2>🚀 서버 실행 방법</h2>
+            <div class="code">
+                # 방법 1: Python 직접 실행
+                python stable_server.py
+
+                # 방법 2: 배치 파일 실행
+                start_stable_server.bat
+            </div>
+        </div>
+
+        <div class="solution-box">
+            <h2>🌐 접속 주소</h2>
+            <p>서버가 실행되면 다음 주소로 접속하세요:</p>
+            <ul>
+                <li>홈페이지: <strong>http://127.0.0.1:8100</strong></li>
+                <li>로그인: <strong>http://127.0.0.1:8100/login</strong></li>
+                <li>프롬프트 관리: <strong>http://127.0.0.1:8100/prompt_management</strong></li>
+            </ul>
+        </div>
+
+        <div class="test-links">
+            <h2>🧪 테스트 도구</h2>
+            <a href="test_prompt_debug.html" class="link-btn">프롬프트 디버그</a>
+            <a href="test_prompt_ai1.html" class="link-btn">AI1 테스트</a>
+            <a href="check_stable_server.html" class="link-btn">서버 상태</a>
+        </div>
+
+        <div class="solution-box">
+            <h2>✨ 주요 개선사항</h2>
+            <ul>
+                <li>프롬프트 로드 시 AI1의 특수 구조 처리</li>
+                <li>API 응답 형식 표준화</li>
+                <li>프롬프트 저장 시 원본 형식 유지</li>
+                <li>에러 처리 개선</li>
+            </ul>
+        </div>
+    </div>
+</body>
+
+</html>

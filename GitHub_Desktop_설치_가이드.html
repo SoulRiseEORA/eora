@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Desktop으로 EORA AI 배포하기</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+
+        .step {
+            background: #ecf0f1;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+            border-radius: 5px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: #2ecc71;
+            color: white;
+            padding: 15px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .download-btn:hover {
+            background: #27ae60;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .file-list {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🖥️ GitHub Desktop으로 EORA AI 배포하기</h1>
+
+        <div class="success">
+            <strong>🎯 이 방법이 가장 쉽고 확실합니다!</strong><br>
+            명령어 입력 없이 그래픽 인터페이스로 간단하게 업로드할 수 있습니다.
+        </div>
+
+        <h2>📥 1단계: GitHub Desktop 다운로드 및 설치</h2>
+        <div class="step">
+            <strong>1-1. 다운로드</strong><br>
+            <a href="https://desktop.github.com" class="download-btn" target="_blank">
+                GitHub Desktop 다운로드
+            </a><br>
+            <small>또는 브라우저에서 https://desktop.github.com 접속</small>
+        </div>
+
+        <div class="step">
+            <strong>1-2. 설치</strong><br>
+            • 다운로드된 <code>GitHubDesktopSetup.exe</code> 파일 실행<br>
+            • 설치 마법사 따라 진행 (기본 설정으로 OK)<br>
+            • 설치 완료 후 자동 실행됨
+        </div>
+
+        <div class="step">
+            <strong>1-3. GitHub 계정 로그인</strong><br>
+            • GitHub Desktop 실행<br>
+            • "Sign in to GitHub.com" 클릭<br>
+            • 웹브라우저에서 GitHub 계정으로 로그인<br>
+            • "Authorize desktop" 클릭하여 권한 부여
+        </div>
+
+        <h2>📂 2단계: EORA AI 프로젝트 추가</h2>
+        <div class="step">
+            <strong>2-1. 기존 프로젝트 추가</strong><br>
+            • GitHub Desktop 메인 화면에서<br>
+            • <strong>"Add an Existing Repository from your Hard Drive"</strong> 클릭<br>
+            • 또는 메뉴에서 File → Add Local Repository
+        </div>
+
+        <div class="step">
+            <strong>2-2. 폴더 선택</strong><br>
+            • "Choose..." 버튼 클릭<br>
+            • <code>E:\eora_new</code> 폴더 선택<br>
+            • "Add Repository" 클릭
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ 주의:</strong> 만약 "This directory does not appear to be a Git repository" 메시지가 나오면:
+            <br>• "create a repository" 링크 클릭
+            <br>• 또는 먼저 <code>SIMPLE_DEPLOY.bat</code> 파일을 실행하세요
+        </div>
+
+        <h2>💾 3단계: 첫 번째 커밋 생성</h2>
+        <div class="step">
+            <strong>3-1. 파일 확인</strong><br>
+            • 좌측 "Changes" 탭에서 변경된 파일들 확인<br>
+            • 모든 파일이 체크되어 있는지 확인<br>
+            • 총 100개 이상의 파일이 표시되어야 함
+        </div>
+
+        <div class="file-list">
+            <strong>📁 포함될 주요 파일들:</strong><br>
+            ✅ src/app.py (183KB)<br>
+            ✅ src/eora_memory_system.py (69KB)<br>
+            ✅ src/aura_memory_system.py (43KB)<br>
+            ✅ src/templates/*.html<br>
+            ✅ src/static/*.css, *.js<br>
+            ✅ README.md<br>
+            ✅ .gitignore<br>
+            ✅ requirements.txt<br>
+            ✅ 모든 가이드 파일들
+        </div>
+
+        <div class="step">
+            <strong>3-2. 커밋 메시지 작성</strong><br>
+            하단 "Summary" 입력창에 다음 내용 입력:<br>
+            <code>🚀 EORA AI 완전한 학습 및 회상 시스템 배포</code>
+        </div>
+
+        <div class="step">
+            <strong>3-3. 상세 설명 입력 (선택사항)</strong><br>
+            "Description" 입력창에 다음 내용 입력:<br>
+            <textarea style="width: 100%; height: 120px; font-family: monospace;">✨ 주요 기능:
+- 8종 회상 시스템 (키워드, 임베딩, 감정, 신념, 맥락, 시간, 연관, 패턴)
+- 관리자 학습 기능 (파일 업로드)
+- 포인트 시스템 (사용량 기반)
+- 실시간 채팅 (WebSocket)
+- MongoDB 데이터베이스 연동
+- OpenAI GPT-4o 통합
+
+🛠 기술 스택: FastAPI + Python + MongoDB + OpenAI
+📁 총 100+ 파일, 50MB+ 프로젝트
+✅ 100% 작동 확인됨</textarea>
+        </div>
+
+        <div class="step">
+            <strong>3-4. 커밋 실행</strong><br>
+            • <strong>"Commit to main"</strong> 버튼 클릭<br>
+            • 잠시 기다리면 커밋 완료
+        </div>
+
+        <h2>🌐 4단계: GitHub에 게시</h2>
+        <div class="step">
+            <strong>4-1. 저장소 게시</strong><br>
+            • 상단의 <strong>"Publish repository"</strong> 버튼 클릭<br>
+            • 또는 메뉴에서 Repository → Publish repository
+        </div>
+
+        <div class="step">
+            <strong>4-2. 저장소 정보 입력</strong><br>
+            • <strong>Name:</strong> <code>eora-ai-complete</code><br>
+            • <strong>Description:</strong> <code>EORA AI - 완전한 학습 및 회상 시스템</code><br>
+            • <strong>Keep this code private:</strong> 원하는 경우 체크 (비공개)<br>
+            • <strong>"Publish Repository"</strong> 클릭
+        </div>
+
+        <div class="step">
+            <strong>4-3. 업로드 진행</strong><br>
+            • 파일 업로드 진행 상황 확인<br>
+            • 완료까지 수 분 소요 (파일 크기에 따라)<br>
+            • 완료되면 "View on GitHub" 링크 표시
+        </div>
+
+        <h2>🎉 5단계: 배포 완료 확인</h2>
+        <div class="success">
+            <strong>✅ 배포 완료!</strong><br>
+            • GitHub Desktop에서 "View on GitHub" 클릭<br>
+            • 또는 브라우저에서 https://github.com/사용자명/eora-ai-complete 접속<br>
+            • 모든 파일이 제대로 업로드되었는지 확인
+        </div>
+
+        <div class="step">
+            <strong>확인할 것들:</strong><br>
+            ✅ README.md가 메인 페이지에 표시되는가?<br>
+            ✅ src 폴더와 모든 하위 파일들이 있는가?<br>
+            ✅ 총 파일 개수가 100개 이상인가?<br>
+            ✅ 프로젝트 크기가 50MB 이상인가?
+        </div>
+
+        <h2>💡 추가 팁</h2>
+        <div class="warning">
+            <strong>🔧 향후 업데이트 방법:</strong><br>
+            • 파일 수정 후 GitHub Desktop에서 "Changes" 확인<br>
+            • 커밋 메시지 작성 후 "Commit to main"<br>
+            • "Push origin" 버튼으로 GitHub에 동기화<br>
+            • 매우 간단하고 직관적!
+        </div>
+
+        <div class="success">
+            <strong>🚀 GitHub Desktop의 장점:</strong><br>
+            ✅ 명령어 입력 불필요<br>
+            ✅ 시각적으로 파일 변경사항 확인 가능<br>
+            ✅ 실패할 가능성 거의 없음<br>
+            ✅ 브랜치, 병합 등 고급 기능도 쉽게 사용<br>
+            ✅ 여러 프로젝트 관리 편리
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Desktop으로 EORA AI 배포하기</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #FFD700;
+            border-left: 4px solid #FFD700;
+            padding-left: 15px;
+            margin-top: 30px;
+        }
+
+        .step {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .step-number {
+            background: #FFD700;
+            color: #333;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .success {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid #28a745;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .file-list {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .file-list ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .file-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .file-list li:before {
+            content: "📁 ";
+            margin-right: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🚀 GitHub Desktop으로 EORA AI 배포하기</h1>
+
+    <div class="container">
+        <h2>📥 GitHub Desktop 다운로드 및 설치</h2>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <strong>GitHub Desktop 다운로드</strong>
+            <br><br>
+            <a href="https://desktop.github.com/" class="download-btn" target="_blank">
+                GitHub Desktop 다운로드
+            </a>
+            <br>
+            <small>Windows용 최신 버전을 자동으로 다운로드됩니다.</small>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <strong>GitHub Desktop 설치</strong>
+            <br><br>
+            다운로드된 <code>GitHubDesktopSetup.exe</code> 파일을 실행하고 설치를 완료하세요.
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <strong>GitHub 계정으로 로그인</strong>
+            <br><br>
+            GitHub Desktop을 실행하고 GitHub 계정으로 로그인하세요.
+            <br>계정이 없다면 <a href="https://github.com/signup" target="_blank" style="color: #FFD700;">github.com에서 무료 계정
+                생성</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📂 프로젝트 폴더를 GitHub Desktop에 추가</h2>
+
+        <div class="step">
+            <span class="step-number">4</span>
+            <strong>로컬 저장소 추가</strong>
+            <br><br>
+            1. GitHub Desktop에서 <code>File → Add Local Repository</code> 클릭<br>
+            2. <code>E:\eora_new</code> 폴더를 선택<br>
+            3. "Create a repository" 클릭
+        </div>
+
+        <div class="step">
+            <span class="step-number">5</span>
+            <strong>저장소 정보 입력</strong>
+            <br><br>
+            <strong>Repository name:</strong> <code>eora-ai-complete</code><br>
+            <strong>Description:</strong> <code>EORA AI - 완전한 학습 및 회상 시스템</code><br>
+            <strong>Local path:</strong> <code>E:\eora_new</code><br>
+            <br>
+            ✅ "Initialize this repository with a README" 체크<br>
+            ✅ "Keep this code private" 체크 (원하는 경우)
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🌐 GitHub에 퍼블리시</h2>
+
+        <div class="step">
+            <span class="step-number">6</span>
+            <strong>모든 파일 커밋</strong>
+            <br><br>
+            1. GitHub Desktop에서 변경된 파일들을 확인<br>
+            2. 커밋 메시지 입력: <code>EORA AI 완전한 학습 기능 구현 - 100% 작동 확인됨</code><br>
+            3. "Commit to main" 버튼 클릭
+        </div>
+
+        <div class="step">
+            <span class="step-number">7</span>
+            <strong>GitHub에 퍼블리시</strong>
+            <br><br>
+            1. "Publish repository" 버튼 클릭<br>
+            2. 저장소 이름 확인: <code>eora-ai-complete</code><br>
+            3. Public/Private 선택<br>
+            4. "Publish Repository" 클릭
+        </div>
+
+        <div class="success">
+            <h3>🎉 배포 완료!</h3>
+            GitHub에서 <code>https://github.com/사용자명/eora-ai-complete</code>로 접속하여 확인하세요.
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📋 배포될 주요 파일들</h2>
+
+        <div class="file-list">
+            <h3>🎯 핵심 서버 파일들</h3>
+            <ul>
+                <li><strong>src/app.py</strong> - 메인 FastAPI 서버 (183KB)</li>
+                <li><strong>src/database.py</strong> - MongoDB 데이터베이스 관리</li>
+                <li><strong>src/eora_memory_system.py</strong> - EORA 메모리 시스템 (69KB)</li>
+                <li><strong>src/aura_memory_system.py</strong> - 8종 회상 시스템 (43KB)</li>
+            </ul>
+
+            <h3>🧠 AI 시스템 파일들</h3>
+            <ul>
+                <li><strong>src/EORA/</strong> - EORA AI 고급 기능 모듈들</li>
+                <li><strong>src/aura_system/</strong> - Aura 시스템 모듈들</li>
+                <li><strong>src/ai_prompts.json</strong> - AI 프롬프트 설정 (41KB)</li>
+            </ul>
+
+            <h3>🌐 웹 인터페이스</h3>
+            <ul>
+                <li><strong>src/templates/</strong> - HTML 템플릿들</li>
+                <li><strong>src/static/</strong> - CSS, JS, 이미지 파일들</li>
+                <li><strong>complete_learning_test.html</strong> - 학습 기능 테스트 페이지</li>
+            </ul>
+
+            <h3>⚙️ 설정 및 요구사항</h3>
+            <ul>
+                <li><strong>requirements.txt</strong> - Python 패키지 의존성</li>
+                <li><strong>.env</strong> - 환경 설정 파일</li>
+                <li><strong>COMPLETE_DEPLOYMENT_GUIDE.md</strong> - 배포 가이드</li>
+            </ul>
+        </div>
+
+        <div class="warning">
+            <h3>⚠️ 주의사항</h3>
+            <ul>
+                <li><strong>.env 파일</strong>에는 민감한 API 키가 포함되어 있습니다</li>
+                <li>Public 저장소로 만들 경우 .env 파일을 .gitignore에 추가하세요</li>
+                <li>MongoDB 연결 정보와 OpenAI API 키는 별도로 관리하세요</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔗 유용한 링크들</h2>
+        <ul>
+            <li><a href="https://desktop.github.com/" target="_blank" style="color: #FFD700;">GitHub Desktop 다운로드</a>
+            </li>
+            <li><a href="https://github.com/signup" target="_blank" style="color: #FFD700;">GitHub 계정 생성</a></li>
+            <li><a href="https://docs.github.com/en/desktop" target="_blank" style="color: #FFD700;">GitHub Desktop
+                    문서</a></li>
+        </ul>
+    </div>
+</body>
+
+</html>

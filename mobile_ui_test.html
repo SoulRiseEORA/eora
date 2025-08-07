@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 모바일 UI 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .device-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .test-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .sample-chat {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .sample-message {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .sample-message.user {
+            flex-direction: row-reverse;
+        }
+
+        .sample-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .sample-message.user .sample-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .sample-message.assistant .sample-avatar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .sample-content {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 20px;
+            max-width: 70%;
+            line-height: 1.5;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .sample-input {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .sample-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .sample-input button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* 모바일 최적화 테스트 */
+        @media (max-width: 768px) {
+            .test-container {
+                margin: 0;
+                padding: 10px;
+            }
+
+            .test-section {
+                border-radius: 15px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+
+            .test-title {
+                font-size: 20px;
+            }
+
+            .test-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .test-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+                min-width: 200px;
+            }
+
+            .sample-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+            }
+
+            .sample-content {
+                max-width: 85%;
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+
+            .sample-input input {
+                padding: 10px 14px;
+                font-size: 16px;
+                /* iOS 확대 방지 */
+            }
+
+            .sample-input button {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <div class="test-section">
+            <h1 class="test-title">📱 EORA AI 모바일 UI 최적화 테스트</h1>
+
+            <div class="device-info">
+                <strong>디바이스 정보:</strong>
+                <br>화면 크기: <span id="screenSize"></span>
+                <br>뷰포트: <span id="viewport"></span>
+                <br>사용자 에이전트: <span id="userAgent"></span>
+            </div>
+
+            <div class="test-buttons">
+                <button class="test-btn" onclick="testResponsive()">📱 반응형 테스트</button>
+                <button class="test-btn" onclick="testTouch()">👆 터치 테스트</button>
+                <button class="test-btn" onclick="testPerformance()">⚡ 성능 테스트</button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">💬 채팅 UI 미리보기</h2>
+
+            <div class="sample-chat">
+                <div class="sample-message user">
+                    <div class="sample-avatar">U</div>
+                    <div class="sample-content">
+                        안녕하세요! **EORA AI** 모바일 테스트입니다.
+                        화면이 잘 보이나요?
+                    </div>
+                </div>
+
+                <div class="sample-message assistant">
+                    <div class="sample-avatar">E</div>
+                    <div class="sample-content">
+                        네, 안녕하세요! 모바일 화면에서도 **깔끔하게** 보입니다.
+                        <br><br>
+                        ✅ 메뉴 크기 최적화<br>
+                        ✅ 채팅창 우선 배치<br>
+                        ✅ 터치 친화적 버튼<br>
+                        ✅ 반응형 레이아웃
+                    </div>
+                </div>
+
+                <div class="sample-input">
+                    <input type="text" placeholder="메시지를 입력하세요..." />
+                    <button>전송</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">📊 테스트 결과</h2>
+            <div id="testResults">
+                <p>테스트 버튼을 클릭하여 결과를 확인하세요.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 디바이스 정보 표시
+        document.getElementById('screenSize').textContent =
+            `${screen.width} x ${screen.height}`;
+        document.getElementById('viewport').textContent =
+            `${window.innerWidth} x ${window.innerHeight}`;
+        document.getElementById('userAgent').textContent =
+            navigator.userAgent.substring(0, 100) + '...';
+
+        function testResponsive() {
+            const width = window.innerWidth;
+            let deviceType = '';
+
+            if (width <= 768) {
+                deviceType = '📱 모바일';
+            } else if (width <= 1024) {
+                deviceType = '📋 태블릿';
+            } else {
+                deviceType = '💻 데스크톱';
+            }
+
+            document.getElementById('testResults').innerHTML = `
+                <h3>반응형 테스트 결과</h3>
+                <p><strong>디바이스 타입:</strong> ${deviceType}</p>
+                <p><strong>뷰포트 너비:</strong> ${width}px</p>
+                <p><strong>상태:</strong> ${width <= 768 ? '✅ 모바일 최적화 적용됨' : '💻 데스크톱 모드'}</p>
+            `;
+        }
+
+        function testTouch() {
+            const hasTouch = 'ontouchstart' in window;
+            const touchPoints = navigator.maxTouchPoints || 0;
+
+            document.getElementById('testResults').innerHTML = `
+                <h3>터치 테스트 결과</h3>
+                <p><strong>터치 지원:</strong> ${hasTouch ? '✅ 지원됨' : '❌ 지원되지 않음'}</p>
+                <p><strong>멀티터치 포인트:</strong> ${touchPoints}개</p>
+                <p><strong>권장사항:</strong> ${hasTouch ? '터치 인터페이스 최적화 완료' : '마우스 인터페이스 사용'}</p>
+            `;
+        }
+
+        function testPerformance() {
+            const startTime = performance.now();
+
+            // 간단한 성능 테스트
+            for (let i = 0; i < 100000; i++) {
+                Math.random();
+            }
+
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+
+            document.getElementById('testResults').innerHTML = `
+                <h3>성능 테스트 결과</h3>
+                <p><strong>렌더링 시간:</strong> ${duration.toFixed(2)}ms</p>
+                <p><strong>메모리 사용량:</strong> ${navigator.deviceMemory || 'N/A'}GB</p>
+                <p><strong>네트워크:</strong> ${navigator.connection?.effectiveType || 'N/A'}</p>
+                <p><strong>성능 등급:</strong> ${duration < 10 ? '🚀 우수' : duration < 50 ? '✅ 양호' : '⚠️ 개선 필요'}</p>
+            `;
+        }
+
+        // 화면 크기 변경 감지
+        window.addEventListener('resize', function () {
+            document.getElementById('viewport').textContent =
+                `${window.innerWidth} x ${window.innerHeight}`;
+        });
+
+        // 페이지 로드 시 자동 테스트
+        window.addEventListener('load', function () {
+            setTimeout(testResponsive, 1000);
+        });
+    </script>
+</body>
+
+</html>

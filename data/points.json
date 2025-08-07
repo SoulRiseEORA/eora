@@ -1,0 +1,392 @@
+{
+  "test1@example.com": {
+    "user_id": "70243109-c215-4bc4-84ef-07293cfb15ca",
+    "email": "test1@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T14:04:42.434309",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:04:42.434309",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "test2@example.com": {
+    "user_id": "ae49e219-8b09-475f-ae3f-2c5f32998c57",
+    "email": "test2@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T14:04:43.461330",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:04:43.461330",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "itpay365@gmail.com": {
+    "user_id": "15a3b4f6-381a-44f8-ae34-d6425ff9676e",
+    "email": "itpay365@gmail.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T14:07:21.101805",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:07:21.101805",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "userid_test_1754284274@example.com": {
+    "user_id": "S2FKHH6O1J3S",
+    "email": "userid_test_1754284274@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T14:11:14.324529",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:11:14.324529",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "autologin_test_1754284274@example.com": {
+    "user_id": "XHP5SMSEW41Q",
+    "email": "autologin_test_1754284274@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T14:11:14.329528",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:11:14.329528",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "duplicate_test_1754284274_0@example.com": {
+    "user_id": "D8V1LSDKNK9S",
+    "email": "duplicate_test_1754284274_0@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T14:11:14.345530",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:11:14.345530",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "duplicate_test_1754284274_1@example.com": {
+    "user_id": "K4TYLVVSS42Q",
+    "email": "duplicate_test_1754284274_1@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T14:11:14.852038",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:11:14.852038",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "duplicate_test_1754284275_2@example.com": {
+    "user_id": "SEGU4UPNHQ92",
+    "email": "duplicate_test_1754284275_2@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T14:11:15.381548",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:11:15.381548",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "duplicate_test_1754284275_3@example.com": {
+    "user_id": "RLFBR6WGU1D9",
+    "email": "duplicate_test_1754284275_3@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T14:11:15.907057",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:11:15.907057",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "duplicate_test_1754284276_4@example.com": {
+    "user_id": "SGFZ894EJ9W7",
+    "email": "duplicate_test_1754284276_4@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T14:11:16.432074",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:11:16.432074",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "point_test_1754284725@example.com": {
+    "user_id": "5SPQLVFYAFSF",
+    "email": "point_test_1754284725@example.com",
+    "current_points": 99676,
+    "total_earned": 100000,
+    "total_spent": 324,
+    "last_updated": "2025-08-04T14:18:51.789439",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T14:18:45.579953",
+        "balance_after": 100000
+      },
+      {
+        "type": "chat_usage",
+        "amount": -72,
+        "description": "채팅 사용 (토큰: 36, 입력: 3, 출력: 33)",
+        "timestamp": "2025-08-04T14:18:47.321530",
+        "balance_after": 99928,
+        "token_details": {
+          "prompt_tokens": 3,
+          "completion_tokens": 33,
+          "total_tokens": 36
+        }
+      },
+      {
+        "type": "chat_usage",
+        "amount": -98,
+        "description": "채팅 사용 (토큰: 49, 입력: 16, 출력: 33)",
+        "timestamp": "2025-08-04T14:18:49.598433",
+        "balance_after": 99830,
+        "token_details": {
+          "prompt_tokens": 16,
+          "completion_tokens": 33,
+          "total_tokens": 49
+        }
+      },
+      {
+        "type": "chat_usage",
+        "amount": -154,
+        "description": "채팅 사용 (토큰: 77, 입력: 44, 출력: 33)",
+        "timestamp": "2025-08-04T14:18:51.789439",
+        "balance_after": 99676,
+        "token_details": {
+          "prompt_tokens": 44,
+          "completion_tokens": 33,
+          "total_tokens": 77
+        }
+      }
+    ]
+  },
+  "test_user_1754294392@example.com": {
+    "user_id": "J1B0W4LR5VIC",
+    "email": "test_user_1754294392@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T16:59:52.985656",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T16:59:52.985656",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "test_user_1754294393@example.com": {
+    "user_id": "1JMHOGZZF24N",
+    "email": "test_user_1754294393@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T16:59:52.990654",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T16:59:52.990654",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "duplicate_1754294392@example.com": {
+    "user_id": "B327OTZWFVH2",
+    "email": "duplicate_1754294392@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T16:59:52.996656",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T16:59:52.996656",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "point_test_1754294418@example.com": {
+    "user_id": "RW3334QLA3UT",
+    "email": "point_test_1754294418@example.com",
+    "current_points": 99676,
+    "total_earned": 100000,
+    "total_spent": 324,
+    "last_updated": "2025-08-04T17:00:24.675470",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T17:00:18.283459",
+        "balance_after": 100000
+      },
+      {
+        "type": "chat_usage",
+        "amount": -72,
+        "description": "채팅 사용 (토큰: 36, 입력: 3, 출력: 33)",
+        "timestamp": "2025-08-04T17:00:20.116471",
+        "balance_after": 99928,
+        "token_details": {
+          "prompt_tokens": 3,
+          "completion_tokens": 33,
+          "total_tokens": 36
+        }
+      },
+      {
+        "type": "chat_usage",
+        "amount": -98,
+        "description": "채팅 사용 (토큰: 49, 입력: 16, 출력: 33)",
+        "timestamp": "2025-08-04T17:00:22.311471",
+        "balance_after": 99830,
+        "token_details": {
+          "prompt_tokens": 16,
+          "completion_tokens": 33,
+          "total_tokens": 49
+        }
+      },
+      {
+        "type": "chat_usage",
+        "amount": -154,
+        "description": "채팅 사용 (토큰: 77, 입력: 44, 출력: 33)",
+        "timestamp": "2025-08-04T17:00:24.675470",
+        "balance_after": 99676,
+        "token_details": {
+          "prompt_tokens": 44,
+          "completion_tokens": 33,
+          "total_tokens": 77
+        }
+      }
+    ]
+  },
+  "fixed_test_1754300062@example.com": {
+    "user_id": "54XL6R3BIAQ2",
+    "email": "fixed_test_1754300062@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T18:34:22.387211",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T18:34:22.387211",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "fixed_test_1754300072@example.com": {
+    "user_id": "E4XVRCLKQQUE",
+    "email": "fixed_test_1754300072@example.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T18:34:32.824646",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T18:34:32.824646",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "soo@naver.com": {
+    "user_id": "3Q9TASU0CN9L",
+    "email": "soo@naver.com",
+    "current_points": 99930,
+    "total_earned": 100000,
+    "total_spent": 70,
+    "last_updated": "2025-08-07T15:55:36.111601",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-07T15:55:21.564733",
+        "balance_after": 100000
+      },
+      {
+        "type": "chat_usage",
+        "amount": -70,
+        "description": "채팅 사용 (토큰: 35, 입력: 2, 출력: 33)",
+        "timestamp": "2025-08-07T15:55:36.111601",
+        "balance_after": 99930,
+        "token_details": {
+          "prompt_tokens": 2,
+          "completion_tokens": 33,
+          "total_tokens": 35
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,365 @@
+{
+  "session_admin_eora_ai_1753850560949": {
+    "id": "session_admin_eora_ai_1753850560949",
+    "user_email": "admin@eora.ai",
+    "name": "새 세션 2025. 7. 30.",
+    "created_at": "2025-07-30T13:42:40.949002",
+    "message_count": 12
+  },
+  "session_local_1753850560951": {
+    "id": "session_local_1753850560951",
+    "user_email": "admin@eora.ai",
+    "name": "대화 2025-07-30 13:42",
+    "created_at": "2025-07-30T13:42:43.914045",
+    "message_count": 8
+  },
+  "session_admin_eora_ai_1753851021499": {
+    "id": "session_admin_eora_ai_1753851021499",
+    "user_email": "admin@eora.ai",
+    "name": "고급 기능 테스트 13:50:21",
+    "created_at": "2025-07-30T13:50:21.499774",
+    "message_count": 8
+  },
+  "session_admin_eora_ai_1753853818235": {
+    "id": "session_admin_eora_ai_1753853818235",
+    "user_email": "admin@eora.ai",
+    "name": "대화 2025-07-30 14:36",
+    "created_at": "2025-07-30T14:36:58.235345",
+    "message_count": 8
+  },
+  "session_local_1753947607093": {
+    "id": "session_local_1753947607093",
+    "user_email": "admin@eora.ai",
+    "name": "대화 2025-07-31 16:40",
+    "created_at": "2025-07-31T16:40:12.805370",
+    "message_count": 4
+  },
+  "session_admin_eora_ai_1753947607088": {
+    "id": "session_admin_eora_ai_1753947607088",
+    "user_email": "admin@eora.ai",
+    "name": "대화 2025-07-31 16:47",
+    "created_at": "2025-07-31T16:47:04.715410",
+    "message_count": 4
+  },
+  "test_session": {
+    "id": "test_session",
+    "user_email": "admin@eora.ai",
+    "name": "대화 2025-07-31 17:16",
+    "created_at": "2025-07-31T17:16:37.200147",
+    "message_count": 2
+  },
+  "session_admin_eora_ai_1753959459155": {
+    "id": "session_admin_eora_ai_1753959459155",
+    "session_id": "session_admin_eora_ai_1753959459155",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "이것은 매우 긴 메시지입니다. 50자를 초과하는 메시지가 세션 제목으로 설정될 때 어떻게 ...",
+    "created_at": "2025-07-31T19:57:39.155811",
+    "updated_at": "2025-07-31T19:57:39.155811",
+    "message_count": 2
+  },
+  "session_admin_eora_ai_1753959498973": {
+    "id": "session_admin_eora_ai_1753959498973",
+    "session_id": "session_admin_eora_ai_1753959498973",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "안녕하세요! 오늘 날씨가 정말 좋네요. 어떻게 보내셨나요?",
+    "created_at": "2025-07-31T19:58:18.973031",
+    "updated_at": "2025-07-31T19:58:18.973031",
+    "message_count": 2
+  },
+  "session_admin_eora_ai_1753959501283": {
+    "id": "session_admin_eora_ai_1753959501283",
+    "session_id": "session_admin_eora_ai_1753959501283",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "이것은 매우 긴 메시지입니다. 50자를 초과하는 메시지가 세션 제목으로 설정될 때 어떻게 ...",
+    "created_at": "2025-07-31T19:58:21.283038",
+    "updated_at": "2025-07-31T19:58:21.283038",
+    "message_count": 2
+  },
+  "session_admin_eora_ai_1753960314651": {
+    "id": "session_admin_eora_ai_1753960314651",
+    "session_id": "session_admin_eora_ai_1753960314651",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "안녕하세요! 현재 시간을 확인하는 첫 번째 메시지입니다.",
+    "created_at": "2025-07-31T20:11:54.651757",
+    "updated_at": "2025-07-31T20:11:54.651757",
+    "message_count": 6
+  },
+  "session_test_eora_ai_1753966342036": {
+    "id": "session_test_eora_ai_1753966342036",
+    "session_id": "session_test_eora_ai_1753966342036",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "테스트 세션",
+    "created_at": "2025-07-31T21:52:22.036360",
+    "updated_at": "2025-07-31T21:52:22.036360",
+    "message_count": 0
+  },
+  "session_admin_eora_ai_1753966344082": {
+    "id": "session_admin_eora_ai_1753966344082",
+    "session_id": "session_admin_eora_ai_1753966344082",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "관리자 무제한 채팅 테스트입니다.",
+    "created_at": "2025-07-31T21:52:24.082963",
+    "updated_at": "2025-07-31T21:52:24.082963",
+    "message_count": 2
+  },
+  "session_test_eora_ai_1753966345682": {
+    "id": "session_test_eora_ai_1753966345682",
+    "session_id": "session_test_eora_ai_1753966345682",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "포인트 0 테스트 세션",
+    "created_at": "2025-07-31T21:52:25.682014",
+    "updated_at": "2025-07-31T21:52:25.682014",
+    "message_count": 0
+  },
+  "session_test_eora_ai_1753966467197": {
+    "id": "session_test_eora_ai_1753966467197",
+    "session_id": "session_test_eora_ai_1753966467197",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "안녕하세요! 간단한 인사말을 해주세요.",
+    "created_at": "2025-07-31T21:54:27.197810",
+    "updated_at": "2025-07-31T21:54:27.197810",
+    "message_count": 2
+  },
+  "session_admin_eora_ai_1753966469697": {
+    "id": "session_admin_eora_ai_1753966469697",
+    "session_id": "session_admin_eora_ai_1753966469697",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "관리자 무제한 채팅 테스트입니다.",
+    "created_at": "2025-07-31T21:54:29.697395",
+    "updated_at": "2025-07-31T21:54:29.697395",
+    "message_count": 2
+  },
+  "session_test_eora_ai_1753966470932": {
+    "id": "session_test_eora_ai_1753966470932",
+    "session_id": "session_test_eora_ai_1753966470932",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "포인트 0 테스트 세션",
+    "created_at": "2025-07-31T21:54:30.932431",
+    "updated_at": "2025-07-31T21:54:30.932431",
+    "message_count": 0
+  },
+  "session_test_eora_ai_1753966474252": {
+    "id": "session_test_eora_ai_1753966474252",
+    "session_id": "session_test_eora_ai_1753966474252",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "테스트 세션",
+    "created_at": "2025-07-31T21:54:34.252502",
+    "updated_at": "2025-07-31T21:54:34.252502",
+    "message_count": 0
+  },
+  "session_admin_eora_ai_1753966476281": {
+    "id": "session_admin_eora_ai_1753966476281",
+    "session_id": "session_admin_eora_ai_1753966476281",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "관리자 무제한 채팅 테스트입니다.",
+    "created_at": "2025-07-31T21:54:36.281094",
+    "updated_at": "2025-07-31T21:54:36.281094",
+    "message_count": 2
+  },
+  "session_test_eora_ai_1753966477481": {
+    "id": "session_test_eora_ai_1753966477481",
+    "session_id": "session_test_eora_ai_1753966477481",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "포인트 0 테스트 세션",
+    "created_at": "2025-07-31T21:54:37.481636",
+    "updated_at": "2025-07-31T21:54:37.481636",
+    "message_count": 0
+  },
+  "session_test_eora_ai_1753966528345": {
+    "id": "session_test_eora_ai_1753966528345",
+    "session_id": "session_test_eora_ai_1753966528345",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "안녕하세요! 간단한 인사말을 해주세요.",
+    "created_at": "2025-07-31T21:55:28.345152",
+    "updated_at": "2025-07-31T21:55:28.345152",
+    "message_count": 2
+  },
+  "session_admin_eora_ai_1753966530632": {
+    "id": "session_admin_eora_ai_1753966530632",
+    "session_id": "session_admin_eora_ai_1753966530632",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "관리자 무제한 채팅 테스트입니다.",
+    "created_at": "2025-07-31T21:55:30.632257",
+    "updated_at": "2025-07-31T21:55:30.632257",
+    "message_count": 2
+  },
+  "session_test_eora_ai_1753966531829": {
+    "id": "session_test_eora_ai_1753966531829",
+    "session_id": "session_test_eora_ai_1753966531829",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "포인트 0 테스트 세션",
+    "created_at": "2025-07-31T21:55:31.829309",
+    "updated_at": "2025-07-31T21:55:31.829309",
+    "message_count": 0
+  },
+  "session_test_eora_ai_1753966759882": {
+    "id": "session_test_eora_ai_1753966759882",
+    "session_id": "session_test_eora_ai_1753966759882",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "안녕하세요! 간단한 인사말을 해주세요.",
+    "created_at": "2025-07-31T21:59:19.882591",
+    "updated_at": "2025-07-31T21:59:19.882591",
+    "message_count": 2
+  },
+  "session_admin_eora_ai_1753966762408": {
+    "id": "session_admin_eora_ai_1753966762408",
+    "session_id": "session_admin_eora_ai_1753966762408",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "관리자 무제한 채팅 테스트입니다.",
+    "created_at": "2025-07-31T21:59:22.408736",
+    "updated_at": "2025-07-31T21:59:22.408736",
+    "message_count": 2
+  },
+  "session_test_eora_ai_1753966764059": {
+    "id": "session_test_eora_ai_1753966764059",
+    "session_id": "session_test_eora_ai_1753966764059",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "포인트 0 테스트 세션",
+    "created_at": "2025-07-31T21:59:24.059343",
+    "updated_at": "2025-07-31T21:59:24.059343",
+    "message_count": 0
+  },
+  "session_test_eora_ai_1754042132863": {
+    "id": "session_test_eora_ai_1754042132863",
+    "session_id": "session_test_eora_ai_1754042132863",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "안녕하세요! 간단한 인사말을 해주세요.",
+    "created_at": "2025-08-01T18:55:32.863117",
+    "updated_at": "2025-08-01T18:55:32.863117",
+    "message_count": 2
+  },
+  "session_admin_eora_ai_1754042135777": {
+    "id": "session_admin_eora_ai_1754042135777",
+    "session_id": "session_admin_eora_ai_1754042135777",
+    "user_id": "admin@eora.ai",
+    "user_email": "admin@eora.ai",
+    "name": "관리자 무제한 채팅 테스트입니다.",
+    "created_at": "2025-08-01T18:55:35.777259",
+    "updated_at": "2025-08-01T18:55:35.777259",
+    "message_count": 2
+  },
+  "session_test_eora_ai_1754042137015": {
+    "id": "session_test_eora_ai_1754042137015",
+    "session_id": "session_test_eora_ai_1754042137015",
+    "user_id": "test@eora.ai",
+    "user_email": "test@eora.ai",
+    "name": "포인트 0 테스트 세션",
+    "created_at": "2025-08-01T18:55:37.015430",
+    "updated_at": "2025-08-01T18:55:37.015430",
+    "message_count": 0
+  },
+  "session_newuser1754044029_test_eora_ai_1754044031677": {
+    "id": "session_newuser1754044029_test_eora_ai_1754044031677",
+    "session_id": "session_newuser1754044029_test_eora_ai_1754044031677",
+    "user_id": "newuser1754044029@test.eora.ai",
+    "user_email": "newuser1754044029@test.eora.ai",
+    "name": "안녕하세요! 저는 새로운 사용자입니다. 간단한 인사를 해주세요.",
+    "created_at": "2025-08-01T19:27:11.677308",
+    "updated_at": "2025-08-01T19:27:11.677308",
+    "message_count": 2
+  },
+  "session_newuser1754044110_test_eora_ai_1754044112188": {
+    "id": "session_newuser1754044110_test_eora_ai_1754044112188",
+    "session_id": "session_newuser1754044110_test_eora_ai_1754044112188",
+    "user_id": "newuser1754044110@test.eora.ai",
+    "user_email": "newuser1754044110@test.eora.ai",
+    "name": "안녕하세요! 저는 새로운 사용자입니다. 간단한 인사를 해주세요.",
+    "created_at": "2025-08-01T19:28:32.188978",
+    "updated_at": "2025-08-01T19:28:32.188978",
+    "message_count": 2
+  },
+  "session_newuser1754044137_test_eora_ai_1754044139212": {
+    "id": "session_newuser1754044137_test_eora_ai_1754044139212",
+    "session_id": "session_newuser1754044137_test_eora_ai_1754044139212",
+    "user_id": "newuser1754044137@test.eora.ai",
+    "user_email": "newuser1754044137@test.eora.ai",
+    "name": "안녕하세요! 저는 새로운 사용자입니다. 간단한 인사를 해주세요.",
+    "created_at": "2025-08-01T19:28:59.212179",
+    "updated_at": "2025-08-01T19:28:59.212179",
+    "message_count": 2
+  },
+  "session_newuser1754044308_test_eora_ai_1754044310412": {
+    "id": "session_newuser1754044308_test_eora_ai_1754044310412",
+    "session_id": "session_newuser1754044308_test_eora_ai_1754044310412",
+    "user_id": "newuser1754044308@test.eora.ai",
+    "user_email": "newuser1754044308@test.eora.ai",
+    "name": "안녕하세요! 저는 새로운 사용자입니다. 간단한 인사를 해주세요.",
+    "created_at": "2025-08-01T19:31:50.412039",
+    "updated_at": "2025-08-01T19:31:50.412039",
+    "message_count": 2
+  },
+  "session_newuser1754045397_test_eora_ai_1754045399049": {
+    "id": "session_newuser1754045397_test_eora_ai_1754045399049",
+    "session_id": "session_newuser1754045397_test_eora_ai_1754045399049",
+    "user_id": "newuser1754045397@test.eora.ai",
+    "user_email": "newuser1754045397@test.eora.ai",
+    "name": "안녕하세요! 저는 새로운 사용자입니다. 간단한 인사를 해주세요.",
+    "created_at": "2025-08-01T19:49:59.049880",
+    "updated_at": "2025-08-01T19:49:59.049880",
+    "message_count": 2
+  },
+  "session_newuser1754046443_test_eora_ai_1754046445211": {
+    "id": "session_newuser1754046443_test_eora_ai_1754046445211",
+    "session_id": "session_newuser1754046443_test_eora_ai_1754046445211",
+    "user_id": "newuser1754046443@test.eora.ai",
+    "user_email": "newuser1754046443@test.eora.ai",
+    "name": "안녕하세요! 저는 새로운 사용자입니다. 간단한 인사를 해주세요.",
+    "created_at": "2025-08-01T20:07:25.211053",
+    "updated_at": "2025-08-01T20:07:25.211053",
+    "message_count": 2
+  },
+  "sessions_5SPQLVFYAFSF": {},
+  "session_point_test_1754284725_example_com_1754284726588": {
+    "id": "session_point_test_1754284725_example_com_1754284726588",
+    "user_email": "point_test_1754284725@example.com",
+    "name": "대화 2025-08-04 14:18",
+    "created_at": "2025-08-04T14:18:46.594820",
+    "message_count": 6
+  },
+  "sessions_J1B0W4LR5VIC": {},
+  "sessions_1JMHOGZZF24N": {},
+  "sessions_B327OTZWFVH2": {},
+  "sessions_RW3334QLA3UT": {},
+  "session_point_test_1754294418_example_com_1754294419293": {
+    "id": "session_point_test_1754294418_example_com_1754294419293",
+    "user_email": "point_test_1754294418@example.com",
+    "name": "대화 2025-08-04 17:00",
+    "created_at": "2025-08-04T17:00:19.299468",
+    "message_count": 6
+  },
+  "session_admin_eora_ai_1753952163905": {
+    "id": "session_admin_eora_ai_1753952163905",
+    "user_email": "admin@eora.ai",
+    "name": "대화 2025-08-07 15:54",
+    "created_at": "2025-08-07T15:54:40.250567",
+    "message_count": 0
+  },
+  "sessions_3Q9TASU0CN9L": {},
+  "session_local_1754549735417": {
+    "id": "session_local_1754549735417",
+    "user_email": "soo@naver.com",
+    "name": "대화 2025-08-07 15:55",
+    "created_at": "2025-08-07T15:55:35.423731",
+    "message_count": 2
+  }
+}

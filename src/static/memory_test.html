@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아우라 메모리 시스템 테스트</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f7fafc;
+        }
+        
+        .section h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #4a5568;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f0fff4;
+            border-left: 4px solid #48bb78;
+        }
+        
+        .error {
+            background: #fed7d7;
+            border-left-color: #f56565;
+        }
+        
+        .memory-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .memory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .memory-type {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .memory-score {
+            display: flex;
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .score-item {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #718096;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌟 아우라 메모리 시스템 테스트</h1>
+        
+        <!-- 메모리 생성 테스트 -->
+        <div class="section">
+            <h2>📝 메모리 생성 테스트</h2>
+            <div class="form-group">
+                <label for="testMessage">테스트 메시지:</label>
+                <textarea id="testMessage" placeholder="메모리에 저장할 테스트 메시지를 입력하세요...">안녕하세요! 저는 AI에 대한 깊은 통찰력을 가지고 있어요. 직감적으로 AI의 미래가 밝다고 느낍니다.</textarea>
+            </div>
+            <div class="form-group">
+                <label for="testResponse">AI 응답:</label>
+                <textarea id="testResponse" placeholder="AI의 응답을 입력하세요...">정말 흥미로운 통찰이네요! AI의 미래에 대한 당신의 직감과 분석이 인상적입니다. 이런 깊은 사고는 정말 중요해요.</textarea>
+            </div>
+            <button onclick="createMemory()">💾 메모리 생성</button>
+            <div id="createResult"></div>
+        </div>
+        
+        <!-- 메모리 회상 테스트 -->
+        <div class="section">
+            <h2>🔍 메모리 회상 테스트</h2>
+            <div class="form-group">
+                <label for="recallQuery">회상 쿼리:</label>
+                <input type="text" id="recallQuery" placeholder="회상할 키워드를 입력하세요..." value="AI">
+            </div>
+            <button onclick="recallMemories()">🔍 일반 회상</button>
+            <button onclick="recallByEmotion('joy')">😊 기쁨 기반 회상</button>
+            <button onclick="recallByInsight()">💡 통찰력 기반 회상</button>
+            <button onclick="recallByIntuition()">✨ 직감 기반 회상</button>
+            <div id="recallResult"></div>
+        </div>
+        
+        <!-- 메모리 통계 -->
+        <div class="section">
+            <h2>📊 메모리 통계</h2>
+            <button onclick="getMemoryStats()">📈 통계 조회</button>
+            <div id="statsResult"></div>
+        </div>
+        
+        <!-- 시스템 상태 -->
+        <div class="section">
+            <h2>🔧 시스템 상태</h2>
+            <button onclick="checkSystemStatus()">🔍 상태 확인</button>
+            <div id="statusResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        async function createMemory() {
+            const message = document.getElementById('testMessage').value;
+            const response = document.getElementById('testResponse').value;
+            
+            if (!message || !response) {
+                showResult('createResult', '메시지와 응답을 모두 입력해주세요.', 'error');
+                return;
+            }
+            
+            try {
+                // 먼저 채팅 API를 통해 메모리 생성
+                const chatResponse = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: 'memory_test'
+                    })
+                });
+                
+                const chatData = await chatResponse.json();
+                
+                showResult('createResult', `
+                    <h3>✅ 메모리 생성 완료</h3>
+                    <p><strong>사용자 메시지:</strong> ${message}</p>
+                    <p><strong>AI 응답:</strong> ${chatData.response}</p>
+                    <p><strong>세션 ID:</strong> ${chatData.session_id}</p>
+                    <p><strong>사용자 ID:</strong> ${chatData.user_id}</p>
+                `);
+                
+            } catch (error) {
+                showResult('createResult', `❌ 메모리 생성 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        async function recallMemories() {
+            const query = document.getElementById('recallQuery').value;
+            
+            if (!query) {
+                showResult('recallResult', '회상 쿼리를 입력해주세요.', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/memory/recall?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    showResult('recallResult', `❌ 회상 실패: ${data.error}`, 'error');
+                    return;
+                }
+                
+                displayMemories('recallResult', data, `"${query}" 검색 결과`);
+                
+            } catch (error) {
+                showResult('recallResult', `❌ 회상 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        async function recallByEmotion(emotion) {
+            try {
+                const response = await fetch(`${API_BASE}/api/memory/recall/emotion/${emotion}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    showResult('recallResult', `❌ 감정 기반 회상 실패: ${data.error}`, 'error');
+                    return;
+                }
+                
+                displayMemories('recallResult', data, `${emotion} 감정 기반 회상 결과`);
+                
+            } catch (error) {
+                showResult('recallResult', `❌ 감정 기반 회상 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        async function recallByInsight() {
+            try {
+                const response = await fetch(`${API_BASE}/api/memory/recall/insight`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    showResult('recallResult', `❌ 통찰력 기반 회상 실패: ${data.error}`, 'error');
+                    return;
+                }
+                
+                displayMemories('recallResult', data, '통찰력 기반 회상 결과');
+                
+            } catch (error) {
+                showResult('recallResult', `❌ 통찰력 기반 회상 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        async function recallByIntuition() {
+            try {
+                const response = await fetch(`${API_BASE}/api/memory/recall/intuition`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    showResult('recallResult', `❌ 직감 기반 회상 실패: ${data.error}`, 'error');
+                    return;
+                }
+                
+                displayMemories('recallResult', data, '직감 기반 회상 결과');
+                
+            } catch (error) {
+                showResult('recallResult', `❌ 직감 기반 회상 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getMemoryStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/memory`);
+                const data = await response.json();
+                
+                if (data.aura_memory_available) {
+                    const stats = data.stats;
+                    showResult('statsResult', `
+                        <h3>📊 아우라 메모리 시스템 통계</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">${stats.total}</div>
+                                <div class="stat-label">총 메모리 수</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${stats.avg_importance?.toFixed(2) || '0.00'}</div>
+                                <div class="stat-label">평균 중요도</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${stats.avg_insight?.toFixed(2) || '0.00'}</div>
+                                <div class="stat-label">평균 통찰력</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${stats.avg_intuition?.toFixed(2) || '0.00'}</div>
+                                <div class="stat-label">평균 직감 점수</div>
+                            </div>
+                        </div>
+                        <h4>메모리 타입별 분포:</h4>
+                        <ul>${Object.entries(stats.by_type || {}).map(([type, count]) => `<li><strong>${type}:</strong> ${count}개</li>`).join('')}</ul>
+                        <h4>감정별 분포:</h4>
+                        <ul>${Object.entries(stats.by_emotion || {}).map(([emotion, count]) => `<li><strong>${emotion}:</strong> ${count}개</li>`).join('')}</ul>
+                    `);
+                } else {
+                    showResult('statsResult', '⚠️ 아우라 메모리 시스템을 사용할 수 없습니다.', 'error');
+                }
+                
+            } catch (error) {
+                showResult('statsResult', `❌ 통계 조회 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                showResult('statusResult', `
+                    <h3>🔧 시스템 상태</h3>
+                    <p><strong>서버 상태:</strong> ${data.status}</p>
+                    <p><strong>OpenAI API:</strong> ${data.openai.available ? '✅ 사용 가능' : '❌ 사용 불가'}</p>
+                    <p><strong>MongoDB:</strong> ${data.database.mongo_connected ? '✅ 연결됨' : '❌ 연결 안됨'}</p>
+                    <p><strong>메모리 DB:</strong> ${data.database.memory_db_fallback ? '✅ 사용 중' : '❌ 사용 안됨'}</p>
+                    <p><strong>활성 세션:</strong> ${data.active_sessions}개</p>
+                    <p><strong>사용자 수:</strong> ${data.users_count}명</p>
+                `);
+                
+            } catch (error) {
+                showResult('statusResult', `❌ 상태 확인 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        function displayMemories(elementId, data, title) {
+            if (data.memories && data.memories.length > 0) {
+                const memoriesHtml = data.memories.map(memory => `
+                    <div class="memory-item">
+                        <div class="memory-header">
+                            <span class="memory-type">${memory.memory_type}</span>
+                            <div class="memory-score">
+                                <span class="score-item">중요도: ${memory.importance?.toFixed(2) || '0.00'}</span>
+                                <span class="score-item">통찰력: ${memory.insight_level?.toFixed(2) || '0.00'}</span>
+                                <span class="score-item">직감: ${memory.intuition_score?.toFixed(2) || '0.00'}</span>
+                            </div>
+                        </div>
+                        <p><strong>사용자:</strong> ${memory.message}</p>
+                        <p><strong>AI:</strong> ${memory.response}</p>
+                        <p><strong>시간:</strong> ${new Date(memory.timestamp).toLocaleString()}</p>
+                        <p><strong>태그:</strong> ${memory.tags?.join(', ') || '없음'}</p>
+                    </div>
+                `).join('');
+                
+                showResult(elementId, `
+                    <h3>${title} (${data.count}개)</h3>
+                    ${memoriesHtml}
+                `);
+            } else {
+                showResult(elementId, '🔍 검색 결과가 없습니다.');
+            }
+        }
+        
+        function showResult(elementId, message, type = 'success') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+        
+        // 페이지 로드 시 시스템 상태 확인
+        window.onload = function() {
+            checkSystemStatus();
+        };
+    </script>
+</body>
+</html> 

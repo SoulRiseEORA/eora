@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>EORA AI 메인</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+        }
+
+        input,
+        button {
+            margin: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>EORA AI 메인</h2>
+
+    <h3>회원가입</h3>
+    <form id="registerForm">
+        <input name="username" placeholder="아이디" required>
+        <input name="password" type="password" placeholder="비밀번호" required>
+        <button>회원가입</button>
+    </form>
+    <div id="registerResult"></div>
+
+    <h3>로그인</h3>
+    <form id="loginForm">
+        <input name="username" placeholder="아이디" required>
+        <input name="password" type="password" placeholder="비밀번호" required>
+        <button>로그인</button>
+    </form>
+    <div id="loginResult"></div>
+
+    <h3>GPT 프롬프트</h3>
+    <form id="promptForm">
+        <input name="prompt_key" placeholder="프롬프트 키" required>
+        <button>전송</button>
+    </form>
+    <div id="promptResult"></div>
+
+    <h3>학습하기</h3>
+    <form id="learnForm">
+        <input name="text" placeholder="학습할 텍스트" required>
+        <input name="user_id" placeholder="유저ID(선택)">
+        <button>학습</button>
+    </form>
+    <div id="learnResult"></div>
+
+    <h3>첨부학습</h3>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <input name="description" placeholder="설명">
+        <button>첨부학습</button>
+    </form>
+    <div id="uploadResult"></div>
+
+    <h3>고급 회상(Advanced Chat)</h3>
+    <form id="advChatForm">
+        <input name="user_message" placeholder="메시지" required>
+        <button>전송</button>
+    </form>
+    <div id="advChatResult"></div>
+
+    <script>
+        function postForm(formId, url, resultId) {
+            const form = document.getElementById(formId);
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                let data;
+                let headers = {};
+                if (form.enctype === 'multipart/form-data') {
+                    data = new FormData(form);
+                } else {
+                    data = new URLSearchParams(new FormData(form));
+                    headers['Content-Type'] = 'application/x-www-form-urlencoded';
+                }
+                const res = await fetch(url, { method: 'POST', body: data, headers });
+                const txt = await res.text();
+                document.getElementById(resultId).innerText = txt;
+            };
+        }
+        postForm('registerForm', '/register', 'registerResult');
+        postForm('loginForm', '/login', 'loginResult');
+        postForm('promptForm', '/gpt-prompt', 'promptResult');
+        postForm('learnForm', '/learn', 'learnResult');
+        postForm('uploadForm', '/upload-learn', 'uploadResult');
+        postForm('advChatForm', '/advanced-chat', 'advChatResult');
+    </script>
+</body>
+
+</html>

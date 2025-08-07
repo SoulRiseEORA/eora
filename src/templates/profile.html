@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 프로필</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .profile-header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info span {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .back-btn,
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: #333;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover,
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .profile-title {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-title h1 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .profile-title p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: white;
+            margin: 0 auto 20px;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .profile-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-icon {
+            font-size: 1.5em;
+            margin-right: 15px;
+        }
+
+        .card-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .edit-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .edit-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+
+        .settings-section {
+            margin-top: 20px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(26px);
+        }
+
+        .danger-zone {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .danger-zone h3 {
+            color: #c53030;
+            margin-bottom: 15px;
+        }
+
+        .danger-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .danger-btn:hover {
+            background: #c53030;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .password-strength {
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .password-strength.weak {
+            color: #e53e3e;
+        }
+
+        .password-strength.medium {
+            color: #d69e2e;
+        }
+
+        .password-strength.strong {
+            color: #38a169;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: #f0fff4;
+            color: #38a169;
+            border: 1px solid #c6f6d5;
+        }
+
+        .message.error {
+            background: #fff5f5;
+            color: #e53e3e;
+            border: 1px solid #fed7d7;
+        }
+
+        .password-requirements {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .password-requirements h4 {
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .requirement {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .requirement.valid {
+            color: #38a169;
+        }
+
+        .requirement.invalid {
+            color: #e53e3e;
+        }
+
+        .requirement-icon {
+            margin-right: 6px;
+            font-size: 0.8em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .profile-header {
+                padding: 20px;
+            }
+
+            .user-info {
+                position: static;
+                justify-content: center;
+                margin-bottom: 20px;
+            }
+
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="profile-header">
+            <div class="user-info">
+                <span id="user-email">👤 {{ user.name if user else '사용자' }}</span>
+                <a href="/dashboard" class="back-btn">🏠 대시보드</a>
+                <button class="logout-btn" onclick="logout()">로그아웃</button>
+            </div>
+            <div class="profile-title">
+                <div class="profile-avatar">👤</div>
+                <h1>프로필</h1>
+                <p>계정 정보 및 설정 관리</p>
+            </div>
+        </div>
+
+        <div class="profile-grid">
+            <div class="profile-card">
+                <div class="card-header">
+                    <div class="card-icon">👤</div>
+                    <div class="card-title">계정 정보</div>
+                </div>
+                <div id="account-info">
+                    <div class="loading">계정 정보를 불러오는 중...</div>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">사용 통계</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-sessions">0</div>
+                        <div class="stat-label">총 세션</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-messages">0</div>
+                        <div class="stat-label">총 메시지</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="current-points">0</div>
+                        <div class="stat-label">포인트</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="storage-used">0 MB</div>
+                        <div class="stat-label">저장공간</div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="storage-progress" style="width: 0%"></div>
+                </div>
+                <div style="text-align: center; margin-top: 10px; color: #666; font-size: 0.9em;">
+                    저장공간 사용률: <span id="storage-percentage">0%</span>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="card-header">
+                    <div class="card-icon">🔒</div>
+                    <div class="card-title">비밀번호 변경</div>
+                </div>
+                <form id="change-password-form" onsubmit="handleChangePassword(event)">
+                    <div class="form-group">
+                        <label for="current-password">현재 비밀번호</label>
+                        <input type="password" id="current-password" required autocomplete="current-password"
+                            placeholder="현재 비밀번호를 입력하세요">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">새 비밀번호</label>
+                        <input type="password" id="new-password" required autocomplete="new-password"
+                            placeholder="새 비밀번호를 입력하세요" oninput="checkPasswordStrength()">
+                        <div class="password-strength" id="password-strength"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">새 비밀번호 확인</label>
+                        <input type="password" id="confirm-password" required autocomplete="new-password"
+                            placeholder="새 비밀번호를 다시 입력하세요" oninput="checkPasswordMatch()">
+                    </div>
+
+                    <div class="password-requirements">
+                        <h4>비밀번호 요구사항</h4>
+                        <div class="requirement" id="req-length">
+                            <span class="requirement-icon">⚪</span>
+                            최소 8자 이상
+                        </div>
+                        <div class="requirement" id="req-lowercase">
+                            <span class="requirement-icon">⚪</span>
+                            소문자 포함
+                        </div>
+                        <div class="requirement" id="req-number">
+                            <span class="requirement-icon">⚪</span>
+                            숫자 포함
+                        </div>
+                        <div class="requirement" id="req-special">
+                            <span class="requirement-icon">⚪</span>
+                            특수문자 포함
+                        </div>
+                    </div>
+
+                    <button type="submit" class="action-btn">비밀번호 변경</button>
+                    <div id="password-change-message" class="message" style="display: none;"></div>
+                </form>
+            </div>
+        </div>
+
+        <div class="profile-card">
+            <div class="card-header">
+                <div class="card-icon">⚙️</div>
+                <div class="card-title">설정</div>
+            </div>
+            <div class="settings-section">
+                <div class="setting-item">
+                    <div class="setting-label">이메일 알림</div>
+                    <div class="toggle-switch" onclick="toggleSetting('email_notifications')"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">푸시 알림</div>
+                    <div class="toggle-switch active" onclick="toggleSetting('push_notifications')"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">자동 저장</div>
+                    <div class="toggle-switch active" onclick="toggleSetting('auto_save')"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">다크 모드</div>
+                    <div class="toggle-switch" onclick="toggleSetting('dark_mode')"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-card">
+            <div class="danger-zone">
+                <h3>⚠️ 위험 구역</h3>
+                <p style="color: #666; margin-bottom: 15px;">이 작업들은 되돌릴 수 없습니다.</p>
+                <button class="danger-btn" onclick="deleteAccount()">계정 삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function () {
+            loadProfileData();
+            loadUserStats();
+        });
+
+        // 프로필 데이터 로드
+        async function loadProfileData() {
+            try {
+                const response = await fetch('/api/user/stats');
+                if (response.ok) {
+                    const data = await response.json();
+                    displayAccountInfo(data);
+                } else {
+                    document.getElementById('account-info').innerHTML = '<div class="error">계정 정보를 불러올 수 없습니다.</div>';
+                }
+            } catch (error) {
+                console.error('프로필 데이터 로드 오류:', error);
+                document.getElementById('account-info').innerHTML = '<div class="error">계정 정보를 불러올 수 없습니다.</div>';
+            }
+        }
+
+        // 계정 정보 표시
+        function displayAccountInfo(data) {
+            const container = document.getElementById('account-info');
+
+            const infoHTML = `
+                <div class="info-item">
+                    <div class="info-label">이름</div>
+                    <div class="info-value">${data.name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">이메일</div>
+                    <div class="info-value">${data.email}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">권한</div>
+                    <div class="info-value">${data.role === 'admin' ? '관리자' : '사용자'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">가입일</div>
+                    <div class="info-value">${formatDate(data.created_at)}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">마지막 로그인</div>
+                    <div class="info-value">${data.last_login ? formatDate(data.last_login) : '없음'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">사용자 ID</div>
+                    <div class="info-value">${data.user_id}</div>
+                </div>
+            `;
+
+            container.innerHTML = infoHTML;
+        }
+
+        // 사용자 통계 로드
+        async function loadUserStats() {
+            try {
+                const response = await fetch('/api/user/stats');
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // 통계 업데이트
+                    document.getElementById('total-sessions').textContent = data.sessions_count;
+                    document.getElementById('current-points').textContent = data.points.current_points;
+                    document.getElementById('storage-used').textContent = `${data.storage.used_mb} MB`;
+                    document.getElementById('storage-percentage').textContent = `${data.storage.usage_percentage}%`;
+
+                    // 저장공간 진행률 업데이트
+                    const progressBar = document.getElementById('storage-progress');
+                    progressBar.style.width = `${data.storage.usage_percentage}%`;
+
+                    // 총 메시지 수는 세션 수의 2배로 임시 계산
+                    document.getElementById('total-messages').textContent = data.sessions_count * 2;
+
+                } else {
+                    console.error('통계 로드 실패:', response.status);
+                }
+            } catch (error) {
+                console.error('통계 로드 오류:', error);
+            }
+        }
+
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            if (!dateString) return '없음';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ko-KR');
+        }
+
+        // 설정 토글
+        function toggleSetting(settingName) {
+            const toggle = event.target;
+            toggle.classList.toggle('active');
+
+            // 실제로는 서버에 설정 저장 API 호출
+            console.log(`${settingName} 설정이 ${toggle.classList.contains('active') ? '활성화' : '비활성화'}되었습니다.`);
+        }
+
+        // 계정 삭제
+        function deleteAccount() {
+            if (confirm('정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                if (confirm('마지막 확인: 계정을 삭제하시겠습니까?')) {
+                    alert('계정 삭제 기능은 구현 예정입니다.');
+                }
+            }
+        }
+
+        // 비밀번호 강도 체크
+        function checkPasswordStrength() {
+            const password = document.getElementById('new-password').value;
+            const strength = checkPasswordStrengthLevel(password);
+            const strengthText = getPasswordStrengthText(strength);
+            document.getElementById('password-strength').textContent = strengthText;
+            document.getElementById('password-strength').className = `password-strength ${strength}`;
+        }
+
+        // 비밀번호 강도 수준 확인
+        function checkPasswordStrengthLevel(password) {
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength++;
+            return strength;
+        }
+
+        // 비밀번호 강도 텍스트 반환
+        function getPasswordStrengthText(strength) {
+            if (strength === 0) return '비밀번호를 입력해주세요';
+            if (strength === 1) return '매우 약함';
+            if (strength === 2) return '약함';
+            if (strength === 3) return '보통';
+            if (strength === 4) return '강함';
+            if (strength === 5) return '매우 강함';
+            return '알 수 없음';
+        }
+
+        // 비밀번호 일치 여부 체크
+        function checkPasswordMatch() {
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const messageDiv = document.getElementById('password-change-message');
+            messageDiv.textContent = '';
+            messageDiv.style.display = 'none'; // 메시지 숨김 처리
+
+            if (newPassword !== confirmPassword) {
+                messageDiv.textContent = '새 비밀번호가 일치하지 않습니다.';
+                messageDiv.style.color = 'red';
+                messageDiv.style.display = 'block'; // 메시지 표시
+                return false;
+            }
+            return true;
+        }
+
+        // 비밀번호 변경 처리
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const messageDiv = document.getElementById('password-change-message');
+            messageDiv.textContent = '';
+            messageDiv.style.display = 'none'; // 메시지 숨김 처리
+
+            if (!checkPasswordMatch()) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    messageDiv.textContent = '비밀번호가 성공적으로 변경되었습니다!';
+                    messageDiv.style.color = 'green';
+                    messageDiv.style.display = 'block'; // 메시지 표시
+                    document.getElementById('change-password-form').reset();
+                    checkPasswordStrength(); // 비밀번호 변경 후 강도 다시 확인
+                } else {
+                    messageDiv.textContent = data.message || '비밀번호 변경에 실패했습니다.';
+                    messageDiv.style.color = 'red';
+                    messageDiv.style.display = 'block'; // 메시지 표시
+                }
+            } catch (error) {
+                messageDiv.textContent = '서버 오류로 비밀번호 변경에 실패했습니다.';
+                messageDiv.style.color = 'red';
+                messageDiv.style.display = 'block'; // 메시지 표시
+            }
+        }
+
+        // 로그아웃
+        async function logout() {
+            if (confirm('정말로 로그아웃하시겠습니까?')) {
+                try {
+                    // 서버에 로그아웃 요청
+                    const response = await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    // 로컬 스토리지 정리
+                    localStorage.removeItem('user_email');
+                    localStorage.removeItem('user_name');
+                    localStorage.removeItem('auto_login');
+                    localStorage.removeItem('session_id');
+
+                    // 홈페이지로 이동
+                    window.location.href = '/';
+                } catch (error) {
+                    console.error('로그아웃 오류:', error);
+                    // 오류 발생 시에도 로컬 정리 후 홈페이지로 이동
+                    localStorage.removeItem('user_email');
+                    localStorage.removeItem('user_name');
+                    localStorage.removeItem('auto_login');
+                    localStorage.removeItem('session_id');
+                    window.location.href = '/';
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

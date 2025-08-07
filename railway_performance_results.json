@@ -1,0 +1,79 @@
+{
+  "test_timestamp": "2025-07-24T14:54:28.881800",
+  "base_url": "https://web-production-40c0.up.railway.app",
+  "results": [
+    {
+      "endpoint": "/",
+      "method": "GET",
+      "status_code": 200,
+      "response_time_ms": 821.53,
+      "success": true,
+      "timestamp": "2025-07-24T14:53:45.575960"
+    },
+    {
+      "endpoint": "/api/status",
+      "method": "GET",
+      "status_code": 200,
+      "response_time_ms": 317.55,
+      "success": true,
+      "timestamp": "2025-07-24T14:53:46.895074"
+    },
+    {
+      "endpoint": "/api/health",
+      "method": "GET",
+      "status_code": 404,
+      "response_time_ms": 313.01,
+      "success": false,
+      "timestamp": "2025-07-24T14:53:48.208674"
+    },
+    {
+      "endpoint": "/chat",
+      "method": "GET",
+      "status_code": 200,
+      "response_time_ms": 631.14,
+      "success": true,
+      "timestamp": "2025-07-24T14:53:49.840957"
+    },
+    {
+      "endpoint": "/api/sessions",
+      "method": "GET",
+      "status_code": 200,
+      "response_time_ms": 497.31,
+      "success": true,
+      "timestamp": "2025-07-24T14:53:51.339443"
+    },
+    {
+      "endpoint": "/api/sessions",
+      "method": "POST",
+      "status_code": 500,
+      "response_time_ms": 315.8,
+      "success": false,
+      "timestamp": "2025-07-24T14:53:52.656144"
+    },
+    {
+      "endpoint": "/api/user/points",
+      "method": "GET",
+      "status_code": 408,
+      "response_time_ms": 30000,
+      "success": false,
+      "error": "timeout",
+      "timestamp": "2025-07-24T14:54:23.878032"
+    },
+    {
+      "endpoint": "/api/user/stats",
+      "method": "GET",
+      "status_code": 200,
+      "response_time_ms": 343.0,
+      "success": true,
+      "timestamp": "2025-07-24T14:54:25.221724"
+    },
+    {
+      "endpoint": "/api/chat",
+      "method": "POST",
+      "status_code": 200,
+      "response_time_ms": 1657.35,
+      "success": true,
+      "timestamp": "2025-07-24T14:54:27.880233"
+    }
+  ]
+}

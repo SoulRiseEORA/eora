@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웹 브라우저로 EORA AI 수동 업로드</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #FFD700;
+            border-left: 4px solid #FFD700;
+            padding-left: 15px;
+            margin-top: 30px;
+        }
+
+        .step {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .step-number {
+            background: #FFD700;
+            color: #333;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .github-btn {
+            display: inline-block;
+            background: #333;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .github-btn:hover {
+            background: #555;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .file-structure {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .success {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid #28a745;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .upload-zone {
+            border: 2px dashed #FFD700;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px;
+            margin: 20px 0;
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .folder-list {
+            columns: 2;
+            column-gap: 20px;
+            break-inside: avoid;
+        }
+
+        .folder-item {
+            display: block;
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            break-inside: avoid;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🌐 웹 브라우저로 EORA AI 수동 업로드</h1>
+
+    <div class="container">
+        <h2>📝 GitHub 새 저장소 생성</h2>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <strong>GitHub에 로그인 후 새 저장소 생성</strong>
+            <br><br>
+            <a href="https://github.com/new" class="github-btn" target="_blank">
+                GitHub 새 저장소 생성
+            </a>
+            <br><br>
+            <strong>저장소 설정:</strong><br>
+            • Repository name: <code>eora-ai-complete</code><br>
+            • Description: <code>EORA AI - 완전한 학습 및 회상 시스템</code><br>
+            • ✅ Add a README file<br>
+            • Public 또는 Private 선택<br>
+            • "Create repository" 클릭
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📁 파일 압축 및 준비</h2>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <strong>EORA 프로젝트 폴더 압축</strong>
+            <br><br>
+            1. <code>E:\eora_new</code> 폴더를 우클릭<br>
+            2. "압축" → "ZIP 파일로 압축" 선택<br>
+            3. <code>eora_new.zip</code> 파일 생성 확인
+            <br><br>
+            <div class="warning">
+                <strong>주의:</strong> .env 파일에 민감한 정보가 포함되어 있습니다. Private 저장소 사용을 권장합니다.
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <strong>업로드할 주요 폴더 및 파일</strong>
+            <br><br>
+            <div class="folder-list">
+                <div class="folder-item">📁 src/ (메인 소스 코드)</div>
+                <div class="folder-item">📁 EORA/ (AI 모듈)</div>
+                <div class="folder-item">📁 aura_system/ (Aura 시스템)</div>
+                <div class="folder-item">📁 templates/ (HTML 템플릿)</div>
+                <div class="folder-item">📁 static/ (CSS, JS, 이미지)</div>
+                <div class="folder-item">📁 data/ (데이터 파일)</div>
+                <div class="folder-item">📄 requirements.txt</div>
+                <div class="folder-item">📄 .env (환경 설정)</div>
+                <div class="folder-item">📄 deploy_complete_to_github.bat</div>
+                <div class="folder-item">📄 COMPLETE_DEPLOYMENT_GUIDE.md</div>
+                <div class="folder-item">📄 complete_learning_test.html</div>
+                <div class="folder-item">📄 github_desktop_guide.html</div>
+                <div class="folder-item">📄 git_install_guide.html</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📤 GitHub 웹 인터페이스로 업로드</h2>
+
+        <div class="step">
+            <span class="step-number">4</span>
+            <strong>메인 파일들 업로드</strong>
+            <br><br>
+            1. 생성된 GitHub 저장소 페이지로 이동<br>
+            2. "Add file" → "Upload files" 클릭<br>
+            3. 다음 파일들을 드래그 앤 드롭으로 업로드:
+
+            <div class="upload-zone">
+                <h4>우선 업로드할 파일들</h4>
+                • <strong>requirements.txt</strong> (Python 패키지 목록)<br>
+                • <strong>README.md</strong> (프로젝트 설명)<br>
+                • <strong>COMPLETE_DEPLOYMENT_GUIDE.md</strong> (배포 가이드)<br>
+                • <strong>.gitignore</strong> (Git 무시 파일)<br>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">5</span>
+            <strong>소스 폴더 업로드</strong>
+            <br><br>
+            1. "Add file" → "Upload files" 다시 클릭<br>
+            2. <code>src/</code> 폴더 전체를 선택하여 업로드<br>
+            3. 커밋 메시지: <code>Add main source code files</code><br>
+            4. "Commit changes" 클릭
+        </div>
+
+        <div class="step">
+            <span class="step-number">6</span>
+            <strong>템플릿 및 정적 파일 업로드</strong>
+            <br><br>
+            1. "Add file" → "Upload files" 클릭<br>
+            2. <code>templates/</code>와 <code>static/</code> 폴더 업로드<br>
+            3. 커밋 메시지: <code>Add web interface files</code><br>
+            4. "Commit changes" 클릭
+        </div>
+
+        <div class="step">
+            <span class="step-number">7</span>
+            <strong>테스트 및 설정 파일 업로드</strong>
+            <br><br>
+            1. "Add file" → "Upload files" 클릭<br>
+            2. 나머지 HTML 테스트 파일들과 배치 스크립트 업로드<br>
+            3. 커밋 메시지: <code>Add test pages and deployment scripts</code><br>
+            4. "Commit changes" 클릭
+        </div>
+
+        <div class="success">
+            <h3>🎉 수동 업로드 완료!</h3>
+            모든 파일이 성공적으로 GitHub에 업로드되었습니다.
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📋 .gitignore 파일 생성</h2>
+
+        <div class="step">
+            <span class="step-number">8</span>
+            <strong>민감한 파일 보호</strong>
+            <br><br>
+            GitHub 저장소에서 "Add file" → "Create new file" 클릭<br>
+            파일명: <code>.gitignore</code><br>
+            내용:
+            <div class="file-structure">
+                # Environment variables
+                .env
+                .env.local
+                .env.production
+
+                # Database files
+                *.db
+                *.sqlite
+                *.sqlite3
+
+                # Python cache
+                __pycache__/
+                *.pyc
+                *.pyo
+                *.pyd
+                .Python
+                build/
+                develop-eggs/
+                dist/
+                downloads/
+                eggs/
+                .eggs/
+                lib/
+                lib64/
+                parts/
+                sdist/
+                var/
+                wheels/
+                *.egg-info/
+                .installed.cfg
+                *.egg
+
+                # IDE
+                .vscode/
+                .idea/
+                *.swp
+                *.swo
+
+                # Logs
+                *.log
+                logs/
+
+                # Temporary files
+                *.tmp
+                *.temp
+
+                # Data files (if contains sensitive data)
+                data/users.json
+                data/sessions.json
+                data/messages.json
+                data/points.json
+
+                # Node modules
+                node_modules/
+
+                # OS files
+                .DS_Store
+                Thumbs.db
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🚀 프로젝트 README 작성</h2>
+
+        <div class="step">
+            <span class="step-number">9</span>
+            <strong>README.md 업데이트</strong>
+            <br><br>
+            GitHub에서 README.md 파일을 클릭하고 편집 버튼(연필 아이콘)을 클릭하여 다음 내용으로 업데이트:
+
+            <div class="file-structure">
+                # EORA AI - 완전한 학습 및 회상 시스템
+
+                ## 🎯 프로젝트 개요
+                EORA AI는 고급 학습 및 8종 회상 시스템을 갖춘 AI 채팅봇입니다.
+
+                ## ✨ 주요 기능
+                - 🧠 **8종 회상 시스템**: 키워드, 임베딩, 감정, 신념, 맥락, 시간, 연관, 패턴 기반 회상
+                - 📚 **관리자 학습 기능**: 파일 업로드를 통한 AI 학습
+                - 💰 **포인트 시스템**: 사용량 기반 포인트 관리
+                - 🔐 **사용자 인증**: 관리자/일반회원 구분
+                - 🌐 **실시간 채팅**: WebSocket 기반 실시간 대화
+
+                ## 🛠 기술 스택
+                - **Backend**: FastAPI, Python 3.8+
+                - **Database**: MongoDB
+                - **AI**: OpenAI GPT-4o
+                - **Frontend**: HTML, CSS, JavaScript
+                - **실시간 통신**: WebSocket
+
+                ## 📦 설치 및 실행
+
+                ### 1. 의존성 설치
+                ```bash
+                pip install -r requirements.txt
+                ```
+
+                ### 2. 환경 변수 설정
+                `.env` 파일을 생성하고 다음 정보를 입력:
+                ```
+                OPENAI_API_KEY=your_openai_api_key
+                MONGODB_URI=mongodb://localhost:27017
+                DATABASE_NAME=eora_ai
+                ```
+
+                ### 3. 서버 실행
+                ```bash
+                cd src
+                python app.py
+                ```
+
+                ### 4. 접속
+                - 메인 페이지: http://127.0.0.1:8300
+                - 관리자 패널: http://127.0.0.1:8300/admin
+                - 채팅 페이지: http://127.0.0.1:8300/chat
+
+                ## 👑 관리자 계정
+                - 이메일: admin@eora.ai
+                - 비밀번호: admin123
+
+                ## 📁 프로젝트 구조
+                ```
+                eora-ai-complete/
+                ├── src/
+                │ ├── app.py # 메인 FastAPI 서버
+                │ ├── database.py # MongoDB 관리
+                │ ├── eora_memory_system.py # EORA 메모리 시스템
+                │ ├── aura_memory_system.py # 8종 회상 시스템
+                │ ├── templates/ # HTML 템플릿
+                │ └── static/ # CSS, JS, 이미지
+                ├── requirements.txt # Python 패키지
+                └── README.md # 프로젝트 설명
+                ```
+
+                ## 🚀 배포
+                Railway, Heroku, AWS 등에 배포 가능합니다.
+
+                ## 📄 라이선스
+                MIT License
+
+                ## 🤝 기여
+                Pull Request를 환영합니다!
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔗 유용한 링크</h2>
+        <ul>
+            <li><a href="https://github.com" target="_blank" style="color: #FFD700;">GitHub 메인 페이지</a></li>
+            <li><a href="https://github.com/new" target="_blank" style="color: #FFD700;">새 저장소 생성</a></li>
+            <li><a href="https://docs.github.com/en/repositories/working-with-files/managing-files/adding-a-file-to-a-repository"
+                    target="_blank" style="color: #FFD700;">GitHub 파일 업로드 가이드</a></li>
+        </ul>
+    </div>
+</body>
+
+</html>

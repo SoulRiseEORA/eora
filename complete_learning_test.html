@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI - 100% 학습 기능 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .test-section h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status.success {
+            background: #4CAF50;
+        }
+
+        .status.error {
+            background: #f44336;
+        }
+
+        .status.warning {
+            background: #ff9800;
+        }
+
+        .status.info {
+            background: #2196F3;
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 0 5px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .step.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
+        .step.completed {
+            background: #4CAF50;
+        }
+
+        .admin-login {
+            background: rgba(255, 193, 7, 0.2);
+            border: 2px solid #ffc107;
+        }
+
+        .test-results {
+            margin-top: 20px;
+        }
+
+        .memory-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #4CAF50;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #ffcdd2;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+            color: #c8e6c9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🧠 EORA AI - 100% 학습 기능 테스트</h1>
+
+        <!-- 진행 상황 표시기 -->
+        <div class="step-indicator">
+            <div class="step" id="step1">1. 서버 연결</div>
+            <div class="step" id="step2">2. 관리자 로그인</div>
+            <div class="step" id="step3">3. 파일 학습</div>
+            <div class="step" id="step4">4. 회상 테스트</div>
+            <div class="step" id="step5">5. 채팅 테스트</div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <!-- 1단계: 서버 연결 테스트 -->
+        <div class="test-section">
+            <h2>🌐 1단계: 서버 연결 테스트</h2>
+            <p>EORA AI 서버와의 연결을 확인합니다.</p>
+            <button onclick="testServerConnection()">서버 연결 테스트</button>
+            <div class="result-box" id="serverResult">테스트 결과가 여기에 표시됩니다...</div>
+        </div>
+
+        <!-- 2단계: 관리자 로그인 -->
+        <div class="test-section admin-login">
+            <h2>🔐 2단계: 관리자 로그인</h2>
+            <p>학습 기능을 사용하기 위해 관리자로 로그인합니다.</p>
+            <div class="input-group">
+                <label>이메일:</label>
+                <input type="email" id="adminEmail" value="admin@eora.ai" placeholder="관리자 이메일">
+            </div>
+            <div class="input-group">
+                <label>비밀번호:</label>
+                <input type="password" id="adminPassword" value="admin123" placeholder="관리자 비밀번호">
+            </div>
+            <button onclick="adminLogin()">관리자 로그인</button>
+            <div class="result-box" id="loginResult">로그인 결과가 여기에 표시됩니다...</div>
+        </div>
+
+        <!-- 3단계: 파일 학습 테스트 -->
+        <div class="test-section">
+            <h2>📚 3단계: 파일 학습 테스트</h2>
+            <p>텍스트 파일을 업로드하여 학습 기능을 테스트합니다.</p>
+            <div class="input-group">
+                <label>학습할 내용:</label>
+                <textarea id="learningContent" rows="4"
+                    placeholder="학습시킬 내용을 입력하세요. 예: 'EORA AI는 감정을 이해하는 인공지능입니다.'">EORA AI는 감정을 이해하는 인공지능입니다. 사용자의 감정 상태를 분석하고 공감하며 적절한 응답을 제공합니다. 또한 학습을 통해 지속적으로 발전하는 시스템입니다.</textarea>
+            </div>
+            <button onclick="uploadLearningFile()">학습 파일 업로드</button>
+            <div class="result-box" id="learningResult">학습 결과가 여기에 표시됩니다...</div>
+        </div>
+
+        <!-- 4단계: 회상 테스트 -->
+        <div class="test-section">
+            <h2>🧠 4단계: 회상 테스트</h2>
+            <p>학습된 내용이 제대로 회상되는지 테스트합니다.</p>
+            <div class="input-group">
+                <label>회상 쿼리:</label>
+                <input type="text" id="recallQuery" value="EORA AI란 무엇인가요?" placeholder="학습된 내용에 대한 질문">
+            </div>
+            <button onclick="testRecall()">회상 테스트</button>
+            <div class="result-box" id="recallResult">회상 결과가 여기에 표시됩니다...</div>
+        </div>
+
+        <!-- 5단계: 완전한 채팅 테스트 -->
+        <div class="test-section">
+            <h2>💬 5단계: 완전한 채팅 테스트</h2>
+            <p>학습된 내용을 바탕으로 실제 채팅 응답을 테스트합니다.</p>
+            <div class="input-group">
+                <label>채팅 메시지:</label>
+                <input type="text" id="chatMessage" value="EORA AI에 대해 알려주세요" placeholder="채팅 메시지를 입력하세요">
+            </div>
+            <button onclick="testChat()">채팅 테스트</button>
+            <div class="result-box" id="chatResult">채팅 결과가 여기에 표시됩니다...</div>
+        </div>
+
+        <!-- 종합 결과 -->
+        <div class="test-section">
+            <h2>📊 종합 테스트 결과</h2>
+            <div id="summaryResult">
+                <p>모든 테스트를 완료하면 종합 결과가 표시됩니다.</p>
+            </div>
+            <button onclick="runAllTests()"
+                style="background: linear-gradient(45deg, #ff6b6b, #ee5a52); font-size: 18px;">🚀 전체 테스트 실행</button>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = 'http://localhost:8000'; // 또는 http://localhost:8300
+        let currentStep = 1;
+        let testResults = {
+            serverConnection: false,
+            adminLogin: false,
+            fileLearning: false,
+            recall: false,
+            chat: false
+        };
+
+        function updateProgress(step) {
+            currentStep = step;
+            document.getElementById('progressFill').style.width = (step * 20) + '%';
+
+            for (let i = 1; i <= 5; i++) {
+                const stepElement = document.getElementById('step' + i);
+                stepElement.classList.remove('active', 'completed');
+                if (i < step) stepElement.classList.add('completed');
+                else if (i === step) stepElement.classList.add('active');
+            }
+        }
+
+        function displayResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${isSuccess ? 'success-message' : 'error-message'}">
+                <strong>${isSuccess ? '✅ 성공' : '❌ 오류'}:</strong><br>${message}
+            </div>`;
+        }
+
+        async function testServerConnection() {
+            displayResult('serverResult', '서버 연결을 확인하는 중...', true);
+            document.querySelector('button[onclick="testServerConnection()"]').disabled = true;
+
+            try {
+                const response = await fetch(`${SERVER_URL}/`);
+                if (response.ok) {
+                    testResults.serverConnection = true;
+                    updateProgress(2);
+                    displayResult('serverResult', `서버 연결 성공!<br>상태: ${response.status} ${response.statusText}<br>서버: ${SERVER_URL}`, true);
+                } else {
+                    displayResult('serverResult', `서버 응답 오류: ${response.status} ${response.statusText}`, false);
+                }
+            } catch (error) {
+                displayResult('serverResult', `서버 연결 실패: ${error.message}<br>다른 포트(8300)를 시도해보세요.`, false);
+            }
+
+            document.querySelector('button[onclick="testServerConnection()"]').disabled = false;
+        }
+
+        async function adminLogin() {
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+
+            displayResult('loginResult', '관리자 로그인 중...', true);
+            document.querySelector('button[onclick="adminLogin()"]').disabled = true;
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    testResults.adminLogin = true;
+                    updateProgress(3);
+                    displayResult('loginResult', `관리자 로그인 성공!<br>사용자 ID: ${result.user_id}<br>이메일: ${result.email}`, true);
+                } else {
+                    displayResult('loginResult', `로그인 실패: ${result.error || '알 수 없는 오류'}`, false);
+                }
+            } catch (error) {
+                displayResult('loginResult', `로그인 요청 실패: ${error.message}`, false);
+            }
+
+            document.querySelector('button[onclick="adminLogin()"]').disabled = false;
+        }
+
+        async function uploadLearningFile() {
+            const content = document.getElementById('learningContent').value;
+
+            if (!content.trim()) {
+                displayResult('learningResult', '학습할 내용을 입력해주세요.', false);
+                return;
+            }
+
+            displayResult('learningResult', '파일 학습 중...', true);
+            document.querySelector('button[onclick="uploadLearningFile()"]').disabled = true;
+
+            try {
+                // 텍스트를 파일 형태로 변환
+                const blob = new Blob([content], { type: 'text/plain' });
+                const formData = new FormData();
+                formData.append('file', blob, 'learning_test.txt');
+
+                const response = await fetch(`${SERVER_URL}/api/admin/learn-file`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    testResults.fileLearning = true;
+                    updateProgress(4);
+                    displayResult('learningResult', `파일 학습 성공!<br>파일명: ${result.filename}<br>크기: ${result.file_size} bytes<br>메모리 저장: ${result.memory_stored ? '성공' : '실패'}`, true);
+                } else {
+                    displayResult('learningResult', `학습 실패: ${result.error || '알 수 없는 오류'}`, false);
+                }
+            } catch (error) {
+                displayResult('learningResult', `학습 요청 실패: ${error.message}`, false);
+            }
+
+            document.querySelector('button[onclick="uploadLearningFile()"]').disabled = false;
+        }
+
+        async function testRecall() {
+            const query = document.getElementById('recallQuery').value;
+
+            if (!query.trim()) {
+                displayResult('recallResult', '회상 쿼리를 입력해주세요.', false);
+                return;
+            }
+
+            displayResult('recallResult', '회상 테스트 중...', true);
+            document.querySelector('button[onclick="testRecall()"]').disabled = true;
+
+            try {
+                // 직접 메모리 통계 확인
+                const statsResponse = await fetch(`${SERVER_URL}/api/test/memory-stats`);
+                let statsResult = null;
+                if (statsResponse.ok) {
+                    statsResult = await statsResponse.json();
+                }
+
+                // 회상 테스트
+                const response = await fetch(`${SERVER_URL}/api/test/recall?query=${encodeURIComponent(query)}`);
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    testResults.recall = true;
+                    updateProgress(5);
+
+                    let message = `회상 테스트 성공!<br>쿼리: "${query}"<br>발견된 메모리: ${result.total_memories_found}개<br><br>`;
+
+                    if (result.test_results) {
+                        Object.keys(result.test_results).forEach(key => {
+                            const test = result.test_results[key];
+                            if (test.count > 0) {
+                                message += `${key}: ${test.count}개 메모리<br>`;
+                            }
+                        });
+                    }
+
+                    if (statsResult && statsResult.success) {
+                        message += '<br>전체 메모리 통계:<br>';
+                        Object.keys(statsResult.statistics).forEach(key => {
+                            const stat = statsResult.statistics[key];
+                            if (stat.total_memories) {
+                                message += `${key}: ${stat.total_memories}개<br>`;
+                            }
+                        });
+                    }
+
+                    displayResult('recallResult', message, true);
+                } else {
+                    displayResult('recallResult', `회상 테스트 실패: ${result.error || '알 수 없는 오류'}`, false);
+                }
+            } catch (error) {
+                displayResult('recallResult', `회상 요청 실패: ${error.message}`, false);
+            }
+
+            document.querySelector('button[onclick="testRecall()"]').disabled = false;
+        }
+
+        async function testChat() {
+            const message = document.getElementById('chatMessage').value;
+
+            if (!message.trim()) {
+                displayResult('chatResult', '채팅 메시지를 입력해주세요.', false);
+                return;
+            }
+
+            displayResult('chatResult', '채팅 테스트 중...', true);
+            document.querySelector('button[onclick="testChat()"]').disabled = true;
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: 'test_session_' + Date.now()
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.response) {
+                    testResults.chat = true;
+                    displayResult('chatResult', `채팅 테스트 성공!<br><br><strong>사용자:</strong> ${message}<br><br><strong>AI 응답:</strong><br>${result.response}<br><br><strong>응답 길이:</strong> ${result.response.length}자`, true);
+
+                    // 모든 테스트가 완료되었는지 확인
+                    checkAllTestsComplete();
+                } else {
+                    displayResult('chatResult', `채팅 실패: ${result.error || '알 수 없는 오류'}`, false);
+                }
+            } catch (error) {
+                displayResult('chatResult', `채팅 요청 실패: ${error.message}`, false);
+            }
+
+            document.querySelector('button[onclick="testChat()"]').disabled = false;
+        }
+
+        function checkAllTestsComplete() {
+            const allComplete = Object.values(testResults).every(result => result === true);
+
+            if (allComplete) {
+                updateProgress(6); // 100% 완료
+                document.getElementById('summaryResult').innerHTML = `
+                    <div class="success-message">
+                        <h3>🎉 100% 학습 기능 테스트 완료!</h3>
+                        <p><strong>모든 테스트가 성공적으로 완료되었습니다!</strong></p>
+                        <ul style="margin-top: 15px; padding-left: 20px;">
+                            <li>✅ 서버 연결 테스트</li>
+                            <li>✅ 관리자 로그인</li>
+                            <li>✅ 파일 학습 기능</li>
+                            <li>✅ 메모리 회상 기능</li>
+                            <li>✅ 채팅 응답 기능</li>
+                        </ul>
+                        <br>
+                        <p><strong>🎯 결론: EORA AI 학습 기능이 100% 정상 작동합니다!</strong></p>
+                    </div>
+                `;
+            }
+        }
+
+        async function runAllTests() {
+            document.querySelector('button[onclick="runAllTests()"]').disabled = true;
+            document.querySelector('button[onclick="runAllTests()"]').innerHTML = '🔄 테스트 실행 중...';
+
+            await testServerConnection();
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            await adminLogin();
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            await uploadLearningFile();
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            await testRecall();
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            await testChat();
+
+            document.querySelector('button[onclick="runAllTests()"]').disabled = false;
+            document.querySelector('button[onclick="runAllTests()"]').innerHTML = '🚀 전체 테스트 실행';
+        }
+
+        // 페이지 로드 시 첫 번째 단계 활성화
+        updateProgress(1);
+
+        // 자동으로 서버 연결 테스트 실행
+        setTimeout(() => {
+            testServerConnection();
+        }, 1000);
+    </script>
+</body>
+
+</html>

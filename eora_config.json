@@ -1,0 +1,39 @@
+{
+  "system": {
+    "max_memory_buffer": 1000,
+    "max_errors": 10,
+    "debug_mode": false
+  },
+  "components": {
+    "wave_core": {
+      "active": true
+    },
+    "ir_core": {
+      "active": true
+    },
+    "free_will_core": {
+      "active": true
+    },
+    "memory_core": {
+      "active": true
+    },
+    "self_model": {
+      "active": true
+    },
+    "ethics_engine": {
+      "active": true
+    },
+    "pain_engine": {
+      "active": true
+    },
+    "stress_monitor": {
+      "active": true
+    },
+    "life_loop": {
+      "active": true
+    },
+    "love_engine": {
+      "active": true
+    }
+  }
+}

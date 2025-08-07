@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 관리자 페이지</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .title {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .admin-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .admin-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+
+        .admin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .card-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .card-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .card-description {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1em;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .table tr:hover {
+            background-color: #e9ecef;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 12px;
+        }
+
+        .action-btn.edit {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .action-btn.delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .action-btn.view {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.3s ease;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .chart-container {
+            margin: 20px 0;
+            height: 300px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .title {
+                font-size: 2em;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h1 class="title">🚀 EORA AI 관리자 페이지</h1>
+                    <p class="subtitle">AI 시스템 관리 및 모니터링</p>
+                </div>
+                <a href="/" class="btn btn-primary"
+                    style="text-decoration: none; color: white; padding: 12px 24px; border-radius: 10px; background: #667eea; transition: all 0.3s ease;">
+                    🏠 홈으로 가기
+                </a>
+            </div>
+        </div>
+
+        <div class="admin-panel">
+            <div class="admin-grid">
+                <div class="admin-card" onclick="openPromptManagement()">
+                    <div class="card-icon">📝</div>
+                    <h3 class="card-title">프롬프트 관리</h3>
+                    <p class="card-description">AI별 프롬프트를 수정하고 관리합니다. 시스템, 역할, 가이드, 포맷 프롬프트를 편집할 수 있습니다. 별도 페이지에서 상세 관리가
+                        가능합니다.</p>
+                    <button class="btn btn-primary">프롬프트 관리</button>
+                </div>
+
+                <div class="admin-card" onclick="openUserManagement()">
+                    <div class="card-icon">👥</div>
+                    <h3 class="card-title">회원 관리</h3>
+                    <p class="card-description">사용자 계정, 권한, 세션을 관리하고 사용자 활동을 추적합니다.</p>
+                    <button class="btn btn-secondary">회원 관리</button>
+                </div>
+
+                <div class="admin-card" onclick="openStorageManagement()">
+                    <div class="card-icon">💾</div>
+                    <h3 class="card-title">저장소 관리</h3>
+                    <p class="card-description">데이터베이스, 파일 저장소, 백업을 관리하고 저장 공간을 모니터링합니다.</p>
+                    <button class="btn btn-secondary">저장소 관리</button>
+                </div>
+
+                <div class="admin-card" onclick="openPointManagement()">
+                    <div class="card-icon">⭐</div>
+                    <h3 class="card-title">포인트 관리</h3>
+                    <p class="card-description">사용자 포인트 충전, 차감, 내역 관리 및 포인트 시스템을 관리합니다.</p>
+                    <button class="btn btn-success">포인트 관리</button>
+                </div>
+
+                <div class="admin-card" onclick="openSystemMonitoring()">
+                    <div class="card-icon">📊</div>
+                    <h3 class="card-title">시스템 모니터링</h3>
+                    <p class="card-description">시스템 상태, 사용자 활동, 성능 지표를 실시간으로 모니터링합니다.</p>
+                    <button class="btn btn-secondary">모니터링</button>
+                </div>
+
+                <div class="admin-card" onclick="openResourceManagement()">
+                    <div class="card-icon">🔧</div>
+                    <h3 class="card-title">자원 관리</h3>
+                    <p class="card-description">CPU, 메모리, 네트워크 사용량을 모니터링하고 시스템 자원을 관리합니다.</p>
+                    <button class="btn btn-warning">자원 관리</button>
+                </div>
+                <div class="admin-card" onclick="window.location.href='/learning'">
+                    <div class="card-icon">📚</div>
+                    <h3 class="card-title">학습 전용 페이지</h3>
+                    <p class="card-description">문서/대화 파일을 등록하여 아우라 메모리로 학습할 수 있는 전용 페이지로 이동합니다.<br>지원: txt, docx, md,
+                        py, xlsx, xls, pdf</p>
+                    <button class="btn btn-primary">학습 전용 페이지로 이동</button>
+                </div>
+
+                <div class="admin-card" onclick="openModal('recallModal')">
+                    <div class="card-icon">🔍</div>
+                    <h3 class="card-title">학습 내용 회상</h3>
+                    <p class="card-description">학습된 문서와 대화 내용을 검색하고 회상할 수 있습니다.<br>키워드로 관련 학습 데이터를 찾아보세요.</p>
+                    <button class="btn btn-info">학습 내용 검색</button>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <h3 style="margin-bottom: 20px; color: #333;">📊 시스템 현황</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-users">0</div>
+                        <div class="stat-label">총 사용자</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="active-sessions">0</div>
+                        <div class="stat-label">활성 세션</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-chats">0</div>
+                        <div class="stat-label">총 채팅</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-points">0</div>
+                        <div class="stat-label">총 포인트</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="cpu-usage">0%</div>
+                        <div class="stat-label">CPU 사용률</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="memory-usage">0%</div>
+                        <div class="stat-label">메모리 사용률</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="logout-section" style="text-align: center; margin-top: 40px;">
+                <button class="btn btn-danger" onclick="logout()">로그아웃</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 프롬프트 관리 모달 -->
+    <div id="promptModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('promptModal')">&times;</span>
+            <h2>📝 프롬프트 관리</h2>
+            <div id="promptContent">
+                <div class="form-group">
+                    <label class="form-label">AI 선택:</label>
+                    <select class="form-input" id="aiSelect">
+                        <option value="ai1">AI 1</option>
+                        <option value="ai2">AI 2</option>
+                        <option value="ai3">AI 3</option>
+                        <option value="ai4">AI 4</option>
+                        <option value="ai5">AI 5</option>
+                        <option value="ai6">AI 6</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">프롬프트 타입:</label>
+                    <select class="form-input" id="promptType">
+                        <option value="system">시스템 프롬프트</option>
+                        <option value="role">역할 프롬프트</option>
+                        <option value="guide">가이드 프롬프트</option>
+                        <option value="format">포맷 프롬프트</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">프롬프트 내용:</label>
+                    <textarea class="form-textarea" id="promptContent" rows="10"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="savePrompt()">저장</button>
+                <button class="btn btn-secondary" onclick="loadPrompt()">불러오기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 회원 관리 모달 -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('userModal')">&times;</span>
+            <h2>👥 회원 관리</h2>
+            <div id="userContent">
+                <div class="form-group">
+                    <label class="form-label">사용자 검색:</label>
+                    <input type="text" class="form-input" id="userSearch" placeholder="이메일 또는 사용자 ID로 검색">
+                </div>
+                <table class="table" id="userTable">
+                    <thead>
+                        <tr>
+                            <th>사용자 ID</th>
+                            <th>이메일</th>
+                            <th>포인트</th>
+                            <th>가입일</th>
+                            <th>마지막 로그인</th>
+                            <th>상태</th>
+                            <th>액션</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 저장소 관리 모달 -->
+    <div id="storageModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('storageModal')">&times;</span>
+            <h2>💾 저장소 관리</h2>
+            <div id="storageContent">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="db-size">0 MB</div>
+                        <div class="stat-label">데이터베이스 크기</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="file-size">0 MB</div>
+                        <div class="stat-label">파일 저장소</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="backup-size">0 MB</div>
+                        <div class="stat-label">백업 크기</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">백업 생성:</label>
+                    <button class="btn btn-success" onclick="createBackup()">백업 생성</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">데이터 정리:</label>
+                    <button class="btn btn-warning" onclick="cleanupData()">오래된 데이터 정리</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 포인트 관리 모달 -->
+    <div id="pointModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('pointModal')">&times;</span>
+            <h2>⭐ 포인트 관리</h2>
+            <div id="pointContent">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-sold-points">0</div>
+                        <div class="stat-label">총 판매 포인트</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-used-points">0</div>
+                        <div class="stat-label">총 사용 포인트</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="remaining-points">0</div>
+                        <div class="stat-label">잔여 포인트</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">사용자 포인트 조정:</label>
+                    <input type="text" class="form-input" id="pointUserId" placeholder="사용자 ID">
+                    <input type="number" class="form-input" id="pointAmount" placeholder="포인트 수량">
+                    <select class="form-input" id="pointAction">
+                        <option value="add">포인트 추가</option>
+                        <option value="subtract">포인트 차감</option>
+                        <option value="set">포인트 설정</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="adjustUserPoints()">적용</button>
+                </div>
+                <table class="table" id="pointTable">
+                    <thead>
+                        <tr>
+                            <th>사용자 ID</th>
+                            <th>현재 포인트</th>
+                            <th>총 사용 포인트</th>
+                            <th>마지막 업데이트</th>
+                            <th>액션</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pointTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 시스템 모니터링 모달 -->
+    <div id="monitoringModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('monitoringModal')">&times;</span>
+            <h2>📊 시스템 모니터링</h2>
+            <div id="monitoringContent">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="concurrent-users">0</div>
+                        <div class="stat-label">동시 접속자</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="api-calls">0</div>
+                        <div class="stat-label">API 호출 수</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="response-time">0ms</div>
+                        <div class="stat-label">평균 응답시간</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="usageChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 자원 관리 모달 -->
+    <div id="resourceModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('resourceModal')">&times;</span>
+            <h2>🔧 자원 관리</h2>
+            <div id="resourceContent">
+                <div class="form-group">
+                    <label class="form-label">CPU 사용률:</label>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="cpuProgress" style="width: 0%"></div>
+                    </div>
+                    <span id="cpuText">0%</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">메모리 사용률:</label>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="memoryProgress" style="width: 0%"></div>
+                    </div>
+                    <span id="memoryText">0%</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">디스크 사용률:</label>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="diskProgress" style="width: 0%"></div>
+                    </div>
+                    <span id="diskText">0%</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">네트워크 사용량:</label>
+                    <div id="networkStats">
+                        <p>업로드: <span id="uploadSpeed">0 KB/s</span></p>
+                        <p>다운로드: <span id="downloadSpeed">0 KB/s</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 학습하기 모달 -->
+    <div id="learningModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('learningModal')">&times;</span>
+            <h2>📚 학습하기</h2>
+            <form id="learningForm">
+                <input type="file" id="learningFile" accept=".txt,.docx,.md,.py,.xlsx,.xls,.pdf" multiple required>
+                <button type="submit" class="btn btn-primary">업로드 및 학습</button>
+            </form>
+            <div id="learningLog" style="margin-top:20px;"></div>
+        </div>
+    </div>
+    <!-- 첨부파일학습 모달 -->
+    <div id="dialogLearningModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('dialogLearningModal')">&times;</span>
+            <h2>💬 첨부파일학습(대화)</h2>
+            <form id="dialogLearningForm">
+                <input type="file" id="dialogLearningFile" accept=".txt,.md,.docx" required>
+                <button type="submit" class="btn btn-success">업로드 및 학습</button>
+            </form>
+            <div id="dialogLearningLog" style="margin-top:20px;"></div>
+        </div>
+    </div>
+
+    <!-- 학습 내용 회상 모달 -->
+    <div id="recallModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('recallModal')">&times;</span>
+            <h2>🔍 학습 내용 회상</h2>
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="recallQuery" placeholder="검색어를 입력하세요"
+                    style="width: 70%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
+                    onkeypress="if(event.key==='Enter') searchLearningContent()">
+                <input type="number" id="recallLimit" placeholder="결과 수" value="10" min="1" max="50"
+                    style="width: 15%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-left: 10px;"
+                    onkeypress="if(event.key==='Enter') searchLearningContent()">
+                <button onclick="searchLearningContent()" class="btn btn-primary"
+                    style="width: 10%; padding: 10px;">검색</button>
+            </div>
+            <div id="recallResults"
+                style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: #f9f9f9;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function () {
+            checkLogin();
+            loadSystemStats();
+            setInterval(loadSystemStats, 30000); // 30초마다 업데이트
+        });
+
+        // 로그인 상태 체크
+        function checkLogin() {
+            const userEmail = localStorage.getItem('user_email');
+            const isAdmin = localStorage.getItem('is_admin') === 'true';
+
+            if (!userEmail || !isAdmin) {
+                alert('관리자 로그인이 필요합니다.');
+                window.location.href = '/';
+                return false;
+            }
+            return true;
+        }
+
+        // 시스템 통계 로드
+        async function loadSystemStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('total-users').textContent = data.stats.total_users || 0;
+                    document.getElementById('active-sessions').textContent = data.stats.active_sessions || 0;
+                    document.getElementById('total-chats').textContent = data.stats.total_chats || 0;
+                    document.getElementById('total-points').textContent = data.stats.total_points || 0;
+                    document.getElementById('cpu-usage').textContent = (data.stats.cpu_usage || 0) + '%';
+                    document.getElementById('memory-usage').textContent = (data.stats.memory_usage || 0) + '%';
+                }
+            } catch (error) {
+                console.error('통계 로드 오류:', error);
+            }
+        }
+
+        // 모달 열기
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        // 모달 닫기
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // 프롬프트 관리
+        function openPromptManagement() {
+            window.location.href = '/prompt-management';
+        }
+
+        async function loadPrompt() {
+            const aiSelect = document.getElementById('aiSelect').value;
+            const promptType = document.getElementById('promptType').value;
+
+            try {
+                const response = await fetch(`/api/admin/prompts/${aiSelect}/${promptType}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('promptContent').value = data.prompt || '';
+                }
+            } catch (error) {
+                console.error('프롬프트 로드 오류:', error);
+            }
+        }
+
+        async function savePrompt() {
+            const aiSelect = document.getElementById('aiSelect').value;
+            const promptType = document.getElementById('promptType').value;
+            const content = document.getElementById('promptContent').value;
+
+            try {
+                const response = await fetch('/api/admin/prompts/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ai: aiSelect,
+                        type: promptType,
+                        content: content
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('프롬프트가 저장되었습니다.');
+                } else {
+                    alert('프롬프트 저장에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('프롬프트 저장 오류:', error);
+                alert('프롬프트 저장 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 회원 관리
+        function openUserManagement() {
+            openModal('userModal');
+            loadUsers();
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users');
+                const data = await response.json();
+
+                if (data.success) {
+                    const tbody = document.getElementById('userTableBody');
+                    tbody.innerHTML = '';
+
+                    data.users.forEach(user => {
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td>${user.user_id}</td>
+                            <td>${user.email || 'N/A'}</td>
+                            <td>${user.points || 0}</td>
+                            <td>${user.created_at || 'N/A'}</td>
+                            <td>${user.last_login || 'N/A'}</td>
+                            <td>${user.status || '활성'}</td>
+                            <td>
+                                <button class="action-btn edit" onclick="editUser('${user.user_id}')">편집</button>
+                                <button class="action-btn delete" onclick="deleteUser('${user.user_id}')">삭제</button>
+                            </td>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('사용자 로드 오류:', error);
+            }
+        }
+
+        // 저장소 관리
+        function openStorageManagement() {
+            openModal('storageModal');
+            loadStorageStats();
+        }
+
+        async function loadStorageStats() {
+            try {
+                const response = await fetch('/api/admin/storage');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('db-size').textContent = data.storage.db_size + ' MB';
+                    document.getElementById('file-size').textContent = data.storage.file_size + ' MB';
+                    document.getElementById('backup-size').textContent = data.storage.backup_size + ' MB';
+                }
+            } catch (error) {
+                console.error('저장소 통계 로드 오류:', error);
+            }
+        }
+
+        async function createBackup() {
+            try {
+                const response = await fetch('/api/admin/backup', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('백업이 생성되었습니다.');
+                    loadStorageStats();
+                } else {
+                    alert('백업 생성에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('백업 생성 오류:', error);
+                alert('백업 생성 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 포인트 관리
+        function openPointManagement() {
+            openModal('pointModal');
+            loadPointStats();
+            loadPointUsers();
+        }
+
+        async function loadPointStats() {
+            try {
+                const response = await fetch('/api/admin/points/stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('total-sold-points').textContent = data.stats.total_sold || 0;
+                    document.getElementById('total-used-points').textContent = data.stats.total_used || 0;
+                    document.getElementById('remaining-points').textContent = data.stats.remaining || 0;
+                }
+            } catch (error) {
+                console.error('포인트 통계 로드 오류:', error);
+            }
+        }
+
+        async function loadPointUsers() {
+            try {
+                const response = await fetch('/api/admin/points/users');
+                const data = await response.json();
+
+                if (data.success) {
+                    const tbody = document.getElementById('pointTableBody');
+                    tbody.innerHTML = '';
+
+                    data.users.forEach(user => {
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td>${user.user_id}</td>
+                            <td>${user.current_points || 0}</td>
+                            <td>${user.total_used || 0}</td>
+                            <td>${user.last_updated || 'N/A'}</td>
+                            <td>
+                                <button class="action-btn edit" onclick="editUserPoints('${user.user_id}')">편집</button>
+                                <button class="action-btn view" onclick="viewPointHistory('${user.user_id}')">내역</button>
+                            </td>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('포인트 사용자 로드 오류:', error);
+            }
+        }
+
+        async function adjustUserPoints() {
+            const userId = document.getElementById('pointUserId').value;
+            const amount = parseInt(document.getElementById('pointAmount').value);
+            const action = document.getElementById('pointAction').value;
+
+            if (!userId || !amount) {
+                alert('사용자 ID와 포인트 수량을 입력해주세요.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/points/adjust', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        amount: amount,
+                        action: action
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('포인트가 조정되었습니다.');
+                    loadPointStats();
+                    loadPointUsers();
+                } else {
+                    alert('포인트 조정에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('포인트 조정 오류:', error);
+                alert('포인트 조정 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 시스템 모니터링
+        function openSystemMonitoring() {
+            openModal('monitoringModal');
+            loadMonitoringStats();
+        }
+
+        async function loadMonitoringStats() {
+            try {
+                const response = await fetch('/api/admin/monitoring');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('concurrent-users').textContent = data.monitoring.concurrent_users || 0;
+                    document.getElementById('api-calls').textContent = data.monitoring.api_calls || 0;
+                    document.getElementById('response-time').textContent = (data.monitoring.avg_response_time || 0) + 'ms';
+                }
+            } catch (error) {
+                console.error('모니터링 통계 로드 오류:', error);
+            }
+        }
+
+        // 자원 관리
+        function openResourceManagement() {
+            openModal('resourceModal');
+            loadResourceStats();
+            setInterval(loadResourceStats, 5000); // 5초마다 업데이트
+        }
+
+        async function loadResourceStats() {
+            try {
+                const response = await fetch('/api/admin/resources');
+                const data = await response.json();
+
+                if (data.success) {
+                    const cpu = data.resources.cpu_usage || 0;
+                    const memory = data.resources.memory_usage || 0;
+                    const disk = data.resources.disk_usage || 0;
+
+                    document.getElementById('cpuProgress').style.width = cpu + '%';
+                    document.getElementById('cpuText').textContent = cpu + '%';
+
+                    document.getElementById('memoryProgress').style.width = memory + '%';
+                    document.getElementById('memoryText').textContent = memory + '%';
+
+                    document.getElementById('diskProgress').style.width = disk + '%';
+                    document.getElementById('diskText').textContent = disk + '%';
+
+                    document.getElementById('uploadSpeed').textContent = (data.resources.upload_speed || 0) + ' KB/s';
+                    document.getElementById('downloadSpeed').textContent = (data.resources.download_speed || 0) + ' KB/s';
+                }
+            } catch (error) {
+                console.error('자원 통계 로드 오류:', error);
+            }
+        }
+
+        // 로그아웃
+        function logout() {
+            localStorage.removeItem('user_email');
+            localStorage.removeItem('user_name');
+            localStorage.removeItem('is_admin');
+            localStorage.removeItem('auto_login');
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        }
+
+        // 이벤트 리스너 추가
+        document.getElementById('aiSelect').addEventListener('change', loadPrompt);
+        document.getElementById('promptType').addEventListener('change', loadPrompt);
+
+        // 학습하기 파일 업로드 및 학습 (상세 로그 개선)
+        const learningForm = document.getElementById('learningForm');
+        if (learningForm) {
+            learningForm.onsubmit = async function (e) {
+                e.preventDefault();
+                const files = document.getElementById('learningFile').files;
+                if (!files.length) return;
+
+                const log = document.getElementById('learningLog');
+                log.innerHTML = `
+                    <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">📚 파일 학습 시작</h3>
+                        <p style="margin: 0; color: #7f8c8d;">선택된 파일: ${files.length}개</p>
+                    </div>
+                    <div id="learningProgress" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fafafa;"></div>
+                `;
+
+                const progressDiv = document.getElementById('learningProgress');
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const fileSize = (file.size / 1024).toFixed(1);
+
+                    // 파일 처리 시작 로그
+                    progressDiv.innerHTML += `
+                        <div style="border-left: 4px solid #3498db; padding-left: 10px; margin: 10px 0;">
+                            <strong>📁 ${file.name}</strong> (${fileSize} KB)<br>
+                            <span style="color: #7f8c8d;">⏳ 업로드 및 분석 시작...</span>
+                        </div>
+                    `;
+                    progressDiv.scrollTop = progressDiv.scrollHeight;
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const startTime = Date.now();
+
+                    try {
+                        const res = await fetch('/api/admin/enhanced-learn-file', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                        if (data.success) {
+                            const details = data.details || {};
+                            progressDiv.innerHTML += `
+                                <div style="border-left: 4px solid #27ae60; padding-left: 10px; margin: 10px 0; background: #f8fff8;">
+                                    <strong>✅ ${file.name} 학습 완료</strong><br>
+                                    <div style="font-size: 0.9em; color: #27ae60; margin-top: 5px;">
+                                        📊 <strong>학습 결과:</strong><br>
+                                        • 텍스트 길이: ${details.text_length?.toLocaleString() || '알 수 없음'} 문자<br>
+                                        • 생성된 청크: ${data.chunks || 0}개<br>
+                                        • 저장된 메모리: ${data.saved_memories || 0}개<br>
+                                        • 평균 청크 크기: ${details.avg_chunk_size || '알 수 없음'} 문자<br>
+                                        • 메모리 시스템: ${details.memory_system || '알 수 없음'}<br>
+                                        • 처리 시간: ${duration}초<br>
+                                        • 세션 ID: <code style="background: #eee; padding: 2px 4px; border-radius: 3px;">${details.session_id || '알 수 없음'}</code>
+                                    </div>
+                                    <div style="margin-top: 8px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 0.85em;">
+                                        💡 <strong>성공:</strong> ${data.message}
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            progressDiv.innerHTML += `
+                                <div style="border-left: 4px solid #e74c3c; padding-left: 10px; margin: 10px 0; background: #fff8f8;">
+                                    <strong>❌ ${file.name} 학습 실패</strong><br>
+                                    <div style="color: #e74c3c; margin-top: 5px; padding: 8px; background: #ffeaea; border-radius: 4px;">
+                                        <strong>오류:</strong> ${data.message || '알 수 없는 오류'}
+                                    </div>
+                                    <div style="color: #7f8c8d; margin-top: 5px;">
+                                        처리 시간: ${duration}초
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } catch (err) {
+                        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                        progressDiv.innerHTML += `
+                            <div style="border-left: 4px solid #e74c3c; padding-left: 10px; margin: 10px 0; background: #fff8f8;">
+                                <strong>❌ ${file.name} 네트워크 오류</strong><br>
+                                <div style="color: #e74c3c; margin-top: 5px; padding: 8px; background: #ffeaea; border-radius: 4px;">
+                                    <strong>오류:</strong> 서버 연결 실패 - ${err.message}
+                                </div>
+                                <div style="color: #7f8c8d; margin-top: 5px;">
+                                    시도 시간: ${duration}초
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    progressDiv.scrollTop = progressDiv.scrollHeight;
+                }
+
+                // 전체 완료 로그
+                progressDiv.innerHTML += `
+                    <div style="border: 2px solid #3498db; padding: 15px; margin: 15px 0; background: #f0f8ff; border-radius: 8px;">
+                        <h4 style="margin: 0 0 10px 0; color: #2c3e50;">🎉 전체 학습 완료</h4>
+                        <p style="margin: 0; color: #7f8c8d;">
+                            총 ${files.length}개 파일 처리 완료<br>
+                            💡 <strong>확인:</strong> 콘솔 로그에서 더 상세한 학습 과정을 확인할 수 있습니다.
+                        </p>
+                    </div>
+                `;
+                progressDiv.scrollTop = progressDiv.scrollHeight;
+            };
+        }
+        // 첨부파일학습(대화) - 상세 로그 개선
+        const dialogLearningForm = document.getElementById('dialogLearningForm');
+        if (dialogLearningForm) {
+            dialogLearningForm.onsubmit = async function (e) {
+                e.preventDefault();
+                const file = document.getElementById('dialogLearningFile').files[0];
+                if (!file) return;
+
+                const fileSize = (file.size / 1024).toFixed(1);
+                const log = document.getElementById('dialogLearningLog');
+
+                log.innerHTML = `
+                    <div style="background: #f0fff0; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">💬 대화 학습 시작</h3>
+                        <p style="margin: 0; color: #7f8c8d;">파일: ${file.name} (${fileSize} KB)</p>
+                    </div>
+                    <div id="dialogProgress" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fafafa;">
+                        <div style="border-left: 4px solid #3498db; padding-left: 10px; margin: 10px 0;">
+                            <strong>📁 ${file.name}</strong><br>
+                            <span style="color: #7f8c8d;">⏳ 대화 파일 분석 중...</span>
+                        </div>
+                    </div>
+                `;
+
+                const progressDiv = document.getElementById('dialogProgress');
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const startTime = Date.now();
+
+                try {
+                    const res = await fetch('/api/admin/learn-dialog-file', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                    if (data.success) {
+                        const details = data.details || {};
+                        progressDiv.innerHTML += `
+                            <div style="border-left: 4px solid #27ae60; padding-left: 10px; margin: 10px 0; background: #f8fff8;">
+                                <strong>✅ ${file.name} 대화 학습 완료</strong><br>
+                                <div style="font-size: 0.9em; color: #27ae60; margin-top: 5px;">
+                                    📊 <strong>학습 결과:</strong><br>
+                                    • 텍스트 길이: ${details.text_length?.toLocaleString() || '알 수 없음'} 문자<br>
+                                    • 총 라인: ${details.total_lines?.toLocaleString() || '알 수 없음'}개<br>
+                                    • 대화 턴: ${data.dialog_turns || 0}개<br>
+                                    • 저장된 대화: ${data.saved_dialogs || 0}개<br>
+                                    • 평균 질문 길이: ${details.avg_question_length || '알 수 없음'} 문자<br>
+                                    • 평균 답변 길이: ${details.avg_answer_length || '알 수 없음'} 문자<br>
+                                    • 메모리 시스템: ${details.memory_system || '알 수 없음'}<br>
+                                    • 처리 시간: ${duration}초<br>
+                                    • 세션 ID: <code style="background: #eee; padding: 2px 4px; border-radius: 3px;">${details.session_id || '알 수 없음'}</code>
+                                </div>
+                                <div style="margin-top: 8px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 0.85em;">
+                                    💡 <strong>성공:</strong> ${data.message}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        progressDiv.innerHTML += `
+                            <div style="border-left: 4px solid #e74c3c; padding-left: 10px; margin: 10px 0; background: #fff8f8;">
+                                <strong>❌ ${file.name} 대화 학습 실패</strong><br>
+                                <div style="color: #e74c3c; margin-top: 5px; padding: 8px; background: #ffeaea; border-radius: 4px;">
+                                    <strong>오류:</strong> ${data.message || '알 수 없는 오류'}
+                                </div>
+                                <div style="color: #7f8c8d; margin-top: 5px;">
+                                    처리 시간: ${duration}초
+                                </div>
+                                <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; font-size: 0.85em; color: #856404;">
+                                    💡 <strong>지원 형식:</strong><br>
+                                    • Q: 질문 \\n A: 답변<br>
+                                    • 질문: 내용 \\n 답변: 내용<br>
+                                    • 사용자: 질문 \\n AI: 답변<br>
+                                    • 줄바꿈으로 구분된 질문-답변 쌍
+                                </div>
+                            </div>
+                        `;
+                    }
+                } catch (err) {
+                    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                    progressDiv.innerHTML += `
+                        <div style="border-left: 4px solid #e74c3c; padding-left: 10px; margin: 10px 0; background: #fff8f8;">
+                            <strong>❌ ${file.name} 네트워크 오류</strong><br>
+                            <div style="color: #e74c3c; margin-top: 5px; padding: 8px; background: #ffeaea; border-radius: 4px;">
+                                <strong>오류:</strong> 서버 연결 실패 - ${err.message}
+                            </div>
+                            <div style="color: #7f8c8d; margin-top: 5px;">
+                                시도 시간: ${duration}초
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 완료 로그
+                progressDiv.innerHTML += `
+                    <div style="border: 2px solid #27ae60; padding: 15px; margin: 15px 0; background: #f0fff0; border-radius: 8px;">
+                        <h4 style="margin: 0 0 10px 0; color: #2c3e50;">🎉 대화 학습 완료</h4>
+                        <p style="margin: 0; color: #7f8c8d;">
+                            대화 파일 처리 완료<br>
+                            💡 <strong>확인:</strong> 콘솔 로그에서 더 상세한 대화 파싱 과정을 확인할 수 있습니다.
+                        </p>
+                    </div>
+                `;
+                progressDiv.scrollTop = progressDiv.scrollHeight;
+            };
+        }
+
+        // 학습 내용 회상 기능
+        async function searchLearningContent() {
+            const query = document.getElementById('recallQuery').value.trim();
+            const limit = parseInt(document.getElementById('recallLimit').value) || 10;
+            const resultsDiv = document.getElementById('recallResults');
+
+            if (!query) {
+                resultsDiv.innerHTML = '<p style="color: #e74c3c;">검색어를 입력해주세요.</p>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<p style="color: #3498db;">🔍 검색 중...</p>';
+
+            try {
+                const response = await fetch('/api/admin/enhanced-recall', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        limit: limit
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.results && data.results.length > 0) {
+                        let html = `
+                            <div style="margin-bottom: 15px; padding: 10px; background: #e8f5e8; border-radius: 5px;">
+                                <strong>🎯 검색 결과: ${data.results_count}개</strong>
+                                <br><small>검색어: "${data.query}"</small>
+                            </div>
+                        `;
+
+                        data.results.forEach((result, index) => {
+                            const content = result.content.length > 200 ?
+                                result.content.substring(0, 200) + '...' :
+                                result.content;
+
+                            html += `
+                                <div style="border: 1px solid #ddd; margin-bottom: 10px; padding: 15px; border-radius: 5px; background: white;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <strong style="color: #2c3e50;">${index + 1}. ${result.filename || '파일명 없음'}</strong>
+                                        <span style="background: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">
+                                            ${result.category || result.memory_type || '카테고리 없음'}
+                                        </span>
+                                    </div>
+                                    <div style="color: #555; line-height: 1.4; margin-bottom: 10px;">
+                                        ${content}
+                                    </div>
+                                    <div style="font-size: 0.8em; color: #7f8c8d; border-top: 1px solid #eee; padding-top: 8px;">
+                                        <span style="margin-right: 15px;">📅 ${result.timestamp || '시간 정보 없음'}</span>
+                                        ${result.keywords && result.keywords.length > 0 ?
+                                    `<span>🏷️ ${result.keywords.slice(0, 3).join(', ')}</span>` : ''
+                                }
+                                        ${result.relevance_score ?
+                                    `<span style="float: right;">⭐ ${result.relevance_score.toFixed(2)}</span>` : ''
+                                }
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        resultsDiv.innerHTML = html;
+                    } else {
+                        resultsDiv.innerHTML = `
+                            <div style="text-align: center; padding: 30px; color: #7f8c8d;">
+                                <p style="font-size: 1.2em; margin-bottom: 10px;">📭 검색 결과가 없습니다</p>
+                                <p>다른 키워드로 검색해보세요.</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div style="color: #e74c3c; padding: 15px; background: #ffeaea; border-radius: 5px;">
+                            <strong>❌ 검색 실패</strong><br>
+                            ${data.message || '알 수 없는 오류가 발생했습니다.'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div style="color: #e74c3c; padding: 15px; background: #ffeaea; border-radius: 5px;">
+                        <strong>❌ 네트워크 오류</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Enter 키로 검색 가능하도록
+        document.addEventListener('DOMContentLoaded', function () {
+            const recallQuery = document.getElementById('recallQuery');
+            if (recallQuery) {
+                recallQuery.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        searchLearningContent();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학습 시스템 테스트 - EORA AI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .results {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .result-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-header {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .result-content {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .result-meta {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .files-list {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .file-stats {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 EORA AI 학습 시스템 테스트</h1>
+            <p>관리자 전용 - 학습된 데이터 확인 및 회상 테스트</p>
+        </div>
+
+        <!-- 학습 통계 -->
+        <div class="test-section">
+            <h2>📊 학습 통계</h2>
+            <button class="btn" onclick="loadStats()">통계 새로고침</button>
+
+            <div class="stats-grid" id="statsGrid">
+                <div class="loading">통계를 불러오는 중...</div>
+            </div>
+        </div>
+
+        <!-- 학습된 파일 목록 -->
+        <div class="test-section">
+            <h2>📁 학습된 파일 목록</h2>
+            <div class="files-list" id="filesList">
+                <div class="loading">파일 목록을 불러오는 중...</div>
+            </div>
+        </div>
+
+        <!-- 회상 테스트 -->
+        <div class="test-section">
+            <h2>🔍 회상 테스트</h2>
+            <div class="form-group">
+                <label for="searchQuery">검색어:</label>
+                <input type="text" id="searchQuery" placeholder="검색할 내용을 입력하세요...">
+            </div>
+
+            <div class="form-group">
+                <label for="memoryType">메모리 타입:</label>
+                <select id="memoryType">
+                    <option value="document_chunk">문서 청크</option>
+                    <option value="conversation">대화</option>
+                    <option value="">전체</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="filename">파일명 필터:</label>
+                <input type="text" id="filename" placeholder="특정 파일명으로 필터링 (선택사항)">
+            </div>
+
+            <div class="form-group">
+                <label for="limit">결과 제한:</label>
+                <select id="limit">
+                    <option value="5">5개</option>
+                    <option value="10">10개</option>
+                    <option value="20">20개</option>
+                    <option value="50">50개</option>
+                </select>
+            </div>
+
+            <button class="btn" onclick="testRecall()">회상 테스트</button>
+            <button class="btn btn-secondary" onclick="clearResults()">결과 지우기</button>
+
+            <div class="results" id="recallResults" style="display: none;">
+                <!-- 결과가 여기에 표시됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드시 통계 자동 로드
+        document.addEventListener('DOMContentLoaded', function () {
+            loadStats();
+        });
+
+        // 학습 통계 로드
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/learning-stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    displayStats(data.stats);
+                } else {
+                    document.getElementById('statsGrid').innerHTML =
+                        `<div class="error">통계 로드 실패: ${data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('statsGrid').innerHTML =
+                    `<div class="error">통계 로드 오류: ${error.message}</div>`;
+            }
+        }
+
+        // 통계 표시
+        function displayStats(stats) {
+            const statsGrid = document.getElementById('statsGrid');
+            const filesList = document.getElementById('filesList');
+
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.total_memories || 0}</div>
+                    <div class="stat-label">전체 메모리</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.document_chunks || 0}</div>
+                    <div class="stat-label">문서 청크</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.conversations || 0}</div>
+                    <div class="stat-label">대화 기록</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.learned_files_count || 0}</div>
+                    <div class="stat-label">학습된 파일</div>
+                </div>
+            `;
+
+            // 파일 목록 표시
+            if (stats.learned_files && stats.learned_files.length > 0) {
+                filesList.innerHTML = stats.learned_files.map(file => `
+                    <div class="file-item">
+                        <div>
+                            <div class="file-name">${file.filename}</div>
+                            <div class="file-stats">
+                                청크: ${file.chunk_count}개 | 
+                                확장자: ${file.file_extension} | 
+                                최근: ${new Date(file.latest_timestamp).toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                filesList.innerHTML = '<div class="loading">학습된 파일이 없습니다.</div>';
+            }
+        }
+
+        // 회상 테스트
+        async function testRecall() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) {
+                alert('검색어를 입력해주세요.');
+                return;
+            }
+
+            const memoryType = document.getElementById('memoryType').value;
+            const filename = document.getElementById('filename').value.trim();
+            const limit = parseInt(document.getElementById('limit').value);
+
+            const resultsDiv = document.getElementById('recallResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="loading">검색 중...</div>';
+
+            try {
+                const response = await fetch('/api/admin/enhanced-recall', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        memory_type: memoryType,
+                        filename: filename,
+                        limit: limit
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayRecallResults(data);
+                } else {
+                    resultsDiv.innerHTML = `<div class="error">회상 실패: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">회상 오류: ${error.message}</div>`;
+            }
+        }
+
+        // 회상 결과 표시
+        function displayRecallResults(data) {
+            const resultsDiv = document.getElementById('recallResults');
+
+            if (data.results && data.results.length > 0) {
+                const resultsHTML = `
+                    <div class="success">
+                        검색 완료: "${data.query}" - ${data.results_count}개 결과 발견
+                    </div>
+                    ${data.results.map((result, index) => `
+                        <div class="result-item">
+                            <div class="result-header">
+                                결과 ${index + 1} - ${result.filename || '알 수 없는 파일'}
+                            </div>
+                            <div class="result-content">
+                                ${result.content.substring(0, 300)}${result.content.length > 300 ? '...' : ''}
+                            </div>
+                            <div class="result-meta">
+                                타입: ${result.memory_type || 'N/A'} | 
+                                청크: ${result.chunk_index + 1}/${result.total_chunks} | 
+                                시간: ${new Date(result.timestamp).toLocaleString()} |
+                                중요도: ${(result.importance_score * 100).toFixed(1)}%
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+                resultsDiv.innerHTML = resultsHTML;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="error">
+                        "${data.query}"에 대한 검색 결과가 없습니다.
+                    </div>
+                `;
+            }
+        }
+
+        // 결과 지우기
+        function clearResults() {
+            document.getElementById('recallResults').style.display = 'none';
+            document.getElementById('searchQuery').value = '';
+            document.getElementById('filename').value = '';
+        }
+    </script>
+</body>
+
+</html>

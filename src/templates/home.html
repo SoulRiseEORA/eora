@@ -1,0 +1,2217 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA - 감정을 이해하는 AI</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+    <!-- Google Translate API -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'ko',
+                includedLanguages: 'en,ja,zh-CN,zh-TW,es,fr,de,ru,ar,hi,pt,it,nl,sv,no,da,fi,pl,tr,ko,th,vi,id,ms,fil,my,km,lo,ne,ur,bn,ta,te,ml,kn,gu,pa,or,as,mr,si,am,et,so,sw,zu,xh,af,st,yo,ig,ha,ar,he,fa,ps,ku,sd,ur,ne,my,km,lo,th,vi,id,ms,fil,my,km,lo,ne,ur,bn,ta,te,ml,kn,gu,pa,or,as,mr,si,am,et,so,sw,zu,xh,af,st,yo,ig,ha',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript"
+        src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;400&family=Noto+Sans+KR:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --main-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --accent: #00d4aa;
+            --accent2: #00b894;
+            --accent3: #00a085;
+            --text-main: #2d3436;
+            --text-sub: #636e72;
+            --white: #fff;
+            --mint-light: #e8f5f2;
+            --mint-medium: #00d4aa;
+            --mint-dark: #00b894;
+            --aura-gradient: linear-gradient(135deg, #00d4aa 0%, #00b894 50%, #00a085 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--main-bg);
+            font-family: 'Montserrat', 'Noto Sans KR', Arial, sans-serif;
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .main-container {
+            width: 100%;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 헤더 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px 0;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            .header {
+                padding: 8px 0;
+            }
+
+            .header-content {
+                padding: 0 10px;
+                flex-wrap: nowrap;
+                /* 가로 한줄로 배치 */
+                gap: 8px;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .logo {
+                gap: 6px;
+                flex-shrink: 0;
+            }
+
+            .logo-svg {
+                width: 28px;
+                height: 28px;
+            }
+
+            .logo-text {
+                font-size: 16px;
+                font-weight: 700;
+            }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-svg {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
+        }
+
+        .logo-svg svg {
+            width: 35px;
+            height: 35px;
+            display: block;
+        }
+
+        .logo-text {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: 0.02em;
+        }
+
+        .translate-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-chat-btn {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 20px;
+            padding: 10px 18px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.25);
+            letter-spacing: 0.02em;
+        }
+
+        .header-chat-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 170, 0.35);
+        }
+
+        .header-chat-btn:active {
+            transform: translateY(0);
+        }
+
+        .header-chat-btn span {
+            font-size: 1.1em;
+        }
+
+        .language-selector {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 0.85em;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(8px);
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        /* 햄버거 메뉴 */
+        .mobile-menu-toggle {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 30px;
+            height: 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .mobile-menu-toggle span {
+            display: block;
+            height: 2px;
+            width: 100%;
+            background: var(--text-main);
+            border-radius: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-toggle.active span:nth-child(1) {
+            transform: rotate(45deg) translate(7px, 7px);
+        }
+
+        .mobile-menu-toggle.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .mobile-menu-toggle.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(6px, -6px);
+        }
+
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 999;
+            padding: 20px;
+        }
+
+        .mobile-menu.show {
+            display: block;
+        }
+
+        .mobile-menu-item {
+            display: block;
+            padding: 15px 0;
+            text-decoration: none;
+            color: var(--text-main);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .mobile-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .mobile-menu-item:hover {
+            color: var(--accent);
+        }
+
+        .mobile-chat-btn {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        /* 모바일에서 언어 선택기 최적화 */
+        @media (max-width: 768px) {
+            .translate-container {
+                display: none;
+                /* 기본 메뉴 숨김 */
+            }
+
+            .mobile-menu-toggle {
+                display: flex;
+                /* 햄버거 메뉴 표시 */
+            }
+
+            .header-content {
+                justify-content: space-between;
+            }
+        }
+
+        .language-selector:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .language-selector:active {
+            transform: translateY(0);
+        }
+
+        .language-icon {
+            font-size: 1.1em;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+        }
+
+        .language-selector select {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            padding: 2px 4px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .language-selector select:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .language-selector select option {
+            background: var(--text-main);
+            color: var(--white);
+            padding: 8px;
+        }
+
+        /* 메인 섹션 */
+        .hero-section {
+            padding: 120px 20px 80px;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-size: 3.5em;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 20px;
+            line-height: 1.2;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-subtitle {
+            font-size: 1.4em;
+            color: var(--white);
+            opacity: 0.95;
+            margin-bottom: 40px;
+            line-height: 1.6;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 60px;
+            flex-wrap: wrap;
+        }
+
+        .cta-btn {
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .cta-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            color: var(--white);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.4);
+        }
+
+        .cta-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0, 212, 170, 0.5);
+        }
+
+        .cta-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--white);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .cta-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+        }
+
+        /* 모바일에서 히어로 섹션 최적화 */
+        @media (max-width: 768px) {
+            .hero-section {
+                padding: 100px 15px 60px;
+            }
+
+            .hero-title {
+                font-size: 2.5em;
+                margin-bottom: 15px;
+            }
+
+            .hero-subtitle {
+                font-size: 1.1em;
+                margin-bottom: 30px;
+                padding: 0 10px;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+                margin-bottom: 40px;
+            }
+
+            .cta-btn {
+                padding: 14px 28px;
+                font-size: 1em;
+                min-width: 200px;
+                justify-content: center;
+            }
+        }
+
+        /* 로그인 섹션 */
+        .login-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 400px;
+            margin: 0 auto 60px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* 모바일에서 로그인 섹션 최적화 */
+        @media (max-width: 768px) {
+            .login-section {
+                margin: 0 15px 40px;
+                padding: 30px 20px;
+                border-radius: 20px;
+                max-width: none;
+            }
+
+            .login-title {
+                font-size: 1.5em;
+                margin-bottom: 20px;
+            }
+        }
+
+        .login-title {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 0.95em;
+            color: var(--text-sub);
+            font-weight: 500;
+        }
+
+        .form-group input {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 2px solid #e1e5e9;
+            font-size: 1em;
+            background: var(--white);
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.1);
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            padding: 14px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.4);
+        }
+
+        .guest-btn {
+            background: transparent;
+            color: var(--accent);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 12px 0;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .guest-btn:hover {
+            background: var(--accent);
+            color: var(--white);
+            transform: translateY(-2px);
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: var(--text-sub);
+        }
+
+        .register-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        .checkbox-group {
+            margin-top: 5px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: var(--text-sub);
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .logout-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .social-login {
+            margin-top: 20px;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .divider span {
+            background: var(--white);
+            padding: 0 15px;
+            color: var(--text-sub);
+            font-size: 0.9em;
+            position: relative;
+        }
+
+        .google-login-btn {
+            width: 100%;
+            background: #fff;
+            color: #333;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 12px 0;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .google-login-btn:hover {
+            border-color: #4285f4;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .google-login-btn span {
+            font-size: 1.2em;
+        }
+
+        /* 기능 소개 섹션 */
+        .features-section {
+            padding: 80px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: var(--white);
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 20px rgba(0, 212, 170, 0.3);
+        }
+
+        .feature-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 15px;
+        }
+
+        .feature-desc {
+            color: var(--text-sub);
+            line-height: 1.6;
+        }
+
+        /* 사용법 가이드 섹션 */
+        .guide-section {
+            padding: 80px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .guide-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .guide-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .guide-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .guide-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+
+        .step-title {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .step-desc {
+            color: var(--text-sub);
+            line-height: 1.6;
+            margin-left: 55px;
+        }
+
+        .mockup-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 대시보드 미리보기 */
+        .dashboard-preview {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            color: var(--white);
+        }
+
+        .dashboard-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .dashboard-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .dashboard-feature {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .dashboard-feature h4 {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .dashboard-feature p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        /* 푸터 */
+        .footer {
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--white);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-text {
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5em;
+            }
+
+            .hero-subtitle {
+                font-size: 1.2em;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .cta-btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+
+            .login-section {
+                margin: 0 20px 40px;
+                padding: 30px 25px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .guide-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-content {
+                padding: 0 15px;
+            }
+
+            .logo-text {
+                font-size: 1.3em;
+            }
+
+            .translate-container {
+                gap: 10px;
+            }
+
+            .language-selector {
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 2em;
+            }
+
+            .section-title {
+                font-size: 2em;
+            }
+
+            .login-section {
+                padding: 25px 20px;
+            }
+
+            .feature-card {
+                padding: 25px 20px;
+            }
+
+            .guide-card {
+                padding: 25px 20px;
+            }
+        }
+
+        /* 애니메이션 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        /* 스크롤 효과 */
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease-out;
+        }
+
+        .scroll-reveal.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 로그인된 사용자 정보 섹션 스타일 */
+        .user-info-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .user-welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-avatar-large {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+
+        .user-welcome h2 {
+            color: var(--text-main);
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .user-email-display {
+            color: var(--text-sub);
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .welcome-message {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .welcome-message p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 212, 170, 0.2);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-spinner p {
+            color: var(--text-sub);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .manual-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .chat-btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 15px 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 212, 170, 0.3);
+        }
+
+        .chat-btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(0, 212, 170, 0.4);
+        }
+
+        .profile-btn {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--text-main);
+            border: 2px solid var(--accent);
+            border-radius: 15px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .profile-btn:hover {
+            background: var(--accent);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .logout-btn-home {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn-home:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .admin-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">
+                <div class="logo-svg">
+                    <!-- 핑크 하트 로고 SVG -->
+                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="eora_grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#00d4aa" />
+                                <stop offset="1" stop-color="#00b894" />
+                            </linearGradient>
+                            <filter id="shadow" x="0" y="0" width="40" height="40">
+                                <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#00d4aa"
+                                    flood-opacity="0.18" />
+                            </filter>
+                        </defs>
+
+                        <!-- 민트색 원 배경 -->
+                        <circle cx="20" cy="20" r="20" fill="url(#eora_grad)" />
+
+                        <!-- 핑크 하트 -->
+                        <g filter="url(#shadow)">
+                            <path
+                                d="M 24.85 12.5 C 22.92 12.5 21.15 13.4 20 14.76 C 18.88 13.4 17.08 12.5 15.19 12.5 C 11.87 12.5 9.17 15.21 9.17 18.54 C 9.17 23.99 16.43 30.83 20 30.83 C 23.57 30.83 30.83 23.99 30.83 18.54 C 30.83 15.21 28.13 12.5 24.85 12.5 Z"
+                                fill="#FF0000" />
+                        </g>
+                    </svg>
+                </div>
+                <span class="logo-text">EORA</span>
+            </a>
+            <div class="translate-container">
+                <button class="header-chat-btn" onclick="startGuestChat()">
+                    <span>💬</span>
+                    채팅 시작하기
+                </button>
+                <!-- 관리자 버튼은 JavaScript로 동적 생성 -->
+                <div class="language-selector">
+                    <span class="language-icon">🌍</span>
+                    <span>언어 선택</span>
+                    <select id="langSelect" style="margin-left:8px; border-radius:8px; padding:2px 8px;">
+                        <option value="ko">한국어</option>
+                        <option value="en">English</option>
+                        <option value="ja">日本語</option>
+                        <option value="zh-CN">中文(简体)</option>
+                        <option value="zh-TW">中文(繁體)</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                        <option value="de">Deutsch</option>
+                        <option value="ru">Русский</option>
+                        <option value="ar">العربية</option>
+                        <option value="hi">हिन्दी</option>
+                    </select>
+                </div>
+                <div id="google_translate_element" style="display:none;"></div>
+            </div>
+
+            <!-- 모바일 햄버거 메뉴 버튼 -->
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 모바일 메뉴 -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#" class="mobile-chat-btn" onclick="startGuestChat()">
+            <span>💬</span>
+            채팅 시작하기
+        </a>
+        <a href="/admin" class="mobile-menu-item" style="display:none;">⚙️ 관리자 대시보드</a>
+        <div class="mobile-menu-item">
+            <span>🌍 언어 선택</span>
+            <select id="mobileLangSelect" style="margin-left:8px; border-radius:8px; padding:6px 12px; width: 120px;">
+                <option value="ko">한국어</option>
+                <option value="en">English</option>
+                <option value="ja">日本語</option>
+                <option value="zh-CN">中文(简体)</option>
+                <option value="zh-TW">中文(繁體)</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="ru">Русский</option>
+                <option value="ar">العربية</option>
+                <option value="hi">हिन्दी</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- 히어로 섹션 -->
+        <section class="hero-section">
+            <h1 class="hero-title fade-in-up">AI EORA, 당신의 감정을 이해하는 동반자</h1>
+            <p class="hero-subtitle fade-in-up">
+                심리치료와 전문 코칭을 위한 AI.<br>
+                혼자일 때도, 누군가에게 말하기 어려울 때도<br>
+                EORA는 언제나 당신의 감정을 기다리고 있습니다.
+            </p>
+
+            <div class="cta-buttons fade-in-up">
+                <button class="cta-btn cta-primary" onclick="startGuestChat()">
+                    <span>🚀</span>
+                    채팅 시작하기
+                </button>
+                <a href="#features" class="cta-btn cta-secondary">
+                    <span>✨</span>
+                    기능 알아보기
+                </a>
+            </div>
+
+            <!-- 로그인 섹션 -->
+            <div class="login-section fade-in-up">
+                <h2 class="login-title">로그인</h2>
+                <form class="login-form" id="loginForm">
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">비밀번호</label>
+                        <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="autoLogin" checked>
+                            <span class="checkmark"></span>
+                            자동 로그인 유지
+                        </label>
+                    </div>
+                    <button type="submit" class="login-btn">로그인</button>
+                    <button type="button" class="guest-btn" onclick="startGuestChat()">게스트로 시작하기</button>
+                </form>
+                <div class="social-login">
+                    <div class="divider">
+                        <span>또는</span>
+                    </div>
+                    <button type="button" class="google-login-btn" onclick="googleLogin()">
+                        <span>🔍</span>
+                        Google로 로그인
+                    </button>
+                </div>
+                <div class="register-link">계정이 없으신가요? <a href="#" onclick="showRegisterForm()">회원가입</a></div>
+                <div class="logout-section" id="logoutSection" style="display:none;">
+                    <button type="button" class="logout-btn" onclick="logout()">로그아웃</button>
+                </div>
+            </div>
+
+            <!-- 로그인된 사용자 정보 섹션 -->
+            <div class="user-info-section" id="userInfoSection" style="display: none;">
+                <div class="user-welcome">
+                    <div class="user-avatar-large">👤</div>
+                    <h2>환영합니다, <span id="userDisplayName">사용자</span>님!</h2>
+                    <p class="user-email-display" id="userDisplayEmail">user@example.com</p>
+                    <div class="welcome-message">
+                        <p>🎉 로그인이 완료되었습니다!</p>
+                        <p>잠시 후 채팅 페이지로 이동합니다...</p>
+                    </div>
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>채팅 페이지로 이동 중...</p>
+                    </div>
+                    <div class="manual-actions">
+                        <button class="chat-btn-primary" onclick="startLoggedInChat()">
+                            💬 지금 바로 채팅 시작하기
+                        </button>
+                        <button class="profile-btn" onclick="window.location.href='/profile'">
+                            👤 프로필 보기
+                        </button>
+                        <button class="logout-btn-home" onclick="logoutFromHome()">
+                            🚪 로그아웃
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 기능 소개 섹션 -->
+        <section id="features" class="features-section">
+            <h2 class="section-title scroll-reveal">주요 기능</h2>
+            <div class="features-grid">
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">🧠</div>
+                    <h3 class="feature-title">감정 분석 AI</h3>
+                    <p class="feature-desc">AI가 대화를 통해 감정 상태를 분석하고 공감하는 대화를 제공합니다. 스트레스, 우울감, 불안 등을 정확히 파악합니다.</p>
+                </div>
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">👩‍🏫</div>
+                    <h3 class="feature-title">전문 코칭</h3>
+                    <p class="feature-desc">심리학과 코칭 방법론을 바탕으로 한 성장 상담을 제공합니다. 개인 맞춤형 해결책을 제시합니다.</p>
+                </div>
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">💬</div>
+                    <h3 class="feature-title">자연스러운 대화</h3>
+                    <p class="feature-desc">직관적이고 자연스러운 대화 인터페이스로 편안하게 소통하세요. 복잡한 설정 없이 바로 시작할 수 있습니다.</p>
+                </div>
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">📊</div>
+                    <h3 class="feature-title">상담 기록 관리</h3>
+                    <p class="feature-desc">모든 대화 내용을 안전하게 저장하고 회고할 수 있습니다. 감정 변화 추이를 시각적으로 확인하세요.</p>
+                </div>
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">🔒</div>
+                    <h3 class="feature-title">보안 시스템</h3>
+                    <p class="feature-desc">최고 수준의 암호화와 보안 시스템으로 개인정보를 보호합니다. 안전하게 마음을 열어보세요.</p>
+                </div>
+                <div class="feature-card scroll-reveal">
+                    <div class="feature-icon">🌙</div>
+                    <h3 class="feature-title">24시간 상담</h3>
+                    <p class="feature-desc">언제든지 필요할 때 상담받을 수 있습니다. 밤중에도, 주말에도 EORA는 항상 대기하고 있습니다.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 사용법 가이드 섹션 -->
+        <section class="guide-section">
+            <div class="guide-container">
+                <h2 class="section-title scroll-reveal">사용법 가이드</h2>
+                <div class="guide-grid">
+                    <div class="guide-card scroll-reveal">
+                        <h3 style="color: var(--text-main); margin-bottom: 20px; font-size: 1.3em;">시작하기</h3>
+                        <div class="guide-step">
+                            <div class="step-number">1</div>
+                            <div class="step-title">계정 생성 또는 게스트 로그인</div>
+                        </div>
+                        <p class="step-desc">회원가입을 통해 개인화된 서비스를 이용하거나, 게스트로 바로 시작할 수 있습니다.</p>
+
+                        <div class="guide-step">
+                            <div class="step-number">2</div>
+                            <div class="step-title">채팅방 입장</div>
+                        </div>
+                        <p class="step-desc">"채팅 시작하기" 버튼을 클릭하여 AI 상담사와의 대화를 시작합니다.</p>
+
+                        <div class="guide-step">
+                            <div class="step-number">3</div>
+                            <div class="step-title">자연스럽게 대화하기</div>
+                        </div>
+                        <p class="step-desc">일상적인 대화처럼 편안하게 이야기하세요. AI가 감정을 분석하고 적절한 응답을 제공합니다.</p>
+
+                        <div class="mockup-image">
+                            <img src="/static/chat_mockup.png" alt="채팅 인터페이스 미리보기"
+                                style="width:100%;height:100%;object-fit:contain;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.10);"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="mockup-placeholder"
+                                style="display:none; flex-direction:column; align-items:center; justify-content:center; color:#888; font-size:0.95em;">
+                                <div style="font-size:2em; margin-bottom:10px;">💬</div>
+                                <div style="text-align:center; line-height:1.4;">
+                                    <strong>채팅 인터페이스 미리보기</strong><br>
+                                    실제 채팅 화면을 확인하려면<br>
+                                    <code
+                                        style="background:#f0f0f0; padding:2px 6px; border-radius:4px; font-size:0.9em;">/static/chat_mockup.png</code><br>
+                                    파일을 static 폴더에 추가해주세요.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="guide-card scroll-reveal">
+                        <h3 style="color: var(--text-main); margin-bottom: 20px; font-size: 1.3em;">대시보드 활용법</h3>
+                        <div class="guide-step">
+                            <div class="step-number">1</div>
+                            <div class="step-title">상담 기록 확인</div>
+                        </div>
+                        <p class="step-desc">이전 대화 내용을 언제든지 확인하고 회고할 수 있습니다.</p>
+
+                        <div class="guide-step">
+                            <div class="step-number">2</div>
+                            <div class="step-title">감정 변화 추이</div>
+                        </div>
+                        <p class="step-desc">시간에 따른 감정 상태 변화를 그래프로 확인하여 자신의 심리 상태를 파악하세요.</p>
+
+                        <div class="guide-step">
+                            <div class="step-number">3</div>
+                            <div class="step-title">개인화된 통계</div>
+                        </div>
+                        <p class="step-desc">상담 빈도, 선호하는 주제, 감정 패턴 등을 분석한 개인별 통계를 제공합니다.</p>
+
+                        <div class="dashboard-preview">
+                            <h4 class="dashboard-title">대시보드 주요 기능</h4>
+                            <div class="dashboard-features">
+                                <div class="dashboard-feature">
+                                    <h4>📈 감정 추이</h4>
+                                    <p>일별/주별 감정 변화 그래프</p>
+                                </div>
+                                <div class="dashboard-feature">
+                                    <h4>💭 대화 기록</h4>
+                                    <p>이전 상담 내용 검색 및 필터링</p>
+                                </div>
+                                <div class="dashboard-feature">
+                                    <h4>🎯 목표 설정</h4>
+                                    <p>개인 목표 설정 및 달성도 추적</p>
+                                </div>
+                                <div class="dashboard-feature">
+                                    <h4>📊 통계 리포트</h4>
+                                    <p>월간/연간 상담 통계 리포트</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 준비중인 서비스 섹션 -->
+        <section class="features-section" style="padding-top:0;">
+            <h2 class="section-title scroll-reveal" style="font-size:2.1em;">준비 중인 서비스</h2>
+            <div class="features-grid">
+                <div class="feature-card scroll-reveal" style="min-height:120px;">
+                    <div class="feature-icon">🤖</div>
+                    <h3 class="feature-title">다중 AI 회의 시스템</h3>
+                    <p class="feature-desc">여러 AI가 함께 고민을 분석하고 다양한 해결책을 제안합니다.</p>
+                </div>
+                <div class="feature-card scroll-reveal" style="min-height:120px;">
+                    <div class="feature-icon">🎨</div>
+                    <h3 class="feature-title">이미지 생성 AI</h3>
+                    <p class="feature-desc">감정, 주제, 상상을 이미지로 시각화하는 AI 서비스입니다.</p>
+                </div>
+                <div class="feature-card scroll-reveal" style="min-height:120px;">
+                    <div class="feature-icon">🌐</div>
+                    <h3 class="feature-title">SoulRise 협업 플랫폼</h3>
+                    <p class="feature-desc">사람과 AI가 함께 일하는 지능형 협업 플랫폼을 곧 선보입니다.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 푸터 -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-text">
+                    <p><strong>ⓒ 2025 SoulRise Inc.</strong></p>
+                    <p>감정 중심 인공지능 플랫폼 EORA</p>
+                    <p>우리는 당신의 내면을 기술로 돌봅니다.</p>
+                    <div
+                        style="margin-top: 20px; padding: 20px; background: rgba(255, 255, 255, 0.1); border-radius: 15px; backdrop-filter: blur(10px);">
+                        <h4 style="color: var(--accent); margin-bottom: 15px; font-size: 1.1em;">🌟 AURA 시스템</h4>
+                        <p style="font-size: 0.9em; margin-bottom: 15px; opacity: 0.9;">
+                            인간의 직감과 기억 회상 메커니즘을 결합한 세계 최초의 6단계 계층 구조 AI 기억 시스템
+                        </p>
+                        <a href="/aura-system"
+                            style="display: inline-block; background: var(--aura-gradient); color: white; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: 600; transition: all 0.3s ease; margin-right: 10px;">
+                            AURA 시스템 소개
+                        </a>
+                        <a href="#" onclick="startTrialChat(); return false;"
+                            style="display: inline-block; background: transparent; color: var(--accent); border: 2px solid var(--accent); padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: 600; transition: all 0.3s ease;">
+                            체험해보기
+                        </a>
+                    </div>
+                    <p style="margin-top: 20px; font-size: 0.9em; opacity: 0.7;">
+                        준비 중인 서비스: 🤖 다중 AI 회의 시스템 | 🎨 이미지 생성 AI | 🌐 SoulRise 협업 플랫폼
+                    </p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // 로그인 폼 이벤트 리스너
+        document.addEventListener('DOMContentLoaded', function () {
+            // URL 파라미터 확인하여 오류 메시지 표시
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            if (error === 'admin_required') {
+                alert('관리자 권한이 필요합니다. 관리자 계정으로 로그인하세요.');
+                // URL에서 오류 파라미터 제거
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            checkLoginStatus();
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+            }
+
+            // 동적으로 생성된 회원가입 폼을 위한 이벤트 위임
+            document.addEventListener('submit', function (e) {
+                if (e.target.id === 'registerForm') {
+                    e.preventDefault();
+                    handleRegister();
+                }
+            });
+        });
+
+        // 로그인 상태 확인 및 UI 업데이트
+        function checkLoginStatus() {
+            const userEmail = localStorage.getItem('user_email');
+            const userSection = document.querySelector('.login-section');
+            const userInfoSection = document.getElementById('userInfoSection');
+
+            if (userEmail) {
+                // 로그인된 경우
+                if (userSection) {
+                    userSection.style.display = 'none';
+                }
+                if (userInfoSection) {
+                    userInfoSection.style.display = 'block';
+                    const userName = localStorage.getItem('user_name') || userEmail.split('@')[0];
+                    document.getElementById('userDisplayName').textContent = userName;
+                    document.getElementById('userDisplayEmail').textContent = userEmail;
+
+                    // 관리자 정보가 없으면 설정 (admin@eora.ai인 경우)
+                    if (localStorage.getItem('is_admin') === null && userEmail === 'admin@eora.ai') {
+                        localStorage.setItem('is_admin', 'true');
+                    }
+
+                    // 관리자 계정인 경우만 관리자 버튼 표시 (로그인된 상태에서만)
+                    const isAdmin = localStorage.getItem('is_admin') === 'true' || userEmail === 'admin@eora.ai';
+                    let adminBtn = document.getElementById('adminBtn');
+
+                    if (isAdmin && userEmail) {  // 로그인된 상태이면서 관리자인 경우만
+                        if (!adminBtn) {
+                            // 관리자 버튼이 없으면 동적으로 생성
+                            const chatBtn = document.querySelector('.header-chat-btn');
+                            if (chatBtn && chatBtn.parentElement) {
+                                adminBtn = document.createElement('a');
+                                adminBtn.href = '#';
+                                adminBtn.className = 'admin-btn';
+                                adminBtn.id = 'adminBtn';
+                                adminBtn.style.cssText = 'margin-left:12px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;';
+                                adminBtn.innerHTML = '<span>⚙️</span> 관리자 대시보드';
+                                adminBtn.onclick = function (e) {
+                                    e.preventDefault();
+                                    goToAdminPage();
+                                };
+                                chatBtn.parentElement.insertBefore(adminBtn, chatBtn.nextSibling);
+                            }
+                        }
+                        if (adminBtn) adminBtn.style.display = 'inline-flex';
+
+                        // 모바일 메뉴의 관리자 버튼도 표시
+                        const mobileAdminBtn = document.querySelector('.mobile-menu .mobile-menu-item[href="/admin"]');
+                        if (mobileAdminBtn) mobileAdminBtn.style.display = 'block';
+                    } else {
+                        // 로그인하지 않았거나 관리자가 아닌 경우 버튼 숨김
+                        if (adminBtn) adminBtn.style.display = 'none';
+
+                        // 모바일 메뉴의 관리자 버튼도 숨김
+                        const mobileAdminBtn = document.querySelector('.mobile-menu .mobile-menu-item[href="/admin"]');
+                        if (mobileAdminBtn) mobileAdminBtn.style.display = 'none';
+                    }
+                }
+
+                // URL 파라미터를 확인하여 홈 버튼을 클릭해서 온 경우가 아닌지 확인
+                const urlParams = new URLSearchParams(window.location.search);
+                const fromHome = urlParams.get('from');
+
+                // 첫 로그인 여부 확인
+                const firstLogin = localStorage.getItem('first_login');
+
+                // 첫 로그인이면서 홈 버튼을 클릭해서 온 경우가 아니면 자동으로 채팅 페이지로 이동
+                if (firstLogin === 'true' && !fromHome) {
+                    // 첫 로그인 플래그 제거
+                    localStorage.removeItem('first_login');
+                    setTimeout(() => {
+                        window.location.href = '/chat';
+                    }, 1000);
+                }
+            } else {
+                // 로그인되지 않은 경우
+                if (userSection) {
+                    userSection.style.display = 'block';
+                }
+                if (userInfoSection) {
+                    userInfoSection.style.display = 'none';
+                }
+                // 관리자 버튼 숨김
+                const adminBtn = document.getElementById('adminBtn');
+                if (adminBtn) adminBtn.style.display = 'none';
+            }
+        }
+
+        // 로그인 처리 함수
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const autoLogin = document.getElementById('autoLogin').checked;
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 로그인 성공 시 사용자 정보 저장
+                        localStorage.setItem('user_email', email);
+                        if (data.user && data.user.username) {
+                            localStorage.setItem('user_name', data.user.username);
+                        } else {
+                            localStorage.setItem('user_name', email.split('@')[0]); // 이메일에서 이름 추출
+                        }
+
+                        // 관리자 정보 저장
+                        if (data.user && (data.user.is_admin === true || data.user.role === 'admin' || email === 'admin@eora.ai')) {
+                            localStorage.setItem('is_admin', 'true');
+                        } else {
+                            localStorage.setItem('is_admin', 'false');
+                        }
+
+                        if (autoLogin) {
+                            localStorage.setItem('auto_login', 'true');
+                        }
+
+                        alert('로그인 성공!');
+                        if (data.user && (data.user.role === 'admin' || data.user.is_admin === true || email === 'admin@eora.ai')) {
+                            // 관리자 로그인 시 쿠키 설정을 위해 잠시 기다린 후 이동
+                            setTimeout(() => {
+                                window.location.href = '/admin';
+                            }, 500);
+                        } else {
+                            window.open('/chat', '_blank');
+                            window.location.href = '/';
+                            setTimeout(() => location.reload(), 200); // 홈 이동 후 강제 새로고침
+                        }
+                    } else {
+                        alert('로그인 실패: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('로그인 오류:', error);
+                    alert('로그인 중 오류가 발생했습니다.');
+                });
+        }
+
+        // 회원가입 처리 함수
+        function handleRegister() {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const name = document.getElementById('registerName') ? document.getElementById('registerName').value : email.split('@')[0];
+            const autoLogin = document.getElementById('registerAutoLogin').checked;
+
+            fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: name,
+                    email: email,
+                    password: password,
+                    confirm_password: password
+                }),
+                credentials: 'include' // 쿠키 저장을 위해 필요
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('회원가입 성공! ' + data.message);
+
+                        // 사용자 정보 저장
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        localStorage.setItem('user_email', data.user.email);
+                        localStorage.setItem('user_name', data.user.name);
+                        localStorage.setItem('user_id', data.user.user_id);
+
+                        if (autoLogin && data.auto_login) {
+                            // 자동 로그인 성공시 첫페이지로 이동
+                            setTimeout(() => {
+                                window.location.href = data.redirect_url || '/';
+                            }, 1500);
+                        } else {
+                            // 회원가입 성공 후 로그인 폼으로 전환
+                            showLoginForm();
+                        }
+                    } else {
+                        alert('회원가입 실패: ' + (data.error || data.message || '알 수 없는 오류'));
+                    }
+                })
+                .catch(error => {
+                    console.error('회원가입 오류:', error);
+                    alert('회원가입 중 오류가 발생했습니다.');
+                });
+        }
+
+        // 게스트 채팅 시작
+        function startGuestChat() {
+            // 로그인 상태 확인
+            const userEmail = localStorage.getItem('user_email');
+
+            if (!userEmail) {
+                // 로그인되지 않은 경우 로그인 안내 메시지 표시
+                showLoginRequiredModal();
+                return;
+            }
+
+            // 로그인된 경우 채팅 페이지로 이동 (자동 세션 생성 없음)
+            const currentLang = document.documentElement.lang || 'ko';
+            window.location.href = `/chat?lang=${currentLang}`;
+        }
+
+        // 로그인 필요 모달 표시
+        function showLoginRequiredModal() {
+            // 기존 모달이 있다면 제거
+            const existingModal = document.getElementById('loginRequiredModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // 모달 생성
+            const modal = document.createElement('div');
+            modal.id = 'loginRequiredModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
+
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 40px;
+                    border-radius: 20px;
+                    max-width: 500px;
+                    width: 90%;
+                    text-align: center;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    animation: modalSlideIn 0.3s ease-out;
+                ">
+                    <div style="
+                        width: 80px;
+                        height: 80px;
+                        background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+                        border-radius: 50%;
+                        margin: 0 auto 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 40px;
+                        color: white;
+                    ">
+                        🔐
+                    </div>
+                    <h2 style="
+                        color: #2d3436;
+                        margin-bottom: 15px;
+                        font-size: 1.8em;
+                        font-weight: 700;
+                    ">로그인이 필요합니다</h2>
+                    <p style="
+                        color: #636e72;
+                        margin-bottom: 30px;
+                        line-height: 1.6;
+                        font-size: 1.1em;
+                    ">채팅 기능을 이용하려면 로그인이 필요합니다.<br>계정이 없으시다면 회원가입을 먼저 진행해주세요.</p>
+                    <div style="
+                        display: flex;
+                        gap: 15px;
+                        justify-content: center;
+                        flex-wrap: wrap;
+                    ">
+                        <button onclick="closeLoginModal()" style="
+                            padding: 12px 24px;
+                            background: #f8f9fa;
+                            color: #6c757d;
+                            border: 2px solid #e9ecef;
+                            border-radius: 25px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            transition: all 0.3s ease;
+                            font-size: 1em;
+                        " onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
+                            취소
+                        </button>
+                        <button onclick="showLoginFormFromModal()" style="
+                            padding: 12px 24px;
+                            background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 25px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            transition: all 0.3s ease;
+                            font-size: 1em;
+                            box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
+                        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 212, 170, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 212, 170, 0.3)'">
+                            로그인하기
+                        </button>
+                        <button onclick="showRegisterFormFromModal()" style="
+                            padding: 12px 24px;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 25px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            transition: all 0.3s ease;
+                            font-size: 1em;
+                            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)'">
+                            회원가입
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // CSS 애니메이션 추가
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes modalSlideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-50px) scale(0.9);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+
+            document.body.appendChild(modal);
+
+            // 모달 외부 클릭 시 닫기
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
+                    closeLoginModal();
+                }
+            });
+
+            // ESC 키로 모달 닫기
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    closeLoginModal();
+                }
+            });
+        }
+
+        // 모달 닫기
+        function closeLoginModal() {
+            const modal = document.getElementById('loginRequiredModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // 모달에서 로그인 폼 표시
+        function showLoginFormFromModal() {
+            closeLoginModal();
+            // 로그인 섹션으로 스크롤
+            const loginSection = document.querySelector('.login-section');
+            if (loginSection) {
+                loginSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // 로그인 폼이 숨겨져 있다면 표시
+                if (loginSection.style.display === 'none') {
+                    loginSection.style.display = 'block';
+                }
+            }
+        }
+
+        // 모달에서 회원가입 폼 표시
+        function showRegisterFormFromModal() {
+            closeLoginModal();
+            // 회원가입 폼 표시
+            showRegisterForm();
+            // 회원가입 섹션으로 스크롤
+            const registerSection = document.querySelector('.login-section');
+            if (registerSection) {
+                registerSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // 로그인된 사용자 채팅 시작
+        function startLoggedInChat() {
+            const userEmail = localStorage.getItem('user_email');
+
+            if (!userEmail) {
+                // 로그인되지 않은 경우 로그인 안내 메시지 표시
+                showLoginRequiredModal();
+                return;
+            }
+
+            // 로그인된 경우 채팅 페이지로 이동 (자동 세션 생성 없음)
+            const currentLang = document.documentElement.lang || 'ko';
+            window.location.href = `/chat?lang=${currentLang}`;
+        }
+
+        // 체험해보기 버튼 클릭 처리
+        function startTrialChat() {
+            // 로그인 상태 확인
+            const userEmail = localStorage.getItem('user_email');
+
+            if (!userEmail) {
+                // 로그인되지 않은 경우 로그인 안내 메시지 표시
+                showLoginRequiredModal();
+                return;
+            }
+
+            // 로그인된 경우 채팅 페이지로 이동 (자동 세션 생성 없음)
+            const currentLang = document.documentElement.lang || 'ko';
+            window.location.href = `/chat?lang=${currentLang}`;
+        }
+
+        // 로그아웃
+        function logout() {
+            if (confirm('정말로 로그아웃하시겠습니까?')) {
+                localStorage.removeItem('user_email');
+                localStorage.removeItem('user_name');
+                localStorage.removeItem('auto_login');
+                localStorage.removeItem('is_admin');
+                window.location.href = '/';
+            }
+        }
+
+        // 홈페이지에서 로그아웃
+        function logoutFromHome() {
+            if (confirm('정말로 로그아웃하시겠습니까?')) {
+                localStorage.removeItem('user_email');
+                localStorage.removeItem('user_name');
+                localStorage.removeItem('auto_login');
+                localStorage.removeItem('is_admin');
+                window.location.reload(); // 페이지 새로고침하여 로그인 창 표시
+            }
+        }
+
+        // 관리자 페이지로 이동
+        function goToAdminPage() {
+            const userEmail = localStorage.getItem('user_email');
+            const isAdmin = localStorage.getItem('is_admin') === 'true' || userEmail === 'admin@eora.ai';
+
+            if (!userEmail) {
+                alert('로그인이 필요합니다.');
+                showLoginForm();
+                return;
+            }
+
+            if (!isAdmin) {
+                alert('관리자 권한이 필요합니다.');
+                return;
+            }
+
+            // 관리자 권한 확인 후 페이지 이동
+            window.location.href = '/admin';
+        }
+
+        // 구글 로그인 기능
+        function googleLogin() {
+            // 구글 OAuth 연동 가이드 안내
+            alert('구글 로그인 연동 방법:\n\n1. Google Cloud Console에서 OAuth 2.0 클라이언트 ID 생성\n2. 승인된 리디렉션 URI에 http://localhost:8001/auth/google/callback 추가\n3. 백엔드에 Google OAuth 라우트 구현 필요\n\n현재는 데모 버전입니다.');
+
+            // 실제 구현 시 아래 코드 사용:
+            // window.location.href = '/auth/google';
+        }
+
+        // 회원가입 폼 표시 함수
+        function showRegisterForm() {
+            const loginSection = document.querySelector('.login-section');
+            const registerLink = document.querySelector('.register-link');
+            const registerForm = document.createElement('div');
+            registerForm.classList.add('login-section', 'fade-in-up'); // 로그인 섹션과 동일한 스타일
+            registerForm.innerHTML = `
+                <h2 class="login-title">회원가입</h2>
+                <form class="login-form" id="registerForm">
+                    <div class="form-group">
+                        <label for="registerEmail">이메일</label>
+                        <input type="email" id="registerEmail" name="email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">비밀번호</label>
+                        <input type="password" id="registerPassword" name="password" placeholder="비밀번호를 입력하세요" required>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="registerAutoLogin" checked>
+                            <span class="checkmark"></span>
+                            자동 로그인 유지
+                        </label>
+                    </div>
+                    <button type="submit" class="login-btn">회원가입</button>
+                    <button type="button" class="guest-btn" onclick="startGuestChat()">게스트로 시작하기</button>
+                </form>
+                <div class="social-login">
+                    <div class="divider">
+                        <span>또는</span>
+                    </div>
+                    <button type="button" class="google-login-btn" onclick="googleLogin()">
+                        <span>🔍</span>
+                        Google로 회원가입
+                    </button>
+                </div>
+                <div class="register-link">계정이 있으신가요? <a href="#" onclick="showLoginForm()">로그인</a></div>
+                <div class="logout-section" id="logoutSection" style="display:none;">
+                    <button type="button" class="logout-btn" onclick="logout()">로그아웃</button>
+                </div>
+            `;
+            loginSection.parentNode.insertBefore(registerForm, loginSection.nextSibling);
+            loginSection.remove();
+        }
+
+        // 로그인 폼 표시 함수
+        function showLoginForm() {
+            const registerForm = document.querySelector('.login-section');
+            const registerLink = document.querySelector('.register-link');
+            const loginSection = document.createElement('div');
+            loginSection.classList.add('login-section', 'fade-in-up'); // 로그인 섹션과 동일한 스타일
+            loginSection.innerHTML = `
+                <h2 class="login-title">로그인</h2>
+                <form class="login-form" id="loginForm">
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">비밀번호</label>
+                        <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="autoLogin" checked>
+                            <span class="checkmark"></span>
+                            자동 로그인 유지
+                        </label>
+                    </div>
+                    <button type="submit" class="login-btn">로그인</button>
+                    <button type="button" class="guest-btn" onclick="startGuestChat()">게스트로 시작하기</button>
+                </form>
+                <div class="social-login">
+                    <div class="divider">
+                        <span>또는</span>
+                    </div>
+                    <button type="button" class="google-login-btn" onclick="googleLogin()">
+                        <span>🔍</span>
+                        Google로 로그인
+                    </button>
+                </div>
+                <div class="register-link">계정이 없으신가요? <a href="#" onclick="showRegisterForm()">회원가입</a></div>
+                <div class="logout-section" id="logoutSection" style="display:none;">
+                    <button type="button" class="logout-btn" onclick="logout()">로그아웃</button>
+                </div>
+            `;
+            registerForm.parentNode.insertBefore(loginSection, registerForm.nextSibling);
+            registerForm.remove();
+        }
+
+        // 스크롤 애니메이션
+        function handleScrollAnimation() {
+            const elements = document.querySelectorAll('.scroll-reveal');
+            elements.forEach(element => {
+                const elementTop = element.getBoundingClientRect().top;
+                const elementVisible = 150;
+
+                if (elementTop < window.innerHeight - elementVisible) {
+                    element.classList.add('revealed');
+                }
+            });
+        }
+
+        // 스무스 스크롤
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 언어 선택기 클릭 이벤트
+        document.querySelector('.language-selector').addEventListener('click', function () {
+            const translateElement = document.querySelector('#google_translate_element');
+            if (translateElement) {
+                const select = translateElement.querySelector('select');
+                if (select) {
+                    select.click();
+                }
+            }
+        });
+
+        // Google Translate 완료 후 언어 감지
+        function checkTranslationComplete() {
+            const iframe = document.querySelector('.goog-te-banner-frame');
+            if (iframe) {
+                const currentLang = document.documentElement.lang;
+                const observer = new MutationObserver(function (mutations) {
+                    mutations.forEach(function (mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'lang') {
+                            const newLang = document.documentElement.lang;
+                            const chatLinks = document.querySelectorAll('a[href="/chat"]');
+                            chatLinks.forEach(link => {
+                                link.href = `/chat?lang=${newLang}`;
+                            });
+                        }
+                    });
+                });
+                observer.observe(document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['lang']
+                });
+            }
+        }
+
+        // 이벤트 리스너
+        window.addEventListener('load', function () {
+            setTimeout(checkTranslationComplete, 2000);
+            handleScrollAnimation();
+        });
+
+        window.addEventListener('scroll', handleScrollAnimation);
+
+        // 언어 선택 드롭다운 연동
+        const langSelect = document.getElementById('langSelect');
+        if (langSelect) {
+            langSelect.addEventListener('change', function () {
+                const val = langSelect.value;
+                const select = document.querySelector('#google_translate_element select');
+                if (select) {
+                    select.value = val;
+                    select.dispatchEvent(new Event('change'));
+                }
+            });
+        }
+
+        // 모바일 햄버거 메뉴 토글
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            const menuToggle = document.querySelector('.mobile-menu-toggle');
+
+            mobileMenu.classList.toggle('show');
+            menuToggle.classList.toggle('active');
+        }
+
+        // 모바일 언어 선택기 동기화
+        document.addEventListener('DOMContentLoaded', function () {
+            const mainLangSelect = document.getElementById('langSelect');
+            const mobileLangSelect = document.getElementById('mobileLangSelect');
+
+            if (mainLangSelect && mobileLangSelect) {
+                // 메인 언어 선택기 변경 시 모바일 동기화
+                mainLangSelect.addEventListener('change', function () {
+                    mobileLangSelect.value = this.value;
+                });
+
+                // 모바일 언어 선택기 변경 시 메인 동기화
+                mobileLangSelect.addEventListener('change', function () {
+                    mainLangSelect.value = this.value;
+                    // Google Translate 트리거
+                    const select = document.querySelector('#google_translate_element select');
+                    if (select) {
+                        select.value = this.value;
+                        select.dispatchEvent(new Event('change'));
+                    }
+                });
+            }
+
+            // 모바일 메뉴 외부 클릭 시 닫기
+            document.addEventListener('click', function (event) {
+                const mobileMenu = document.getElementById('mobileMenu');
+                const menuToggle = document.querySelector('.mobile-menu-toggle');
+
+                if (mobileMenu.classList.contains('show')) {
+                    if (!mobileMenu.contains(event.target) && !menuToggle.contains(event.target)) {
+                        mobileMenu.classList.remove('show');
+                        menuToggle.classList.remove('active');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
