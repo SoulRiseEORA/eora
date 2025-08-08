@@ -223,9 +223,11 @@ def initialize_openai():
             # 글로벌 API 키 설정
             openai.api_key = api_key
             
-            # 성능 최적화된 클라이언트 설정
+            # 성능 최적화된 클라이언트 설정 (프로젝트 ID 포함)
+            project_id = os.getenv("OPENAI_PROJECT_ID")
             openai_client = AsyncOpenAI(
                 api_key=api_key,
+                project=project_id,
                 timeout=30.0,  # 타임아웃 늘림 (10초 → 30초)
                 max_retries=2   # 재시도 횟수 증가
             )
@@ -584,8 +586,37 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
         # 현재 메시지 추가
         messages.append({"role": "user", "content": message})
         
-        # OpenAI API 호출 (레일웨이 키 적용 확인)
+        # OpenAI API 호출 전 키 검증 및 클라이언트 재초기화
         try:
+            # 현재 환경변수에서 최신 키 가져오기
+            latest_key = get_openai_api_key()
+            current_key_in_use = getattr(openai_client, '_api_key', None) if openai_client else None
+            
+            print(f"🔑 API 호출 직전 키 검증:")
+            print(f"   - 최신 키: {latest_key[:15] if latest_key else 'None'}...")
+            print(f"   - 현재 사용 키: {current_key_in_use[:15] if current_key_in_use else 'None'}...")
+            
+            # 키가 다르거나 클라이언트가 없으면 재초기화
+            if not openai_client or not latest_key or current_key_in_use != latest_key:
+                print("🔧 OpenAI 클라이언트 재초기화 필요!")
+                if latest_key:
+                    from openai import AsyncOpenAI
+                    import openai
+                    
+                    openai.api_key = latest_key
+                    # 프로젝트 ID도 환경변수에서 가져오기
+                    project_id = os.getenv("OPENAI_PROJECT_ID")
+                    openai_client = AsyncOpenAI(
+                        api_key=latest_key,
+                        project=project_id,
+                        timeout=30.0,
+                        max_retries=2
+                    )
+                    print(f"✅ OpenAI 클라이언트 재초기화 완료: {latest_key[:15]}...")
+                else:
+                    print("❌ 유효한 API 키가 없어 재초기화 실패")
+                    raise Exception("유효한 OpenAI API 키가 없습니다")
+            
             print(f"🔑 API 호출 직전 클라이언트 확인: {str(openai_client)[:50]}...")
             
             response = await openai_client.chat.completions.create(
@@ -1968,10 +1999,28 @@ async def chat(request: Request):
         print(f"🔍 사용자 권한 확인: {user['email']} - is_admin: {is_admin}")
         
         if not is_admin:  # 관리자는 포인트 제한 없음
+            current_points = 0
+            points_system_available = False
+            
+            # MongoDB 포인트 시스템 시도 (실패해도 채팅 허용)
             if mongo_client and verify_connection() and db_mgr:
-                current_points = db_mgr.get_user_points(user["email"])
-                
-                # 포인트가 0인 경우 즉시 차단
+                try:
+                    current_points = db_mgr.get_user_points(user["email"])
+                    points_system_available = True
+                    print(f"💰 MongoDB 포인트 확인 성공: {user['email']} - {current_points:,}포인트")
+                except Exception as db_error:
+                    print(f"⚠️ MongoDB 포인트 조회 실패: {db_error}")
+                    # 실패해도 계속 진행 (기본 포인트로 처리)
+                    current_points = 1000  # 임시 기본 포인트
+                    print(f"🔄 임시 기본 포인트 사용: {current_points:,}포인트")
+            else:
+                # MongoDB 연결 실패 시 임시 포인트로 진행
+                current_points = 1000  # 임시 기본 포인트
+                print(f"🔄 MongoDB 연결 없음 - 임시 기본 포인트 사용: {current_points:,}포인트")
+            
+            # 포인트 체크 (MongoDB 사용 가능한 경우만 엄격 적용)
+            if points_system_available:
+                # MongoDB 포인트 시스템이 정상 작동하는 경우 엄격 체크
                 if current_points <= 0:
                     return JSONResponse(
                         status_code=402,  # Payment Required
@@ -2017,15 +2066,9 @@ async def chat(request: Request):
                             }
                         )
             else:
-                # MongoDB 연결이 없으면 기본 차단
-                return JSONResponse(
-                    status_code=503,
-                    content={
-                        "success": False,
-                        "error": "포인트 시스템이 일시적으로 사용할 수 없습니다. 관리자에게 문의하세요.",
-                        "database_error": True
-                    }
-                )
+                # MongoDB 연결 실패 시 관대한 정책으로 채팅 허용
+                print(f"🎯 포인트 시스템 비활성화 - 임시 채팅 허용: {user['email']}")
+                print("   ⚠️ 주의: 포인트 차감이 나중에 처리될 수 있습니다.")
         else:
             # 관리자인 경우 로그 출력
             print(f"👑 관리자 사용: {user['email']} - 포인트 제한 없음")
@@ -2082,39 +2125,36 @@ async def chat(request: Request):
         # 메모리에 AI 응답 저장 (호환성)
         messages_db[session_id].append(ai_message)
         
-        # ===== 포인트 차감 처리 =====
-        if not is_admin and token_usage and mongo_client and verify_connection() and db_mgr:
-            try:
-                if TOKEN_CALCULATOR_AVAILABLE:
-                    token_calc = get_token_calculator("gpt-4o")
-                    points_cost = token_calc.calculate_points_cost(token_usage)
-                    
-                    # 포인트 차감 실행
-                    success = db_mgr.deduct_points(
-                        user["email"], 
-                        points_cost, 
-                        f"채팅 사용 (토큰: {token_usage.get('total_tokens', 0)})"
-                    )
-                    
-                    if success:
-                        points_deducted = points_cost
-                        print(f"💰 포인트 차감 완료: {user['email']} -{points_cost} (토큰: {token_usage.get('total_tokens', 0)})")
+        # ===== 포인트 차감 처리 (실패해도 대화 허용) =====
+        if not is_admin:
+            # MongoDB 포인트 시스템 사용 가능한 경우만 차감 시도
+            if token_usage and mongo_client and verify_connection() and db_mgr:
+                try:
+                    if TOKEN_CALCULATOR_AVAILABLE:
+                        token_calc = get_token_calculator("gpt-4o")
+                        points_cost = token_calc.calculate_points_cost(token_usage)
+                        
+                        # 포인트 차감 실행
+                        success = db_mgr.deduct_points(
+                            user["email"], 
+                            points_cost, 
+                            f"채팅 사용 (토큰: {token_usage.get('total_tokens', 0)})"
+                        )
+                        
+                        if success:
+                            points_deducted = points_cost
+                            print(f"💰 포인트 차감 완료: {user['email']} -{points_cost} (토큰: {token_usage.get('total_tokens', 0)})")
+                        else:
+                            print(f"⚠️ 포인트 차감 실패: {user['email']} - 대화는 정상 진행")
+                            # 차감 실패시에도 대화는 계속 진행 (이미 응답 생성됨)
                     else:
-                        print(f"⚠️ 포인트 차감 실패: {user['email']}")
-                        # 차감 실패시에도 대화는 계속 진행 (이미 응답 생성됨)
-            except Exception as points_error:
-                print(f"⚠️ 포인트 처리 오류: {points_error}")
-        elif not is_admin:
-            # 토큰 정보가 없거나 MongoDB가 없는 경우 기본 차감
-            try:
-                if mongo_client and verify_connection() and db_mgr:
-                    default_cost = max(10, len(message) // 10)  # 기본 비용
-                    success = db_mgr.deduct_points(user["email"], default_cost, "채팅 사용 (기본)")
-                    if success:
-                        points_deducted = default_cost
-                        print(f"💰 기본 포인트 차감: {user['email']} -{default_cost}")
-            except Exception as points_error:
-                print(f"⚠️ 기본 포인트 처리 오류: {points_error}")
+                        print(f"🔄 토큰 계산기 미사용 - 기본 포인트 차감 건너뜀")
+                except Exception as points_error:
+                    print(f"⚠️ 포인트 처리 오류: {points_error} - 대화는 정상 진행")
+            else:
+                # MongoDB 연결 없거나 토큰 정보 없는 경우
+                print(f"🔄 포인트 시스템 비활성화 - 임시 무료 사용: {user['email']}")
+                print("   ⚠️ 주의: 정상 연결 시 누적 포인트가 차감될 수 있습니다.")
         
         # ===== MongoDB에 장기 저장 =====
         try:
