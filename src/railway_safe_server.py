@@ -83,13 +83,35 @@ def main():
         work_dir = os.getcwd()
         logger.info(f"📁 작업 디렉토리: {work_dir}")
         
-        # app.py 파일 존재 확인
-        app_file = Path("app.py")
-        if not app_file.exists():
-            logger.error("❌ app.py 파일이 존재하지 않습니다!")
+        # Railway 환경에서 올바른 경로 설정
+        current_dir = Path(os.getcwd())
+        logger.info(f"📁 현재 디렉토리: {current_dir}")
+        
+        # app.py 파일 여러 경로에서 확인
+        possible_paths = [
+            Path("app.py"),  # 현재 디렉토리
+            Path("src/app.py"),  # src 하위 디렉토리
+            current_dir / "app.py",  # 절대경로
+            current_dir / "src" / "app.py"  # src 절대경로
+        ]
+        
+        app_file = None
+        for path in possible_paths:
+            if path.exists():
+                app_file = path
+                logger.info(f"✅ app.py 파일 발견: {path}")
+                break
+        
+        if not app_file:
+            logger.error("❌ app.py 파일을 찾을 수 없습니다!")
+            logger.error(f"❌ 확인한 경로들: {[str(p) for p in possible_paths]}")
             return False
         
-        logger.info("✅ app.py 파일 확인 완료")
+        # src 디렉토리가 있으면 경로에 추가
+        src_dir = current_dir / "src"
+        if src_dir.exists():
+            sys.path.insert(0, str(src_dir))
+            logger.info(f"✅ Python 경로에 src 디렉토리 추가: {src_dir}")
         
         # FastAPI 앱 import - 안전하게
         try:
@@ -97,8 +119,7 @@ def main():
             logger.info("✅ FastAPI 앱 로드 성공")
         except Exception as e:
             logger.error(f"❌ FastAPI 앱 로드 실패: {e}")
-            # 대체 방법으로 앱 로드 시도
-            sys.path.insert(0, os.getcwd())
+            # 대체 방법으로 앱 로드 시도  
             try:
                 import app as app_module
                 app = app_module.app

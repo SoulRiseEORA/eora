@@ -587,7 +587,6 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
         messages.append({"role": "user", "content": message})
         
         # OpenAI API 호출 전 키 검증 및 클라이언트 재초기화
-        global openai_client  # 전역변수 수정을 위해 필요
         try:
             # 현재 환경변수에서 최신 키 가져오기
             latest_key = get_openai_api_key()
