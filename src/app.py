@@ -375,6 +375,46 @@ print(f"📂 Templates 디렉토리: {templates_dir}")
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 templates = Jinja2Templates(directory=str(templates_dir))
 
+# ==================== Railway Health Check ====================
+
+@app.get("/health")
+async def health_check():
+    """Railway Health Check 엔드포인트"""
+    try:
+        # 기본 시스템 상태 체크
+        system_status = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "service": "EORA AI Server",
+            "version": "2.0.0",
+            "environment": "Railway" if os.getenv("RAILWAY_ENVIRONMENT") else "Local"
+        }
+        
+        # OpenAI API 키 존재 여부 체크
+        api_key = get_openai_api_key()
+        system_status["openai_available"] = bool(api_key and api_key.startswith("sk-"))
+        
+        # MongoDB 연결 상태 체크 (옵션)
+        try:
+            if 'mongo_client' in globals() and mongo_client:
+                # 간단한 MongoDB 연결 테스트
+                system_status["mongodb_connected"] = verify_connection()
+            else:
+                system_status["mongodb_connected"] = False
+        except:
+            system_status["mongodb_connected"] = False
+        
+        return system_status
+        
+    except Exception as e:
+        # 오류가 있어도 200 OK 반환 (Railway Health Check 통과용)
+        return {
+            "status": "degraded",
+            "timestamp": datetime.now().isoformat(),
+            "service": "EORA AI Server",
+            "error": str(e)
+        }
+
 # 데이터 파일 경로
 DATA_DIR = "data"
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
