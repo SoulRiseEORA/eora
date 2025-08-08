@@ -2054,13 +2054,13 @@ async def chat(request: Request):
                     # MongoDB 연결 실패 시 fallback: 기본 포인트로 설정
                     print("🔄 MongoDB 실패 - fallback 포인트 시스템 사용")
                     current_points = 100000  # fallback 시 기본 10만 포인트
-                    points_system_available = False
+                    points_system_available = True  # fallback 모드에서도 차감 활성화
                     print(f"💰 Fallback 포인트 설정: {user['email']} - {current_points:,}포인트")
             else:
                 # MongoDB 연결 실패 시 fallback: 기본 포인트로 설정
                 print("❌ MongoDB 연결 실패 - fallback 포인트 시스템 사용")
                 current_points = 100000  # fallback 시 기본 10만 포인트
-                points_system_available = False
+                points_system_available = True  # fallback 모드에서도 차감 활성화
                 print(f"💰 Fallback 포인트 설정: {user['email']} - {current_points:,}포인트")
             
             # 포인트 부족 검사 (엄격한 정책)
@@ -2178,7 +2178,7 @@ async def chat(request: Request):
         
         # ===== 포인트 차감 처리 (엄격한 정책) =====
         if not is_admin:
-            if token_usage and points_system_available and db_mgr:
+            if token_usage and points_system_available:
                 try:
                     if TOKEN_CALCULATOR_AVAILABLE:
                         token_calc = get_token_calculator("gpt-4o")
@@ -2186,46 +2186,94 @@ async def chat(request: Request):
                         
                         print(f"💰 포인트 차감 시도: {user['email']} - {points_cost:,}포인트 (토큰: {token_usage.get('total_tokens', 0)})")
                         
-                        # 포인트 차감 실행
-                        success = db_mgr.deduct_points(
-                            user["email"], 
-                            points_cost, 
-                            f"GPT 채팅 사용 (토큰: {token_usage.get('total_tokens', 0)})"
-                        )
-                        
-                        if success:
-                            points_deducted = points_cost
-                            print(f"✅ 포인트 차감 성공: {user['email']} -{points_cost:,}포인트")
+                        # MongoDB 연결이 있는 경우
+                        if db_mgr and mongo_client and verify_connection():
+                            # 정상 MongoDB 포인트 차감
+                            success = db_mgr.deduct_points(
+                                user["email"], 
+                                points_cost, 
+                                f"GPT 채팅 사용 (토큰: {token_usage.get('total_tokens', 0)})"
+                            )
                             
-                            # 차감 후 잔액 확인
-                            try:
-                                remaining_points = db_mgr.get_user_points(user["email"])
-                                print(f"💰 차감 후 잔액: {user['email']} - {remaining_points:,}포인트")
+                            if success:
+                                points_deducted = points_cost
+                                print(f"✅ MongoDB 포인트 차감 성공: {user['email']} -{points_cost:,}포인트")
+                                
+                                # 차감 후 잔액 확인
+                                try:
+                                    remaining_points = db_mgr.get_user_points(user["email"])
+                                    print(f"💰 차감 후 잔액: {user['email']} - {remaining_points:,}포인트")
+                                    
+                                    # 잔액이 적으면 경고
+                                    if remaining_points < 1000:
+                                        print(f"⚠️ 포인트 부족 경고: {user['email']} - 잔액 {remaining_points:,}포인트")
+                                        
+                                except Exception as balance_error:
+                                    print(f"⚠️ 잔액 확인 실패: {balance_error}")
+                            else:
+                                print(f"❌ MongoDB 포인트 차감 실패: {user['email']} - DB 업데이트 오류")
+                                points_deducted = 0
+                        else:
+                            # Fallback 메모리 기반 포인트 차감
+                            print(f"💰 Fallback 메모리 포인트 차감: {user['email']} - {points_cost:,}포인트")
+                            
+                            # 글로벌 메모리 포인트 저장소 초기화
+                            if not hasattr(app.state, 'fallback_points'):
+                                app.state.fallback_points = {}
+                            
+                            user_email = user["email"]
+                            if user_email not in app.state.fallback_points:
+                                app.state.fallback_points[user_email] = current_points
+                            
+                            # 포인트 차감 실행
+                            if app.state.fallback_points[user_email] >= points_cost:
+                                app.state.fallback_points[user_email] -= points_cost
+                                points_deducted = points_cost
+                                remaining_points = app.state.fallback_points[user_email]
+                                print(f"✅ Fallback 포인트 차감 성공: {user['email']} -{points_cost:,}포인트")
+                                print(f"💰 Fallback 차감 후 잔액: {user['email']} - {remaining_points:,}포인트")
                                 
                                 # 잔액이 적으면 경고
                                 if remaining_points < 1000:
-                                    print(f"⚠️ 포인트 부족 경고: {user['email']} - 잔액 {remaining_points:,}포인트")
-                                    
-                            except Exception as balance_error:
-                                print(f"⚠️ 잔액 확인 실패: {balance_error}")
-                        else:
-                            print(f"❌ 포인트 차감 실패: {user['email']} - DB 업데이트 오류")
-                            points_deducted = 0
+                                    print(f"⚠️ Fallback 포인트 부족 경고: {user['email']} - 잔액 {remaining_points:,}포인트")
+                            else:
+                                print(f"❌ Fallback 포인트 부족: {user['email']} - 필요: {points_cost:,}, 보유: {app.state.fallback_points[user_email]:,}")
+                                points_deducted = 0
                     else:
                         # 토큰 계산기 없는 경우 기본 1포인트 차감
                         print(f"💰 기본 포인트 차감 시도: {user['email']} - 1포인트")
-                        success = db_mgr.deduct_points(
-                            user["email"], 
-                            1, 
-                            "GPT 채팅 사용 (기본 차감)"
-                        )
                         
-                        if success:
-                            points_deducted = 1
-                            print(f"✅ 기본 포인트 차감 성공: {user['email']} -1포인트")
+                        if db_mgr and mongo_client and verify_connection():
+                            # MongoDB 기본 차감
+                            success = db_mgr.deduct_points(
+                                user["email"], 
+                                1, 
+                                "GPT 채팅 사용 (기본 차감)"
+                            )
+                            
+                            if success:
+                                points_deducted = 1
+                                print(f"✅ MongoDB 기본 포인트 차감 성공: {user['email']} -1포인트")
+                            else:
+                                print(f"❌ MongoDB 기본 포인트 차감 실패: {user['email']}")
+                                points_deducted = 0
                         else:
-                            print(f"❌ 기본 포인트 차감 실패: {user['email']}")
-                            points_deducted = 0
+                            # Fallback 기본 차감
+                            if not hasattr(app.state, 'fallback_points'):
+                                app.state.fallback_points = {}
+                            
+                            user_email = user["email"]
+                            if user_email not in app.state.fallback_points:
+                                app.state.fallback_points[user_email] = current_points
+                            
+                            if app.state.fallback_points[user_email] >= 1:
+                                app.state.fallback_points[user_email] -= 1
+                                points_deducted = 1
+                                print(f"✅ Fallback 기본 포인트 차감 성공: {user['email']} -1포인트")
+                                print(f"💰 Fallback 잔액: {user['email']} - {app.state.fallback_points[user_email]:,}포인트")
+                            else:
+                                print(f"❌ Fallback 포인트 부족: {user['email']}")
+                                points_deducted = 0
                             
                 except Exception as points_error:
                     print(f"❌ 포인트 처리 오류: {points_error}")
@@ -2295,6 +2343,12 @@ async def chat(request: Request):
                 current_points = db_mgr.get_user_points(user["email"])
             except Exception:
                 pass
+        else:
+            # Fallback 모드에서 포인트 조회
+            if hasattr(app.state, 'fallback_points') and user["email"] in app.state.fallback_points:
+                current_points = app.state.fallback_points[user["email"]]
+            else:
+                current_points = 100000  # 기본값
         
         # 마크다운 처리된 응답 반환
         try:
@@ -3616,13 +3670,13 @@ async def get_user_points(request: Request):
                     
                     # 포인트가 0이거나 신규 사용자인 경우 기본 포인트 지급
                     if points <= 0:
-                        default_points = 50000  # 신규 사용자 기본 포인트
+                        default_points = 100000  # 신규 사용자 기본 포인트 (10만)
                         success = db_mgr.initialize_user_points(user["email"], default_points)
                         if success:
                             points = default_points
                             points_info["message"] = f"신규 사용자 환영! {default_points:,} 포인트가 지급되었습니다."
                         else:
-                            points = 10000  # 임시 포인트
+                            points = 100000  # 임시 포인트
                             points_info["message"] = "포인트 시스템 오류 - 임시 포인트 제공"
                             points_info["status"] = "temporary"
                     
@@ -3644,22 +3698,30 @@ async def get_user_points(request: Request):
                     
                 except Exception as db_error:
                     print(f"⚠️ MongoDB 포인트 조회 실패: {db_error}")
-                    # DB 오류 시 관대한 정책 적용
+                    # DB 오류 시 fallback 포인트 사용
+                    fallback_points = 100000  # 기본값
+                    if hasattr(app.state, 'fallback_points') and user["email"] in app.state.fallback_points:
+                        fallback_points = app.state.fallback_points[user["email"]]
+                    
                     points_info.update({
-                        "points": 10000,  # 임시 포인트
-                        "status": "system_error",
-                        "message": "포인트 시스템 일시 오류 - 무료 채팅 제공 중",
-                        "system_status": "error",
-                        "tier": "temporary"
+                        "points": fallback_points,
+                        "status": "fallback",
+                        "message": f"Fallback 모드 - {fallback_points:,} 포인트 사용 중",
+                        "system_status": "fallback",
+                        "tier": "premium" if fallback_points >= 100000 else "standard" if fallback_points >= 10000 else "basic"
                     })
             else:
-                # MongoDB 연결 없음 - 관대한 정책
+                # MongoDB 연결 없음 - fallback 포인트 사용
+                fallback_points = 100000  # 기본값
+                if hasattr(app.state, 'fallback_points') and user["email"] in app.state.fallback_points:
+                    fallback_points = app.state.fallback_points[user["email"]]
+                
                 points_info.update({
-                    "points": 10000,  # 임시 포인트
-                    "status": "offline",
-                    "message": "포인트 시스템 오프라인 - 무료 채팅 제공 중",
-                    "system_status": "offline",
-                    "tier": "temporary"
+                    "points": fallback_points,
+                    "status": "fallback",
+                    "message": f"Fallback 모드 - {fallback_points:,} 포인트 사용 중",
+                    "system_status": "fallback",
+                    "tier": "premium" if fallback_points >= 100000 else "standard" if fallback_points >= 10000 else "basic"
                 })
         
         return JSONResponse(content=points_info)
