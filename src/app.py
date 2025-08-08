@@ -2038,7 +2038,7 @@ async def chat(request: Request):
                     if current_points == 0:
                         print(f"🆕 신규 사용자 감지: {user['email']}")
                         try:
-                            welcome_points = 50000  # 신규 사용자 5만 포인트
+                            welcome_points = 100000  # 신규 사용자 10만 포인트
                             success = db_mgr.initialize_user_points(user["email"], welcome_points)
                             if success:
                                 current_points = welcome_points
@@ -2051,29 +2051,17 @@ async def chat(request: Request):
                             
                 except Exception as db_error:
                     print(f"❌ MongoDB 포인트 조회 실패: {db_error}")
-                    # MongoDB 연결 실패 시 서비스 불가
-                    return JSONResponse(
-                        status_code=503,  # Service Unavailable
-                        content={
-                            "success": False,
-                            "error": "포인트 시스템 일시 장애입니다. 잠시 후 다시 시도해주세요.",
-                            "service_unavailable": True,
-                            "retry_after": "몇 분 후"
-                        }
-                    )
+                    # MongoDB 연결 실패 시 fallback: 기본 포인트로 설정
+                    print("🔄 MongoDB 실패 - fallback 포인트 시스템 사용")
+                    current_points = 100000  # fallback 시 기본 10만 포인트
+                    points_system_available = False
+                    print(f"💰 Fallback 포인트 설정: {user['email']} - {current_points:,}포인트")
             else:
-                # MongoDB 연결 실패 시 서비스 불가
-                print("❌ MongoDB 연결 실패 - 포인트 시스템 사용 불가")
-                return JSONResponse(
-                    status_code=503,  # Service Unavailable
-                    content={
-                        "success": False,
-                        "error": "포인트 시스템이 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.",
-                        "service_unavailable": True,
-                        "need_api_key": False,
-                        "retry_after": "몇 분 후"
-                    }
-                )
+                # MongoDB 연결 실패 시 fallback: 기본 포인트로 설정
+                print("❌ MongoDB 연결 실패 - fallback 포인트 시스템 사용")
+                current_points = 100000  # fallback 시 기본 10만 포인트
+                points_system_available = False
+                print(f"💰 Fallback 포인트 설정: {user['email']} - {current_points:,}포인트")
             
             # 포인트 부족 검사 (엄격한 정책)
             if current_points <= 0:
@@ -2131,7 +2119,7 @@ async def chat(request: Request):
             
             # 신규 사용자 환영 메시지
             if new_user_bonus_given:
-                print(f"🎉 신규 사용자 환영: {user['email']} - 5만 포인트 지급 완료")
+                print(f"🎉 신규 사용자 환영: {user['email']} - 10만 포인트 지급 완료")
         else:
             # 관리자인 경우 로그 출력
             print(f"👑 관리자 사용: {user['email']} - 포인트 제한 없음")
