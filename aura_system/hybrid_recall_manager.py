@@ -21,7 +21,9 @@ from aura_system.memory_structurer import load_memory_db
 from openai import OpenAI
 import os
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# 통합 API 키 검색 사용
+api_key = _get_valid_openai_key() if '_get_valid_openai_key' in globals() else os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
 
 # ✅ 우선순위 회상 판단 및 실행
 def hybrid_recall(user_input: str, tags: list, atom_id: str = None, context: dict = None, emotion: dict = None, belief: dict = None, wisdom: dict = None, eora: dict = None, system: dict = None) -> dict:

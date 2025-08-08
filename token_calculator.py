@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any
 class TokenCalculator:
     """토큰 사용량 계산 클래스"""
     
-    def __init__(self, model_name: str = "gpt-3.5-turbo"):
+    def __init__(self, model_name: str = "gpt-4o"):
         """
         초기화
         
@@ -149,7 +149,7 @@ class TokenCalculator:
 # 전역 토큰 계산기 인스턴스
 token_calculator = TokenCalculator()
 
-def get_token_calculator(model_name: str = "gpt-3.5-turbo") -> TokenCalculator:
+def get_token_calculator(model_name: str = "gpt-4o") -> TokenCalculator:
     """토큰 계산기 인스턴스를 반환합니다."""
     global token_calculator
     if token_calculator.model_name != model_name:

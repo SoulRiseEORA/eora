@@ -57,20 +57,57 @@ class EORAMemorySystem:
             # 항상 기본 메모리 매니저 생성 (오류 방지)
             self.memory_manager = SimpleMemoryManager(None)
             
-            # MongoDB 연결 시도
+            # MongoDB 연결 시도 (EORA 시스템과 동일한 방식 사용)
             try:
-                from database import verify_connection, mongo_client
-                if mongo_client is not None and verify_connection():
-                    from database import db_manager
-                    db_mgr = db_manager()
-                    self.memory_db = db_mgr
-                    self.memory_collection = None  # database.py에서 관리됨
+                import os
+                
+                # 1순위: database.py에서 이미 연결된 클라이언트 또는 URL 사용 (EORA 방식)
+                try:
+                    import sys
+                    sys.path.append('.')
+                    from database import get_cached_mongodb_connection, get_mongodb_url, verify_connection, mongo_client, db_manager
                     
-                    # MongoDB 연결 성공 시 업데이트
-                    self.memory_manager = SimpleMemoryManager(db_mgr)
-                    logger.info("✅ 아우라 메모리 시스템 - MongoDB 연결 성공")
-                else:
-                    logger.warning("⚠️ MongoDB 연결 없음 - 기본 메모리 매니저 사용")
+                    # 이미 연결된 클라이언트가 있으면 재사용
+                    cached_client = get_cached_mongodb_connection() if hasattr(sys.modules.get('database', None), 'get_cached_mongodb_connection') else None
+                    if cached_client:
+                        try:
+                            cached_client.admin.command('ping')
+                            logger.info("✅ 아우라 메모리 시스템 - database.py의 기존 MongoDB 연결 재사용")
+                            # database.py의 db_manager 사용
+                            db_mgr = db_manager()
+                            self.memory_db = db_mgr
+                            self.memory_collection = None  # database.py에서 관리됨
+                            self.memory_manager = SimpleMemoryManager(db_mgr)
+                            logger.info("✅ 아우라 메모리 시스템 - MongoDB 연결 성공 (캐시된 연결)")
+                        except Exception as cache_error:
+                            logger.warning(f"⚠️ 캐시된 연결 사용 실패: {cache_error}")
+                            cached_client = None
+                    
+                    # 캐시된 연결이 없으면 기존 방식 시도
+                    if not cached_client and mongo_client is not None and verify_connection():
+                        db_mgr = db_manager()
+                        self.memory_db = db_mgr
+                        self.memory_collection = None  # database.py에서 관리됨
+                        self.memory_manager = SimpleMemoryManager(db_mgr)
+                        logger.info("✅ 아우라 메모리 시스템 - MongoDB 연결 성공 (기존 연결)")
+                    elif not cached_client:
+                        logger.warning("⚠️ MongoDB 연결 없음 - 기본 메모리 매니저 사용")
+                        
+                except (ImportError, AttributeError) as import_error:
+                    logger.warning(f"⚠️ database.py 연결 함수 가져오기 실패: {import_error}")
+                    # EORA 방식의 직접 연결 시도
+                    from pymongo import MongoClient
+                    mongo_uri = get_mongodb_url() if 'get_mongodb_url' in locals() else None
+                    
+                    if mongo_uri:
+                        test_client = MongoClient(mongo_uri)
+                        test_client.admin.command('ping')
+                        logger.info("✅ 아우라 메모리 시스템 - 직접 MongoDB 연결 성공")
+                        # 간단한 메모리 매니저 생성
+                        self.memory_manager = SimpleMemoryManager(None)
+                    else:
+                        logger.warning("⚠️ MongoDB URL을 찾을 수 없음 - 기본 메모리 매니저 사용")
+                        
             except Exception as db_error:
                 logger.warning(f"⚠️ MongoDB 연결 실패: {db_error} - 기본 메모리 매니저 사용")
             

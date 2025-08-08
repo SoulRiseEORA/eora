@@ -203,11 +203,45 @@ def get_eai_system():
 class EORAAI:
     """EORA AI 시스템"""
     
+    def _get_valid_api_key(self):
+        """통합 API 키 검색 로직"""
+        import os
+        
+        # 여러 가능한 환경변수 이름 시도
+        possible_keys = [
+            "OPENAI_API_KEY",
+            "OPENAI_API_KEY_1", 
+            "OPENAI_API_KEY_2",
+            "OPENAI_API_KEY_3",
+            "OPENAI_API_KEY_4",
+            "OPENAI_API_KEY_5"
+        ]
+        
+        # 환경 변수에서 찾기
+        for key_name in possible_keys:
+            key_value = os.getenv(key_name)
+            if key_value and key_value.startswith("sk-") and len(key_value) > 50:
+                logger.info(f"✅ AURA AI - 유효한 API 키 발견: {key_name}")
+                # 환경변수에 강제로 설정하여 일관성 보장
+                os.environ["OPENAI_API_KEY"] = key_value
+                return key_value
+        
+        logger.warning("⚠️ AURA AI - 유효한 OpenAI API 키를 찾을 수 없습니다")
+        return None
+
     def __init__(self, memory_manager):
         if memory_manager is None:
             raise RuntimeError("EORAAI는 반드시 memory_manager와 함께 초기화되어야 합니다.")
         
-        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # 통합 API 키 검색 사용
+        api_key = self._get_valid_api_key()
+        if api_key:
+            self.client = AsyncOpenAI(api_key=api_key)
+            logger.info("✅ AURA AI OpenAI 클라이언트 초기화 완료 (통합 키 검색)")
+        else:
+            logger.error("❌ 유효한 OpenAI API 키를 찾을 수 없습니다")
+            self.client = None
+        
         self.memory_manager = memory_manager
         self.eai_system = get_eai_system()  # EAI 시스템 인스턴스 보유
         if not self.eai_system:
@@ -727,7 +761,7 @@ class EORAAI:
             response_text = response.choices[0].message.content
             if self.turn_count % 10 == 0:
                 messages2 = messages + [{"role": "system", "content": "[리마인드/톤 분석용 추가 메시지]"}]
-                response2 = await self.client.chat.completions.create(model="gpt-3.5-turbo", messages=messages2, timeout=8)
+                response2 = await self.client.chat.completions.create(model="gpt-4o", messages=messages2, timeout=30)
         except asyncio.CancelledError:
             logger.error("❌ OpenAI API 호출이 취소되었습니다. (CancelledError)")
             return {

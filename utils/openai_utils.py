@@ -4,8 +4,11 @@ from dotenv import load_dotenv
 def load_openai_api_key():
     """OpenAI API 키를 환경 변수에서 로드"""
     try:
-        # .env 파일 로드
-        load_dotenv()
+        # Railway 환경이 아닐 때만 .env 파일 로드
+        if not os.getenv("RAILWAY_ENVIRONMENT"):
+            load_dotenv()
+        else:
+            print("🚂 Railway 환경 감지 - .env 파일 로드 건너뜀 (환경변수 우선)")
         
         # 여러 가능한 환경변수 이름 시도
         possible_keys = [

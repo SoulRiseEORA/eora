@@ -2149,13 +2149,53 @@
                     const errorData = await response.json().catch(() => ({}));
                     console.error("❌ API 오류:", errorData);
                     console.error("❌ 응답 상태:", response.status);
-                    console.error("❌ 응답 텍스트:", await response.text());
-                    throw new Error(errorData.detail || 'API 요청 실패');
+
+                    // 구체적인 오류 메시지 처리
+                    let errorMessage = '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.';
+
+                    if (response.status === 402) {
+                        // 포인트 부족 오류
+                        if (errorData.error) {
+                            errorMessage = `💰 ${errorData.error}`;
+                            if (errorData.current_points !== undefined && errorData.required_points !== undefined) {
+                                errorMessage += `\n\n현재 포인트: ${errorData.current_points.toLocaleString()}점`;
+                                errorMessage += `\n필요 포인트: ${errorData.required_points.toLocaleString()}점`;
+                            }
+                            errorMessage += '\n\n포인트 충전은 상단 메뉴의 "포인트" 페이지에서 가능합니다.';
+                        }
+                    } else if (response.status === 503) {
+                        // 서비스 불가 오류
+                        if (errorData.error) {
+                            errorMessage = `🔧 ${errorData.error}`;
+                            if (errorData.need_api_key) {
+                                errorMessage += '\n\n시스템 관리자에게 문의하세요.';
+                            }
+                        }
+                    } else if (response.status === 401) {
+                        // 인증 오류
+                        errorMessage = '🔐 로그인이 필요합니다. 다시 로그인해주세요.';
+                    } else if (errorData.error) {
+                        // 기타 서버 오류
+                        errorMessage = `⚠️ ${errorData.error}`;
+                    }
+
+                    // 오류 메시지 즉시 표시
+                    const errorTimestamp = new Date().toISOString();
+                    addMessage('assistant', errorMessage, errorTimestamp);
+
+                    // 오류 메시지도 DB에 저장
+                    if (currentSessionId) {
+                        console.log("💾 오류 메시지 DB 저장");
+                        await saveMessageToDatabase(currentSessionId, 'assistant', errorMessage);
+                    }
+
+                    hideTypingIndicator();
+                    return; // catch 블록으로 가지 않도록 여기서 리턴
                 }
             } catch (error) {
                 console.error("💥 채팅 오류:", error);
                 console.error("💥 오류 스택:", error.stack);
-                const errorMessage = '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.';
+                const errorMessage = '💻 네트워크 연결에 문제가 있습니다. 잠시 후 다시 시도해주세요.';
 
                 // 오류 메시지 추가 (중복 방지)
                 const errorTimestamp = new Date().toISOString();
