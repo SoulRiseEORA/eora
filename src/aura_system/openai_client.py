@@ -17,12 +17,20 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# .env 파일 로드 (지연 초기화)
+# .env 파일 로드 (지연 초기화) - Railway 환경 감지 추가
 def load_env_if_needed():
-    """필요할 때만 .env 파일을 로드합니다."""
+    """Railway 환경이 아닐 때만 .env 파일을 로드합니다."""
+    # Railway 환경 감지
+    if os.getenv("RAILWAY_ENVIRONMENT"):
+        logger.info("🚂 Railway 환경 감지 - .env 파일 로드 건너뜀 (환경변수 우선)")
+        return
+        
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-    load_dotenv(env_path)
-    logger.info(f"🔄 Loaded .env from: {env_path}")
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        logger.info(f"🔄 Loaded .env from: {env_path}")
+    else:
+        logger.info("ℹ️ .env 파일이 없어 로드하지 않음")
 
 def get_api_key():
     """API 키를 안전하게 가져옵니다."""
