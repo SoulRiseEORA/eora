@@ -584,8 +584,35 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
         # 현재 메시지 추가
         messages.append({"role": "user", "content": message})
         
-        # OpenAI API 호출 (레일웨이 키 적용 확인)
+        # OpenAI API 호출 전 키 검증 및 클라이언트 재초기화
+        global openai_client  # 전역변수 수정을 위해 필요
         try:
+            # 현재 환경변수에서 최신 키 가져오기
+            latest_key = get_openai_api_key()
+            current_key_in_use = getattr(openai_client, '_api_key', None) if openai_client else None
+            
+            print(f"🔑 API 호출 직전 키 검증:")
+            print(f"   - 최신 키: {latest_key[:15] if latest_key else 'None'}...")
+            print(f"   - 현재 사용 키: {current_key_in_use[:15] if current_key_in_use else 'None'}...")
+            
+            # 키가 다르거나 클라이언트가 없으면 재초기화
+            if not openai_client or not latest_key or current_key_in_use != latest_key:
+                print("🔧 OpenAI 클라이언트 재초기화 필요!")
+                if latest_key:
+                    from openai import AsyncOpenAI
+                    import openai
+                    
+                    openai.api_key = latest_key
+                    openai_client = AsyncOpenAI(
+                        api_key=latest_key,
+                        timeout=30.0,
+                        max_retries=2
+                    )
+                    print(f"✅ OpenAI 클라이언트 재초기화 완료: {latest_key[:15]}...")
+                else:
+                    print("❌ 유효한 API 키가 없어 재초기화 실패")
+                    raise Exception("유효한 OpenAI API 키가 없습니다")
+            
             print(f"🔑 API 호출 직전 클라이언트 확인: {str(openai_client)[:50]}...")
             
             response = await openai_client.chat.completions.create(
