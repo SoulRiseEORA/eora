@@ -113,19 +113,24 @@ def main():
             sys.path.insert(0, str(src_dir))
             logger.info(f"✅ Python 경로에 src 디렉토리 추가: {src_dir}")
         
+        # 현재 디렉토리가 src라면 app 직접 import 가능
+        logger.info(f"📁 현재 작업 디렉토리: {os.getcwd()}")
+        
         # FastAPI 앱 import - 안전하게
         try:
+            # src 디렉토리에서 직접 import
             from app import app
-            logger.info("✅ FastAPI 앱 로드 성공")
+            logger.info("✅ FastAPI 앱 로드 성공 (직접 import)")
         except Exception as e:
-            logger.error(f"❌ FastAPI 앱 로드 실패: {e}")
+            logger.error(f"❌ 직접 import 실패: {e}")
             # 대체 방법으로 앱 로드 시도  
             try:
                 import app as app_module
                 app = app_module.app
                 logger.info("✅ 대체 방법으로 FastAPI 앱 로드 성공")
             except Exception as e2:
-                logger.error(f"❌ 대체 방법 실패: {e2}")
+                logger.error(f"❌ 모든 import 방법 실패: {e2}")
+                logger.error(f"❌ sys.path: {sys.path}")
                 return False
         
         # 서버 시작 - Railway 호환 설정

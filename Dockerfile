@@ -17,6 +17,7 @@ RUN pip install --upgrade pip setuptools wheel \
 
 WORKDIR /app/src
 
-EXPOSE 8000
+EXPOSE 8080
 
-CMD sh -c "uvicorn app:app --host=0.0.0.0 --port=${PORT}"
+# Railway 강제 시작 명령어 - 캐시 무시
+CMD ["python", "-c", "import uvicorn; import sys; sys.path.insert(0, '/app/src'); uvicorn.run('app:app', host='0.0.0.0', port=int(__import__('os').environ.get('PORT', 8080)))"]
