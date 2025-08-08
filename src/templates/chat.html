@@ -2157,11 +2157,20 @@
                         // 포인트 부족 오류
                         if (errorData.error) {
                             errorMessage = `💰 ${errorData.error}`;
-                            if (errorData.current_points !== undefined && errorData.required_points !== undefined) {
-                                errorMessage += `\n\n현재 포인트: ${errorData.current_points.toLocaleString()}점`;
-                                errorMessage += `\n필요 포인트: ${errorData.required_points.toLocaleString()}점`;
+                            if (errorData.message) {
+                                errorMessage += `\n\n${errorData.message}`;
                             }
-                            errorMessage += '\n\n포인트 충전은 상단 메뉴의 "포인트" 페이지에서 가능합니다.';
+                            if (errorData.current_points !== undefined && errorData.required_points !== undefined) {
+                                errorMessage += `\n\n📊 포인트 현황:`;
+                                errorMessage += `\n• 현재 보유: ${errorData.current_points.toLocaleString()}포인트`;
+                                errorMessage += `\n• 필요 포인트: ${errorData.required_points.toLocaleString()}포인트`;
+                                errorMessage += `\n• 부족 포인트: ${(errorData.required_points - errorData.current_points).toLocaleString()}포인트`;
+                            }
+                            if (errorData.charging_guide) {
+                                errorMessage += `\n\n💡 ${errorData.charging_guide}`;
+                            } else {
+                                errorMessage += '\n\n💡 포인트 충전은 상단 메뉴의 "포인트" 페이지에서 가능합니다.';
+                            }
                         }
                     } else if (response.status === 503) {
                         // 서비스 불가 오류

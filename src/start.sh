@@ -19,4 +19,4 @@ echo "================================================="
 echo "🚀 Railway 안전 서버 실행 중..."
 
 # 안전한 서버 실행
-exec $PYTHON_CMD railway_safe_server.py 
+exec $PYTHON_CMD app.py 

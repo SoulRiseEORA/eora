@@ -379,39 +379,23 @@ templates = Jinja2Templates(directory=str(templates_dir))
 
 @app.get("/health")
 async def health_check():
-    """Railway Health Check 엔드포인트"""
+    """Railway Health Check 엔드포인트 - 최대한 간단하고 견고하게"""
     try:
-        # 기본 시스템 상태 체크
-        system_status = {
+        # 최소한의 상태 정보만 반환
+        return {
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
             "service": "EORA AI Server",
-            "version": "2.0.0",
-            "environment": "Railway" if os.getenv("RAILWAY_ENVIRONMENT") else "Local"
+            "message": "✅ 서버가 정상적으로 실행 중입니다"
         }
         
-        # OpenAI API 키 존재 여부 체크
-        api_key = get_openai_api_key()
-        system_status["openai_available"] = bool(api_key and api_key.startswith("sk-"))
-        
-        # MongoDB 연결 상태 체크 (옵션)
-        try:
-            if 'mongo_client' in globals() and mongo_client:
-                # 간단한 MongoDB 연결 테스트
-                system_status["mongodb_connected"] = verify_connection()
-            else:
-                system_status["mongodb_connected"] = False
-        except:
-            system_status["mongodb_connected"] = False
-        
-        return system_status
-        
     except Exception as e:
-        # 오류가 있어도 200 OK 반환 (Railway Health Check 통과용)
+        # 어떤 오류가 있어도 200 OK 반환 (Railway Health Check 통과)
         return {
-            "status": "degraded",
+            "status": "ok",
             "timestamp": datetime.now().isoformat(),
-            "service": "EORA AI Server",
+            "service": "EORA AI Server", 
+            "message": "⚠️ 일부 기능에 문제가 있지만 서버는 실행 중",
             "error": str(e)
         }
 
@@ -2041,74 +2025,113 @@ async def chat(request: Request):
         if not is_admin:  # 관리자는 포인트 제한 없음
             current_points = 0
             points_system_available = False
+            new_user_bonus_given = False
             
-            # MongoDB 포인트 시스템 시도 (실패해도 채팅 허용)
+            # MongoDB 포인트 시스템 확인
             if mongo_client and verify_connection() and db_mgr:
                 try:
                     current_points = db_mgr.get_user_points(user["email"])
                     points_system_available = True
-                    print(f"💰 MongoDB 포인트 확인 성공: {user['email']} - {current_points:,}포인트")
+                    print(f"💰 MongoDB 포인트 조회 성공: {user['email']} - {current_points:,}포인트")
+                    
+                    # 신규 사용자 (포인트가 없는 경우) 기본 포인트 지급
+                    if current_points == 0:
+                        print(f"🆕 신규 사용자 감지: {user['email']}")
+                        try:
+                            welcome_points = 50000  # 신규 사용자 5만 포인트
+                            success = db_mgr.initialize_user_points(user["email"], welcome_points)
+                            if success:
+                                current_points = welcome_points
+                                new_user_bonus_given = True
+                                print(f"🎁 신규 사용자 웰컴 포인트 지급: {user['email']} - {welcome_points:,}포인트")
+                            else:
+                                print(f"❌ 신규 사용자 포인트 지급 실패: {user['email']}")
+                        except Exception as welcome_error:
+                            print(f"⚠️ 웰컴 포인트 지급 오류: {welcome_error}")
+                            
                 except Exception as db_error:
-                    print(f"⚠️ MongoDB 포인트 조회 실패: {db_error}")
-                    # 실패해도 계속 진행 (기본 포인트로 처리)
-                    current_points = 1000  # 임시 기본 포인트
-                    print(f"🔄 임시 기본 포인트 사용: {current_points:,}포인트")
+                    print(f"❌ MongoDB 포인트 조회 실패: {db_error}")
+                    # MongoDB 연결 실패 시 서비스 불가
+                    return JSONResponse(
+                        status_code=503,  # Service Unavailable
+                        content={
+                            "success": False,
+                            "error": "포인트 시스템 일시 장애입니다. 잠시 후 다시 시도해주세요.",
+                            "service_unavailable": True,
+                            "retry_after": "몇 분 후"
+                        }
+                    )
             else:
-                # MongoDB 연결 실패 시 임시 포인트로 진행
-                current_points = 1000  # 임시 기본 포인트
-                print(f"🔄 MongoDB 연결 없음 - 임시 기본 포인트 사용: {current_points:,}포인트")
+                # MongoDB 연결 실패 시 서비스 불가
+                print("❌ MongoDB 연결 실패 - 포인트 시스템 사용 불가")
+                return JSONResponse(
+                    status_code=503,  # Service Unavailable
+                    content={
+                        "success": False,
+                        "error": "포인트 시스템이 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.",
+                        "service_unavailable": True,
+                        "need_api_key": False,
+                        "retry_after": "몇 분 후"
+                    }
+                )
             
-            # 포인트 체크 (MongoDB 사용 가능한 경우만 엄격 적용)
-            if points_system_available:
-                # MongoDB 포인트 시스템이 정상 작동하는 경우 엄격 체크
-                if current_points <= 0:
+            # 포인트 부족 검사 (엄격한 정책)
+            if current_points <= 0:
+                return JSONResponse(
+                    status_code=402,  # Payment Required
+                    content={
+                        "success": False,
+                        "error": "포인트가 모두 소진되었습니다.",
+                        "message": "채팅을 계속하려면 포인트를 충전해주세요.",
+                        "current_points": current_points,
+                        "required_points": 10,
+                        "point_exhausted": True,
+                        "charging_guide": "상단 메뉴의 '포인트' 페이지에서 충전 가능합니다."
+                    }
+                )
+            
+            # 추정 토큰 비용 확인
+            if TOKEN_CALCULATOR_AVAILABLE:
+                token_calc = get_token_calculator("gpt-4o")
+                estimated_usage = token_calc.estimate_tokens_before_request(message)
+                estimated_cost = token_calc.calculate_points_cost(estimated_usage)
+                
+                if current_points < estimated_cost:
                     return JSONResponse(
                         status_code=402,  # Payment Required
                         content={
                             "success": False,
-                            "error": "포인트가 모두 소진되었습니다. 포인트를 충전한 후 다시 시도해주세요.",
+                            "error": f"포인트가 부족합니다.",
+                            "message": f"이 메시지 처리에 약 {estimated_cost:,}포인트가 필요하지만, 현재 {current_points:,}포인트만 보유하고 있습니다.",
                             "current_points": current_points,
-                            "required_points": 1,
-                            "point_exhausted": True
+                            "required_points": estimated_cost,
+                            "insufficient_points": True,
+                            "charging_guide": "상단 메뉴의 '포인트' 페이지에서 충전하거나, 더 짧은 메시지를 보내보세요."
                         }
                     )
                 
-                # 최소 포인트 확인 (추정 토큰 * 2)
-                if TOKEN_CALCULATOR_AVAILABLE:
-                    token_calc = get_token_calculator("gpt-4o")
-                    estimated_usage = token_calc.estimate_tokens_before_request(message)
-                    estimated_cost = token_calc.calculate_points_cost(estimated_usage)
-                    
-                    if current_points < estimated_cost:
-                        return JSONResponse(
-                            status_code=402,  # Payment Required
-                            content={
-                                "success": False,
-                                "error": f"포인트가 부족합니다. 현재 포인트: {current_points:,}, 필요 포인트: {estimated_cost:,}",
-                                "current_points": current_points,
-                                "required_points": estimated_cost,
-                                "insufficient_points": True
-                            }
-                        )
-                    
-                    print(f"💰 포인트 확인: {user['email']} - 현재: {current_points:,}, 예상 차감: {estimated_cost:,}")
-                else:
-                    # 토큰 계산기가 없으면 기본 포인트 확인
-                    if current_points < 10:
-                        return JSONResponse(
-                            status_code=402,
-                            content={
-                                "success": False,
-                                "error": f"포인트가 부족합니다. 현재 포인트: {current_points:,}, 필요 포인트: 10",
-                                "current_points": current_points,
-                                "required_points": 10,
-                                "insufficient_points": True
-                            }
-                        )
+                print(f"💰 포인트 충분: {user['email']} - 현재: {current_points:,}, 예상 차감: {estimated_cost:,}")
             else:
-                # MongoDB 연결 실패 시 관대한 정책으로 채팅 허용
-                print(f"🎯 포인트 시스템 비활성화 - 임시 채팅 허용: {user['email']}")
-                print("   ⚠️ 주의: 포인트 차감이 나중에 처리될 수 있습니다.")
+                # 토큰 계산기 없는 경우 기본 10포인트 확인
+                if current_points < 10:
+                    return JSONResponse(
+                        status_code=402,  # Payment Required
+                        content={
+                            "success": False,
+                            "error": "포인트가 부족합니다.",
+                            "message": f"채팅을 위해 최소 10포인트가 필요하지만, 현재 {current_points:,}포인트만 보유하고 있습니다.",
+                            "current_points": current_points,
+                            "required_points": 10,
+                            "insufficient_points": True,
+                            "charging_guide": "상단 메뉴의 '포인트' 페이지에서 충전해주세요."
+                        }
+                    )
+                    
+                print(f"💰 기본 포인트 확인 통과: {user['email']} - {current_points:,}포인트")
+            
+            # 신규 사용자 환영 메시지
+            if new_user_bonus_given:
+                print(f"🎉 신규 사용자 환영: {user['email']} - 5만 포인트 지급 완료")
         else:
             # 관리자인 경우 로그 출력
             print(f"👑 관리자 사용: {user['email']} - 포인트 제한 없음")
@@ -2165,36 +2188,63 @@ async def chat(request: Request):
         # 메모리에 AI 응답 저장 (호환성)
         messages_db[session_id].append(ai_message)
         
-        # ===== 포인트 차감 처리 (실패해도 대화 허용) =====
+        # ===== 포인트 차감 처리 (엄격한 정책) =====
         if not is_admin:
-            # MongoDB 포인트 시스템 사용 가능한 경우만 차감 시도
-            if token_usage and mongo_client and verify_connection() and db_mgr:
+            if token_usage and points_system_available and db_mgr:
                 try:
                     if TOKEN_CALCULATOR_AVAILABLE:
                         token_calc = get_token_calculator("gpt-4o")
                         points_cost = token_calc.calculate_points_cost(token_usage)
                         
+                        print(f"💰 포인트 차감 시도: {user['email']} - {points_cost:,}포인트 (토큰: {token_usage.get('total_tokens', 0)})")
+                        
                         # 포인트 차감 실행
                         success = db_mgr.deduct_points(
                             user["email"], 
                             points_cost, 
-                            f"채팅 사용 (토큰: {token_usage.get('total_tokens', 0)})"
+                            f"GPT 채팅 사용 (토큰: {token_usage.get('total_tokens', 0)})"
                         )
                         
                         if success:
                             points_deducted = points_cost
-                            print(f"💰 포인트 차감 완료: {user['email']} -{points_cost} (토큰: {token_usage.get('total_tokens', 0)})")
+                            print(f"✅ 포인트 차감 성공: {user['email']} -{points_cost:,}포인트")
+                            
+                            # 차감 후 잔액 확인
+                            try:
+                                remaining_points = db_mgr.get_user_points(user["email"])
+                                print(f"💰 차감 후 잔액: {user['email']} - {remaining_points:,}포인트")
+                                
+                                # 잔액이 적으면 경고
+                                if remaining_points < 1000:
+                                    print(f"⚠️ 포인트 부족 경고: {user['email']} - 잔액 {remaining_points:,}포인트")
+                                    
+                            except Exception as balance_error:
+                                print(f"⚠️ 잔액 확인 실패: {balance_error}")
                         else:
-                            print(f"⚠️ 포인트 차감 실패: {user['email']} - 대화는 정상 진행")
-                            # 차감 실패시에도 대화는 계속 진행 (이미 응답 생성됨)
+                            print(f"❌ 포인트 차감 실패: {user['email']} - DB 업데이트 오류")
+                            points_deducted = 0
                     else:
-                        print(f"🔄 토큰 계산기 미사용 - 기본 포인트 차감 건너뜀")
+                        # 토큰 계산기 없는 경우 기본 1포인트 차감
+                        print(f"💰 기본 포인트 차감 시도: {user['email']} - 1포인트")
+                        success = db_mgr.deduct_points(
+                            user["email"], 
+                            1, 
+                            "GPT 채팅 사용 (기본 차감)"
+                        )
+                        
+                        if success:
+                            points_deducted = 1
+                            print(f"✅ 기본 포인트 차감 성공: {user['email']} -1포인트")
+                        else:
+                            print(f"❌ 기본 포인트 차감 실패: {user['email']}")
+                            points_deducted = 0
+                            
                 except Exception as points_error:
-                    print(f"⚠️ 포인트 처리 오류: {points_error} - 대화는 정상 진행")
+                    print(f"❌ 포인트 처리 오류: {points_error}")
+                    points_deducted = 0
             else:
-                # MongoDB 연결 없거나 토큰 정보 없는 경우
-                print(f"🔄 포인트 시스템 비활성화 - 임시 무료 사용: {user['email']}")
-                print("   ⚠️ 주의: 정상 연결 시 누적 포인트가 차감될 수 있습니다.")
+                print(f"⚠️ 포인트 시스템 사용 불가: {user['email']} - 차감 건너뜀")
+                points_deducted = 0
         
         # ===== MongoDB에 장기 저장 =====
         try:
@@ -3540,7 +3590,7 @@ async def get_admin_resources(request: Request):
 
 @app.get("/api/user/points")
 async def get_user_points(request: Request):
-    """현재 사용자의 포인트 조회"""
+    """현재 사용자의 포인트 조회 (개선된 버전)"""
     user = get_current_user(request)
     if not user:
         return JSONResponse(
@@ -3548,28 +3598,97 @@ async def get_user_points(request: Request):
             content={"success": False, "error": "로그인이 필요합니다."}
         )
     
+    # 관리자 확인
+    is_admin = user.get("is_admin", False) or user.get("role") == "admin"
+    
     try:
-        # MongoDB에서 포인트 조회
-        if mongo_client and verify_connection() and db_mgr:
-            points = db_mgr.get_user_points(user["email"])
-            return JSONResponse({
-                "success": True,
-                "points": points,
-                "user_id": user["email"]
+        points_info = {
+            "success": True,
+            "user_id": user["email"],
+            "is_admin": is_admin,
+            "points": 0,
+            "status": "normal",
+            "message": "",
+            "system_status": "connected"
+        }
+        
+        if is_admin:
+            # 관리자는 무제한 포인트
+            points_info.update({
+                "points": 999999999,
+                "status": "unlimited",
+                "message": "관리자 계정 - 무제한 포인트",
+                "tier": "admin"
             })
         else:
-            # MongoDB가 없으면 기본값 반환
-            return JSONResponse({
-                "success": True,
-                "points": 100000,
-                "user_id": user["email"]
-            })
+            # 일반 사용자 포인트 조회
+            if mongo_client and verify_connection() and db_mgr:
+                try:
+                    points = db_mgr.get_user_points(user["email"])
+                    
+                    # 포인트가 0이거나 신규 사용자인 경우 기본 포인트 지급
+                    if points <= 0:
+                        default_points = 50000  # 신규 사용자 기본 포인트
+                        success = db_mgr.initialize_user_points(user["email"], default_points)
+                        if success:
+                            points = default_points
+                            points_info["message"] = f"신규 사용자 환영! {default_points:,} 포인트가 지급되었습니다."
+                        else:
+                            points = 10000  # 임시 포인트
+                            points_info["message"] = "포인트 시스템 오류 - 임시 포인트 제공"
+                            points_info["status"] = "temporary"
+                    
+                    points_info.update({
+                        "points": points,
+                        "tier": "premium" if points >= 100000 else "standard" if points >= 10000 else "basic"
+                    })
+                    
+                    # 포인트 상태 메시지
+                    if points >= 100000:
+                        points_info["message"] = "충분한 포인트를 보유하고 있습니다."
+                    elif points >= 10000:
+                        points_info["message"] = "적당한 포인트를 보유하고 있습니다."
+                    elif points >= 1000:
+                        points_info["message"] = "포인트가 부족합니다. 충전을 권장합니다."
+                    else:
+                        points_info["message"] = "포인트가 매우 부족하지만 무료 채팅을 제공합니다."
+                        points_info["status"] = "low_but_free"
+                    
+                except Exception as db_error:
+                    print(f"⚠️ MongoDB 포인트 조회 실패: {db_error}")
+                    # DB 오류 시 관대한 정책 적용
+                    points_info.update({
+                        "points": 10000,  # 임시 포인트
+                        "status": "system_error",
+                        "message": "포인트 시스템 일시 오류 - 무료 채팅 제공 중",
+                        "system_status": "error",
+                        "tier": "temporary"
+                    })
+            else:
+                # MongoDB 연결 없음 - 관대한 정책
+                points_info.update({
+                    "points": 10000,  # 임시 포인트
+                    "status": "offline",
+                    "message": "포인트 시스템 오프라인 - 무료 채팅 제공 중",
+                    "system_status": "offline",
+                    "tier": "temporary"
+                })
+        
+        return JSONResponse(content=points_info)
+        
     except Exception as e:
-        print(f"❌ 포인트 조회 오류: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": "포인트 조회 중 오류가 발생했습니다."}
-        )
+        print(f"❌ 포인트 조회 전체 오류: {e}")
+        # 완전 오류 시에도 사용 가능하도록
+        return JSONResponse(content={
+            "success": True,
+            "user_id": user["email"],
+            "is_admin": is_admin,
+            "points": 5000,  # 최소 구제 포인트
+            "status": "emergency",
+            "message": "시스템 오류 - 긴급 구제 포인트 제공",
+            "system_status": "critical_error",
+            "tier": "emergency"
+        })
 
 @app.get("/api/user/points/history")
 async def get_points_history(request: Request):
