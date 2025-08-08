@@ -1,10 +1,10 @@
 [build]
 # Railway 빌드 설정
-buildCommand = "echo 'Railway.toml 강제 적용'"
+buildCommand = "echo 'Railway 완벽 설정 적용'"
 
 [deploy]
-# Railway 배포 설정 - 강제 적용
-startCommand = "uvicorn src.app:app --host 0.0.0.0 --port $PORT"
+# Railway 완벽 배포 설정 - 환경변수 문제 해결
+startCommand = "python railway_start.py"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "always"

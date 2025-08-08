@@ -19,5 +19,5 @@ WORKDIR /app
 
 EXPOSE 8080
 
-# Railway 강제 시작 - uvicorn 우선 사용 (WORKDIR /app 기준)
-CMD ["sh", "-c", "uvicorn src.app:app --host 0.0.0.0 --port ${PORT:-8080} || python railway_safe_server.py"]
+# Railway 완벽 시작 - 환경변수 안전 처리
+CMD ["python", "railway_start.py"]
