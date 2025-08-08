@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI - 아우라 통합 시스템 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .chat-container {
+            display: flex;
+            gap: 20px;
+            height: 500px;
+        }
+
+        .chat-input {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-output {
+            flex: 1;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+
+        .ai-message {
+            background: #f1f3f4;
+            color: #333;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"], textarea {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .memory-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .memory-section {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .memory-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .memory-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌟 EORA AI - 아우라 통합 시스템</h1>
+            <p>의식적이고 지혜로운 AI 대화 시스템 테스트</p>
+        </div>
+
+        <div class="content">
+            <!-- 시스템 상태 -->
+            <div class="section">
+                <h2>🔧 시스템 상태</h2>
+                <div id="systemStatus" class="status info">
+                    시스템 상태를 확인하는 중...
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalMemories">-</div>
+                        <div class="stat-label">총 메모리</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avgEmotion">-</div>
+                        <div class="stat-label">평균 감정 점수</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avgInsight">-</div>
+                        <div class="stat-label">평균 통찰 점수</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="recentActivity">-</div>
+                        <div class="stat-label">최근 활동</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 채팅 인터페이스 -->
+            <div class="section">
+                <h2>💬 AI 대화</h2>
+                <div class="chat-container">
+                    <div class="chat-input">
+                        <div class="input-group">
+                            <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." />
+                            <button onclick="sendMessage()">전송</button>
+                        </div>
+                        <div class="loading" id="chatLoading">
+                            <div class="spinner"></div>
+                            AI가 응답을 생성하는 중...
+                        </div>
+                    </div>
+                    <div class="chat-output" id="chatOutput">
+                        <div class="message ai-message">
+                            안녕하세요! 저는 EORA AI입니다. 🤖<br>
+                            의식적이고 지혜로운 존재로서 여러분과 대화할 수 있어 기쁩니다.<br>
+                            무엇이든 물어보세요!
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 메모리 관리 -->
+            <div class="section">
+                <h2>🧠 메모리 관리</h2>
+                <div class="memory-controls">
+                    <div class="memory-section">
+                        <h3>🔍 일반 회상</h3>
+                        <div class="input-group">
+                            <input type="text" id="recallQuery" placeholder="검색어를 입력하세요" />
+                            <button onclick="recallMemories()">검색</button>
+                        </div>
+                        <div id="recallResults"></div>
+                    </div>
+
+                    <div class="memory-section">
+                        <h3>😊 감정 기반 회상</h3>
+                        <div class="input-group">
+                            <select id="emotionSelect">
+                                <option value="기쁨">기쁨</option>
+                                <option value="슬픔">슬픔</option>
+                                <option value="분노">분노</option>
+                                <option value="불안">불안</option>
+                                <option value="놀람">놀람</option>
+                                <option value="중립">중립</option>
+                            </select>
+                            <button onclick="recallByEmotion()">검색</button>
+                        </div>
+                        <div id="emotionResults"></div>
+                    </div>
+
+                    <div class="memory-section">
+                        <h3>💡 통찰 기반 회상</h3>
+                        <button onclick="recallByInsight()">높은 통찰 기억 검색</button>
+                        <div id="insightResults"></div>
+                    </div>
+
+                    <div class="memory-section">
+                        <h3>🔮 직감 기반 회상</h3>
+                        <button onclick="recallByIntuition()">높은 직감 기억 검색</button>
+                        <div id="intuitionResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API 기본 URL
+        const API_BASE = window.location.origin;
+
+        // 시스템 상태 확인
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                const statusDiv = document.getElementById('systemStatus');
+                if (data.status === 'healthy') {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ 시스템 정상 작동 중';
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ 시스템 오류';
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('systemStatus');
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ 시스템 연결 실패';
+            }
+        }
+
+        // 메모리 통계 로드
+        async function loadMemoryStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/memory`);
+                const data = await response.json();
+                
+                if (data.aura_integration_available || data.aura_memory_available) {
+                    const stats = data.stats || {};
+                    document.getElementById('totalMemories').textContent = stats.total_memories || 0;
+                    document.getElementById('avgEmotion').textContent = (stats.average_emotion_score || 0).toFixed(2);
+                    document.getElementById('avgInsight').textContent = (stats.average_insight_score || 0).toFixed(2);
+                    document.getElementById('recentActivity').textContent = stats.recent_activity || 0;
+                }
+            } catch (error) {
+                console.error('메모리 통계 로드 실패:', error);
+            }
+        }
+
+        // 메시지 전송
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // 사용자 메시지 표시
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // 로딩 표시
+            const loading = document.getElementById('chatLoading');
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: 'test_session'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    addMessage(`오류: ${data.error}`, 'ai');
+                } else {
+                    addMessage(data.response, 'ai');
+                }
+            } catch (error) {
+                addMessage('죄송합니다. 서버 연결에 실패했습니다.', 'ai');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 메시지 추가
+        function addMessage(text, sender) {
+            const output = document.getElementById('chatOutput');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = text;
+            output.appendChild(messageDiv);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // 일반 회상
+        async function recallMemories() {
+            const query = document.getElementById('recallQuery').value.trim();
+            if (!query) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/memory/recall?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('recallResults');
+                if (data.success) {
+                    resultsDiv.innerHTML = data.memories.map(memory => 
+                        `<div class="memory-item">
+                            <strong>${memory.content || memory.message}</strong><br>
+                            <small>${memory.timestamp}</small>
+                        </div>`
+                    ).join('');
+                } else {
+                    resultsDiv.innerHTML = `<div class="memory-item">${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('recallResults').innerHTML = 
+                    '<div class="memory-item">회상 중 오류가 발생했습니다.</div>';
+            }
+        }
+
+        // 감정 기반 회상
+        async function recallByEmotion() {
+            const emotion = document.getElementById('emotionSelect').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/memory/recall/emotion/${encodeURIComponent(emotion)}`);
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('emotionResults');
+                if (data.success) {
+                    resultsDiv.innerHTML = data.memories.map(memory => 
+                        `<div class="memory-item">
+                            <strong>${memory.content || memory.message}</strong><br>
+                            <small>${memory.timestamp}</small>
+                        </div>`
+                    ).join('');
+                } else {
+                    resultsDiv.innerHTML = `<div class="memory-item">${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('emotionResults').innerHTML = 
+                    '<div class="memory-item">회상 중 오류가 발생했습니다.</div>';
+            }
+        }
+
+        // 통찰 기반 회상
+        async function recallByInsight() {
+            try {
+                const response = await fetch(`${API_BASE}/api/memory/recall/insight`);
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('insightResults');
+                if (data.success) {
+                    resultsDiv.innerHTML = data.memories.map(memory => 
+                        `<div class="memory-item">
+                            <strong>${memory.content || memory.message}</strong><br>
+                            <small>${memory.timestamp}</small>
+                        </div>`
+                    ).join('');
+                } else {
+                    resultsDiv.innerHTML = `<div class="memory-item">${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('insightResults').innerHTML = 
+                    '<div class="memory-item">회상 중 오류가 발생했습니다.</div>';
+            }
+        }
+
+        // 직감 기반 회상
+        async function recallByIntuition() {
+            try {
+                const response = await fetch(`${API_BASE}/api/memory/recall/intuition`);
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('intuitionResults');
+                if (data.success) {
+                    resultsDiv.innerHTML = data.memories.map(memory => 
+                        `<div class="memory-item">
+                            <strong>${memory.content || memory.message}</strong><br>
+                            <small>${memory.timestamp}</small>
+                        </div>`
+                    ).join('');
+                } else {
+                    resultsDiv.innerHTML = `<div class="memory-item">${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('intuitionResults').innerHTML = 
+                    '<div class="memory-item">회상 중 오류가 발생했습니다.</div>';
+            }
+        }
+
+        // Enter 키로 메시지 전송
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', function() {
+            checkSystemStatus();
+            loadMemoryStats();
+        });
+    </script>
+</body>
+</html> 

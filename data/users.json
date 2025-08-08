@@ -1,0 +1,134 @@
+{
+  "admin@eora.ai": {
+    "email": "admin@eora.ai",
+    "password": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+    "name": "관리자",
+    "role": "admin",
+    "is_admin": true,
+    "created_at": "2025-08-04T18:46:09.529613"
+  },
+  "fixed_test_1754300809@example.com": {
+    "user_id": "TA68IKXQXZPJ",
+    "email": "fixed_test_1754300809@example.com",
+    "username": "fixed_test_1754300809",
+    "password": "85777f270ad7cf2a790981bbae3c4e484a1dc55e24a77390d692fbf1cffa12fa",
+    "name": "수정테스트",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-04T18:46:49.417498",
+    "last_login": null,
+    "storage_quota": 104857600,
+    "storage_used": 0,
+    "session_count": 0,
+    "total_messages": 0,
+    "profile": {
+      "avatar": null,
+      "bio": "",
+      "location": "",
+      "preferences": {
+        "theme": "auto",
+        "language": "ko",
+        "notifications": true
+      }
+    },
+    "permissions": [
+      "read",
+      "write",
+      "delete_own"
+    ],
+    "status": "active"
+  },
+  "debug_test_1754302525@example.com": {
+    "user_id": "XPWNONOTTMXW",
+    "email": "debug_test_1754302525@example.com",
+    "username": "debug_test_1754302525",
+    "password": "85777f270ad7cf2a790981bbae3c4e484a1dc55e24a77390d692fbf1cffa12fa",
+    "name": "디버그테스트",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-04T19:15:27.880637",
+    "last_login": null,
+    "storage_quota": 104857600,
+    "storage_used": 0,
+    "session_count": 0,
+    "total_messages": 0,
+    "profile": {
+      "avatar": null,
+      "bio": "",
+      "location": "",
+      "preferences": {
+        "theme": "auto",
+        "language": "ko",
+        "notifications": true
+      }
+    },
+    "permissions": [
+      "read",
+      "write",
+      "delete_own"
+    ],
+    "status": "active"
+  },
+  "debug_test_1754302611@example.com": {
+    "user_id": "9WZI8UMLUKLY",
+    "email": "debug_test_1754302611@example.com",
+    "username": "debug_test_1754302611",
+    "password": "85777f270ad7cf2a790981bbae3c4e484a1dc55e24a77390d692fbf1cffa12fa",
+    "name": "디버그테스트",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-04T19:16:53.470444",
+    "last_login": null,
+    "storage_quota": 104857600,
+    "storage_used": 0,
+    "session_count": 0,
+    "total_messages": 0,
+    "profile": {
+      "avatar": null,
+      "bio": "",
+      "location": "",
+      "preferences": {
+        "theme": "auto",
+        "language": "ko",
+        "notifications": true
+      }
+    },
+    "permissions": [
+      "read",
+      "write",
+      "delete_own"
+    ],
+    "status": "active"
+  },
+  "soo@naver.com": {
+    "user_id": "TN495VB09P9V",
+    "email": "soo@naver.com",
+    "username": "soo",
+    "password": "1706513a42f80dd76904c44361ad4d37d19760753ef551ae8f66d76b11c94a63",
+    "name": "soo",
+    "role": "user",
+    "is_admin": false,
+    "created_at": "2025-08-04T19:19:19.032799",
+    "last_login": null,
+    "storage_quota": 104857600,
+    "storage_used": 0,
+    "session_count": 0,
+    "total_messages": 0,
+    "profile": {
+      "avatar": null,
+      "bio": "",
+      "location": "",
+      "preferences": {
+        "theme": "auto",
+        "language": "ko",
+        "notifications": true
+      }
+    },
+    "permissions": [
+      "read",
+      "write",
+      "delete_own"
+    ],
+    "status": "active"
+  }
+}

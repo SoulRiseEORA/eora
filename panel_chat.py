@@ -1,0 +1,1 @@
+class PanelChat: pass

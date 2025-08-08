@@ -1,0 +1,33 @@
+{
+  "soo@naver.com": {
+    "user_id": "TN495VB09P9V",
+    "email": "soo@naver.com",
+    "current_points": 100000,
+    "total_earned": 100000,
+    "total_spent": 0,
+    "last_updated": "2025-08-04T19:19:19.035800",
+    "history": [
+      {
+        "type": "signup_bonus",
+        "amount": 100000,
+        "description": "신규 회원가입 보너스 (100,000 포인트)",
+        "timestamp": "2025-08-04T19:19:19.035800",
+        "balance_after": 100000
+      }
+    ]
+  },
+  "admin@eora.ai": {
+    "current_points": 999999999,
+    "total_earned": 999999999,
+    "total_spent": 0,
+    "last_updated": "2025-08-07T19:27:49.660051",
+    "transactions": [
+      {
+        "type": "admin_grant",
+        "amount": 999999999,
+        "timestamp": "2025-08-07T19:27:49.660051",
+        "description": "관리자 계정 초기 포인트 (매번 재설정)"
+      }
+    ]
+  }
+}

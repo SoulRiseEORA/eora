@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI별 프롬프트 통합 관리 - EORA AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .nav-menu {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-menu a {
+            text-decoration: none;
+            color: #333;
+            padding: 8px 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            margin: 2px;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .nav-menu a.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .page-title {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .page-subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        /* AI 선택 탭 */
+        .ai-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .ai-tab {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .ai-tab.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .ai-tab:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        /* 카테고리 편집 섹션 */
+        .category-editor {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .category-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+
+        .category-icon {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .category-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        /* 프롬프트 항목 */
+        .prompt-item {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .prompt-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .prompt-item.editing {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .prompt-index {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .prompt-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .prompt-content {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .prompt-content:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        /* 새 프롬프트 추가 */
+        .add-prompt-section {
+            background: #e8f5e8;
+            border: 2px dashed #28a745;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .add-prompt-section:hover {
+            background: #d4edda;
+            border-color: #218838;
+        }
+
+        .add-prompt-icon {
+            font-size: 2em;
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+
+        /* 저장 상태 표시 */
+        .save-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .save-status.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .save-status.success {
+            background: #28a745;
+        }
+
+        .save-status.error {
+            background: #dc3545;
+        }
+
+        /* 로딩 스피너 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .ai-tabs {
+                flex-direction: column;
+            }
+
+            .ai-tab {
+                min-width: auto;
+            }
+
+            .category-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .category-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* 프롬프트 아이템 */
+        .prompt-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+        }
+
+        /* 통합 텍스트 영역 스타일 */
+        .unified-textarea {
+            width: 100%;
+            min-height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 1em;
+            line-height: 1.6;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            resize: vertical;
+            background: #f9f9f9;
+            transition: all 0.3s ease;
+        }
+
+        .unified-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .category-description {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            color: #555;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 네비게이션 메뉴 -->
+        <div class="nav-menu">
+            <div>
+                <a href="/admin">관리자 대시보드</a>
+                <a href="/storage-management">저장소 관리</a>
+                <a href="/prompt-management" class="active">프롬프트 관리</a>
+            </div>
+            <div>
+                <a href="/dashboard">대시보드</a>
+                <a href="/chat">채팅</a>
+                <a href="/" onclick="logout()">로그아웃</a>
+            </div>
+        </div>
+
+        <!-- 페이지 헤더 -->
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h1 class="page-title">🤖 AI별 프롬프트 통합 관리</h1>
+                    <p class="page-subtitle">각 AI의 시스템, 역할, 가이드, 포맷을 카테고리별로 통합 관리합니다</p>
+                </div>
+                <a href="/admin" class="btn btn-primary"
+                    style="text-decoration: none; color: white; padding: 12px 24px; border-radius: 10px; background: #667eea; transition: all 0.3s ease;">
+                    🔙 관리자 페이지로
+                </a>
+            </div>
+        </div>
+
+        <!-- AI 선택 탭 -->
+        <div class="ai-tabs">
+            <button class="ai-tab active" data-ai="ai1">AI1 (이오라)</button>
+            <button class="ai-tab" data-ai="ai2">AI2 (API 설계)</button>
+            <button class="ai-tab" data-ai="ai3">AI3 (코드 리팩토링)</button>
+            <button class="ai-tab" data-ai="ai4">AI4 (테스트/QA)</button>
+            <button class="ai-tab" data-ai="ai5">AI5 (보안 감사)</button>
+            <button class="ai-tab" data-ai="ai6">AI6 (문서 자동화)</button>
+        </div>
+
+        <!-- 카테고리별 편집 섹션 -->
+        <div id="category-editors">
+            <!-- 시스템 프롬프트 -->
+            <div class="category-editor" id="system-editor">
+                <div class="category-header">
+                    <h3 class="category-title">
+                        <span class="category-icon">⚙️</span>
+                        시스템 프롬프트
+                    </h3>
+                    <div class="category-actions">
+                        <button class="btn btn-success" onclick="saveCategory('system')">
+                            💾 저장
+                        </button>
+                        <button class="btn btn-secondary" onclick="addPromptItem('system')">
+                            ➕ 추가
+                        </button>
+                    </div>
+                </div>
+                <div id="system-prompts" class="prompts-container">
+                    <!-- 프롬프트 항목들이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+
+            <!-- 역할 프롬프트 -->
+            <div class="category-editor" id="role-editor">
+                <div class="category-header">
+                    <h3 class="category-title">
+                        <span class="category-icon">🎭</span>
+                        역할 프롬프트
+                    </h3>
+                    <div class="category-actions">
+                        <button class="btn btn-success" onclick="saveCategory('role')">
+                            💾 저장
+                        </button>
+                        <button class="btn btn-secondary" onclick="addPromptItem('role')">
+                            ➕ 추가
+                        </button>
+                    </div>
+                </div>
+                <div id="role-prompts" class="prompts-container">
+                    <!-- 프롬프트 항목들이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+
+            <!-- 가이드 프롬프트 -->
+            <div class="category-editor" id="guide-editor">
+                <div class="category-header">
+                    <h3 class="category-title">
+                        <span class="category-icon">📋</span>
+                        가이드 프롬프트
+                    </h3>
+                    <div class="category-actions">
+                        <button class="btn btn-success" onclick="saveCategory('guide')">
+                            💾 저장
+                        </button>
+                        <button class="btn btn-secondary" onclick="addPromptItem('guide')">
+                            ➕ 추가
+                        </button>
+                    </div>
+                </div>
+                <div id="guide-prompts" class="prompts-container">
+                    <!-- 프롬프트 항목들이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+
+            <!-- 포맷 프롬프트 -->
+            <div class="category-editor" id="format-editor">
+                <div class="category-header">
+                    <h3 class="category-title">
+                        <span class="category-icon">📝</span>
+                        포맷 프롬프트
+                    </h3>
+                    <div class="category-actions">
+                        <button class="btn btn-success" onclick="saveCategory('format')">
+                            💾 저장
+                        </button>
+                        <button class="btn btn-secondary" onclick="addPromptItem('format')">
+                            ➕ 추가
+                        </button>
+                    </div>
+                </div>
+                <div id="format-prompts" class="prompts-container">
+                    <!-- 프롬프트 항목들이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 저장 상태 표시 -->
+    <div id="save-status" class="save-status"></div>
+
+    <script>
+        let currentAI = 'ai1';
+        let promptsData = {};
+        let originalData = {};
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function () {
+            // 프롬프트 데이터 불러오기 (진단용 콘솔 출력 추가)
+            fetch('/api/prompts')
+                .then(res => res.json())
+                .then(data => {
+                    console.log('[프론트] /api/prompts 응답:', data);
+                    loadPrompts();
+                    setupEventListeners();
+                });
+        });
+
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            // AI 탭 클릭 이벤트
+            document.querySelectorAll('.ai-tab').forEach(tab => {
+                tab.addEventListener('click', function () {
+                    const ai = this.dataset.ai;
+                    switchAI(ai);
+                });
+            });
+        }
+
+        // AI 전환
+        function switchAI(ai) {
+            // 이전 AI의 변경사항 저장 확인
+            if (hasUnsavedChanges()) {
+                if (!confirm('저장되지 않은 변경사항이 있습니다. 계속하시겠습니까?')) {
+                    return;
+                }
+            }
+
+            // 탭 활성화
+            document.querySelectorAll('.ai-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-ai="${ai}"]`).classList.add('active');
+
+            currentAI = ai;
+            loadPrompts();
+        }
+
+        // 프롬프트 데이터 로드
+        async function loadPrompts() {
+            try {
+                const response = await fetch('/api/prompts');
+                const data = await response.json();
+
+                promptsData = {};
+                originalData = {};
+
+                // ai_prompts.json 파일 형식으로 처리
+                if (data.success && data.prompts) {
+                    const aiNames = Object.keys(data.prompts);
+
+                    aiNames.forEach(aiName => {
+                        const aiData = data.prompts[aiName];
+                        promptsData[aiName] = {
+                            system: [],
+                            role: [],
+                            guide: [],
+                            format: []
+                        };
+
+                        // 각 카테고리별로 처리
+                        ['system', 'role', 'guide', 'format'].forEach(category => {
+                            const categoryData = aiData[category];
+
+                            if (aiName === 'ai1' && category === 'system') {
+                                // ai1의 system은 문자열
+                                promptsData[aiName][category] = [{
+                                    id: 'ai1_system_0',
+                                    content: categoryData || '',
+                                    index: 0
+                                }];
+                            } else if (aiName === 'ai1' && category === 'format') {
+                                // ai1의 format은 콤마로 구분된 문자열
+                                promptsData[aiName][category] = [{
+                                    id: 'ai1_format_0',
+                                    content: categoryData || '',
+                                    index: 0
+                                }];
+                            } else {
+                                // 다른 경우는 배열
+                                if (Array.isArray(categoryData)) {
+                                    promptsData[aiName][category] = categoryData.map((item, idx) => ({
+                                        id: `${aiName}_${category}_${idx}`,
+                                        content: item,
+                                        index: idx
+                                    }));
+                                } else {
+                                    promptsData[aiName][category] = [];
+                                }
+                            }
+                        });
+
+                        // 원본 데이터 백업
+                        originalData[aiName] = JSON.parse(JSON.stringify(promptsData[aiName]));
+                    });
+                }
+
+                renderPrompts();
+            } catch (error) {
+                console.error('프롬프트 로드 오류:', error);
+                showSaveStatus('프롬프트 로드 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 프롬프트 렌더링
+        function renderPrompts() {
+            const categories = ['system', 'role', 'guide', 'format'];
+
+            categories.forEach(category => {
+                const container = document.getElementById(`${category}-prompts`);
+                const prompts = promptsData[currentAI]?.[category] || [];
+
+                container.innerHTML = '';
+
+                // 모든 프롬프트 내용을 하나의 textarea로 표시
+                const textarea = document.createElement('textarea');
+                textarea.className = 'unified-textarea';
+
+                // prompts 배열의 모든 content를 적절한 형식으로 연결
+                let allContent = '';
+                if (currentAI === 'ai1' && (category === 'system' || category === 'format')) {
+                    // ai1의 system과 format은 단일 문자열
+                    allContent = prompts.length > 0 ? prompts[0].content : '';
+                } else {
+                    // 다른 경우는 배열의 content들을 줄바꿈으로 연결
+                    allContent = prompts.map(p => p.content).join('\n');
+                }
+
+                textarea.value = allContent;
+                textarea.id = `${currentAI}-${category}-textarea`;
+
+                // 입력 이벤트 처리
+                textarea.addEventListener('input', function () {
+                    if (!promptsData[currentAI]) {
+                        promptsData[currentAI] = { system: [], role: [], guide: [], format: [] };
+                    }
+
+                    if (currentAI === 'ai1' && (category === 'system' || category === 'format')) {
+                        // ai1의 system과 format은 단일 항목으로 저장
+                        promptsData[currentAI][category] = [{
+                            id: `${currentAI}_${category}_0`,
+                            content: this.value,
+                            index: 0
+                        }];
+                    } else {
+                        // 다른 경우는 줄바꿈으로 구분하여 배열로 저장
+                        const lines = this.value.split('\n').filter(line => line.trim());
+                        promptsData[currentAI][category] = lines.map((content, idx) => ({
+                            id: `${currentAI}_${category}_${idx}`,
+                            content: content.trim(),
+                            index: idx
+                        }));
+                    }
+                });
+
+                container.appendChild(textarea);
+
+                // 카테고리별 설명 추가
+                const info = document.createElement('div');
+                info.className = 'category-description';
+                info.innerHTML = `${getCategoryDescription(category)}`;
+                container.appendChild(info);
+            });
+        }
+
+        // 카테고리별 설명 가져오기
+        function getCategoryDescription(category) {
+            const descriptions = {
+                system: 'AI의 기본 시스템 설정과 동작 원칙을 정의합니다. (AI1의 system은 문자열, 나머지는 배열)',
+                role: 'AI가 수행할 역할과 책임을 명시합니다. (배열 형식, 각 줄에 하나씩)',
+                guide: 'AI의 응답 가이드라인과 규칙을 설정합니다. (배열 형식, 각 줄에 하나씩)',
+                format: 'AI의 응답 형식과 구조를 정의합니다. (AI1은 콤마로 구분된 문자열, 나머지는 배열)'
+            };
+            return descriptions[category] || '';
+        }
+
+        // 프롬프트 요소 생성 (더 이상 사용하지 않음)
+        /*
+        function createPromptElement(category, prompt, index) {
+            const div = document.createElement('div');
+            div.className = 'prompt-item';
+            div.innerHTML = `
+                <div class="prompt-header">
+                    <span class="prompt-index">#${index + 1}</span>
+                    <div class="prompt-actions">
+                        <button class="btn btn-primary" onclick="editPrompt(this)">
+                            ✏️ 편집
+                        </button>
+                        <button class="btn btn-danger" onclick="deletePrompt('${category}', ${index})">
+                            🗑️ 삭제
+                        </button>
+                    </div>
+                </div>
+                <div class="prompt-content" contenteditable="false">${escapeHtml(prompt.content)}</div>
+            `;
+            return div;
+        }
+        */
+
+        // 프롬프트 편집
+        function editPrompt(button) {
+            const promptItem = button.closest('.prompt-item');
+            const content = promptItem.querySelector('.prompt-content');
+
+            if (content.contentEditable === 'true') {
+                // 편집 완료 - 데이터 업데이트
+                const category = getCategoryFromContainer(promptItem);
+                const index = getPromptIndex(promptItem);
+
+                // promptsData 업데이트
+                if (promptsData[currentAI] && promptsData[currentAI][category] && promptsData[currentAI][category][index]) {
+                    promptsData[currentAI][category][index].content = content.textContent;
+                }
+
+                content.contentEditable = 'false';
+                button.textContent = '✏️ 편집';
+                promptItem.classList.remove('editing');
+            } else {
+                // 편집 시작
+                content.contentEditable = 'true';
+                content.focus();
+                button.textContent = '💾 저장';
+                promptItem.classList.add('editing');
+            }
+        }
+
+        // 컨테이너에서 카테고리 가져오기
+        function getCategoryFromContainer(element) {
+            const container = element.closest('.prompts-container');
+            if (container) {
+                const id = container.id;
+                return id.replace('-prompts', '');
+            }
+            return 'system';
+        }
+
+        // 프롬프트 인덱스 가져오기
+        function getPromptIndex(element) {
+            const indexElement = element.querySelector('.prompt-index');
+            if (indexElement) {
+                const text = indexElement.textContent;
+                const match = text.match(/#(\d+)/);
+                if (match) {
+                    return parseInt(match[1]) - 1;
+                }
+            }
+            return 0;
+        }
+
+        // 새 프롬프트 추가 (ai1 system은 비활성)
+        function addPromptItem(category) {
+            if (currentAI === 'ai1' && category === 'system') return;
+            const container = document.getElementById(`${category}-prompts`);
+            const addSection = container.querySelector('.add-prompt-section');
+
+            const newPrompt = {
+                id: `temp_${Date.now()}`,
+                content: '',
+                index: (promptsData[currentAI]?.[category]?.length || 0)
+            };
+
+            if (!promptsData[currentAI]) {
+                promptsData[currentAI] = { system: [], role: [], guide: [], format: [] };
+            }
+
+            promptsData[currentAI][category].push(newPrompt);
+
+            // const promptElement = createPromptElement(category, newPrompt, newPrompt.index); // 더 이상 사용하지 않음
+            // container.insertBefore(promptElement, addSection);
+
+            // 자동으로 편집 모드 시작
+            const content = container.querySelector('.unified-textarea'); // 통합 textarea를 찾아서 사용
+            const editButton = container.querySelector('.btn-secondary'); // 추가 버튼을 편집 버튼으로 변경
+            content.value = newPrompt.content; // 새 프롬프트의 내용을 textarea에 반영
+            content.focus();
+            editButton.textContent = '💾 저장';
+            // promptElement.classList.add('editing'); // 더 이상 사용하지 않음
+        }
+
+        // 프롬프트 삭제
+        function deletePrompt(category, index) {
+            if (confirm('이 프롬프트를 삭제하시겠습니까?')) {
+                promptsData[currentAI][category].splice(index, 1);
+                renderPrompts();
+            }
+        }
+
+        // 카테고리 저장
+        async function saveCategory(category) {
+            try {
+                // promptsData를 실제 JSON 형식으로 변환
+                const jsonData = {};
+
+                for (const aiName in promptsData) {
+                    jsonData[aiName] = {};
+
+                    for (const cat in promptsData[aiName]) {
+                        const prompts = promptsData[aiName][cat] || [];
+
+                        if (aiName === 'ai1' && (cat === 'system' || cat === 'format')) {
+                            // ai1의 system과 format은 문자열
+                            jsonData[aiName][cat] = prompts.length > 0 ? prompts[0].content : '';
+                        } else {
+                            // 다른 경우는 배열
+                            jsonData[aiName][cat] = prompts.map(p => p.content);
+                        }
+                    }
+                }
+
+                console.log('[프론트] 저장할 데이터:', jsonData);
+
+                const response = await fetch('/api/prompts', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompts: jsonData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showSaveStatus(`${getCategoryName(category)} 프롬프트가 성공적으로 저장되었습니다.`, 'success');
+
+                    // originalData 업데이트
+                    if (!originalData[currentAI]) {
+                        originalData[currentAI] = { system: [], role: [], guide: [], format: [] };
+                    }
+                    originalData[currentAI][category] = JSON.parse(JSON.stringify(promptsData[currentAI][category]));
+
+                    console.log('[프론트] 저장 성공:', result);
+                } else {
+                    showSaveStatus(`저장 실패: ${result.message || '알 수 없는 오류'}`, 'error');
+                    console.error('[프론트] 저장 실패:', result);
+                }
+            } catch (error) {
+                console.error('[프론트] 저장 오류:', error);
+                showSaveStatus('저장 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 변경사항 확인
+        function hasUnsavedChanges() {
+            const categories = ['system', 'role', 'guide', 'format'];
+
+            for (const category of categories) {
+                const current = promptsData[currentAI]?.[category] || [];
+                const original = originalData[currentAI]?.[category] || [];
+
+                if (current.length !== original.length) {
+                    return true;
+                }
+
+                for (let i = 0; i < current.length; i++) {
+                    if (current[i].content !== original[i].content) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // 저장 상태 표시
+        function showSaveStatus(message, type) {
+            const status = document.getElementById('save-status');
+            status.textContent = message;
+            status.className = `save-status ${type} show`;
+
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 3000);
+        }
+
+        // 카테고리 이름 가져오기
+        function getCategoryName(category) {
+            const names = {
+                'system': '시스템',
+                'role': '역할',
+                'guide': '가이드',
+                'format': '포맷'
+            };
+            return names[category] || category;
+        }
+
+        // HTML 이스케이프
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 로그아웃
+        function logout() {
+            fetch('/api/auth/logout', { method: 'POST' })
+                .then(() => {
+                    localStorage.removeItem('user');
+                    window.location.href = '/';
+                })
+                .catch(error => {
+                    console.error('로그아웃 오류:', error);
+                    window.location.href = '/';
+                });
+        }
+
+        // 페이지 떠날 때 경고
+        window.addEventListener('beforeunload', function (e) {
+            if (hasUnsavedChanges()) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+
+</html>

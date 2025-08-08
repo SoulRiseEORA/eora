@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대화 저장 테스트</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #28a745;
+            color: white;
+        }
+        .status.failed {
+            background: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 대화 저장 테스트</h1>
+        
+        <div class="test-section">
+            <h3>📊 서버 상태 확인</h3>
+            <button onclick="checkServerStatus()">서버 상태 확인</button>
+            <div id="serverStatus" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔗 MongoDB 연결 테스트</h3>
+            <button onclick="testMongoDB()">MongoDB 연결 테스트</button>
+            <div id="mongoDBStatus" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>💬 대화 저장 테스트</h3>
+            <input type="text" id="testUserId" placeholder="테스트 사용자 ID" value="test_user_001">
+            <input type="text" id="testSessionId" placeholder="테스트 세션 ID" value="test_session_001">
+            <textarea id="testMessage" placeholder="테스트 메시지">안녕하세요! 이것은 대화 저장 테스트입니다.</textarea>
+            <textarea id="testResponse" placeholder="테스트 응답">안녕하세요! 테스트 응답입니다. 대화가 저장되는지 확인해보겠습니다.</textarea>
+            <button onclick="testChatSave()">대화 저장 테스트</button>
+            <div id="chatSaveStatus" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📁 저장된 파일 확인</h3>
+            <button onclick="checkSavedFiles()">저장된 파일 목록 확인</button>
+            <div id="savedFiles" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        async function checkServerStatus() {
+            const resultDiv = document.getElementById('serverStatus');
+            resultDiv.innerHTML = '🔍 서버 상태 확인 중...';
+            resultDiv.className = 'result info';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `✅ 서버 상태 확인 완료\n\n` +
+                    `📊 서버 정보:\n` +
+                    `  - 상태: ${data.status}\n` +
+                    `  - 시간: ${data.timestamp}\n` +
+                    `  - MongoDB: ${data.mongodb_status}\n` +
+                    `  - OpenAI: ${data.openai_status}\n` +
+                    `  - 저장공간 관리: ${data.storage_manager_status}`;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.innerHTML = `❌ 서버 상태 확인 실패\n\n오류: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        async function testMongoDB() {
+            const resultDiv = document.getElementById('mongoDBStatus');
+            resultDiv.innerHTML = '🔍 MongoDB 연결 테스트 중...';
+            resultDiv.className = 'result info';
+            
+            try {
+                const response = await fetch(`${API_BASE}/debug/mongodb`);
+                const data = await response.json();
+                
+                let result = '📊 MongoDB 디버그 정보:\n\n';
+                result += `🔗 MongoDB 사용 가능: ${data.mongo_available}\n`;
+                result += `🔗 클라이언트 상태: ${data.mongo_client_status}\n`;
+                result += `🔗 연결 테스트: ${data.mongo_connection_test}\n\n`;
+                
+                if (data.databases) {
+                    result += `📊 데이터베이스 목록: ${data.databases.join(', ')}\n`;
+                }
+                
+                if (data.eora_ai_collections) {
+                    result += `📊 eora_ai 컬렉션: ${data.eora_ai_collections.join(', ')}\n`;
+                }
+                
+                if (data.chat_logs_count !== undefined) {
+                    result += `📊 chat_logs 문서 수: ${data.chat_logs_count}\n`;
+                }
+                
+                if (data.recent_chats && data.recent_chats.length > 0) {
+                    result += `\n📊 최근 채팅 기록:\n`;
+                    data.recent_chats.forEach((chat, index) => {
+                        result += `  ${index + 1}. ${chat.user_id} - ${chat.session_id} (${chat.timestamp})\n`;
+                        result += `     메시지: ${chat.message_preview}\n`;
+                    });
+                }
+                
+                resultDiv.innerHTML = result;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.innerHTML = `❌ MongoDB 테스트 실패\n\n오류: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        async function testChatSave() {
+            const resultDiv = document.getElementById('chatSaveStatus');
+            const userId = document.getElementById('testUserId').value;
+            const sessionId = document.getElementById('testSessionId').value;
+            const message = document.getElementById('testMessage').value;
+            const response = document.getElementById('testResponse').value;
+            
+            resultDiv.innerHTML = '💾 대화 저장 테스트 중...';
+            resultDiv.className = 'result info';
+            
+            try {
+                const chatData = {
+                    message: message,
+                    session_id: sessionId,
+                    user_id: userId
+                };
+                
+                const apiResponse = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test_token'
+                    },
+                    body: JSON.stringify(chatData)
+                });
+                
+                const data = await apiResponse.json();
+                
+                let result = '✅ 대화 저장 테스트 완료\n\n';
+                result += `📊 응답 정보:\n`;
+                result += `  - 사용자 ID: ${data.user_id}\n`;
+                result += `  - 세션 ID: ${data.session_id}\n`;
+                result += `  - 저장 상태: `;
+                
+                if (data.save_status === 'success') {
+                    result += `<span class="status success">성공</span>\n`;
+                } else {
+                    result += `<span class="status failed">실패</span>\n`;
+                }
+                
+                result += `  - 타임스탬프: ${data.timestamp}\n`;
+                result += `  - 응답 길이: ${data.response.length} 문자\n`;
+                
+                resultDiv.innerHTML = result;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.innerHTML = `❌ 대화 저장 테스트 실패\n\n오류: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        async function checkSavedFiles() {
+            const resultDiv = document.getElementById('savedFiles');
+            resultDiv.innerHTML = '📁 저장된 파일 확인 중...';
+            resultDiv.className = 'result info';
+            
+            try {
+                // chat_logs 디렉토리 확인을 위해 간단한 API 호출
+                const response = await fetch(`${API_BASE}/debug/static`);
+                const data = await response.json();
+                
+                let result = '📁 파일 시스템 정보:\n\n';
+                result += `📂 현재 디렉토리: ${data.current_dir}\n`;
+                result += `📂 정적 파일 디렉토리: ${data.static_dir}\n`;
+                result += `📂 정적 디렉토리 존재: ${data.static_dir_exists}\n`;
+                
+                if (data.static_files) {
+                    result += `📂 정적 파일 목록: ${data.static_files.join(', ')}\n`;
+                }
+                
+                // chat_logs 디렉토리 확인
+                result += `\n💡 chat_logs 디렉토리는 서버 로그에서 확인할 수 있습니다.\n`;
+                result += `💡 MongoDB 연결이 실패하면 자동으로 파일에 저장됩니다.`;
+                
+                resultDiv.innerHTML = result;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.innerHTML = `❌ 파일 확인 실패\n\n오류: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        // 페이지 로드 시 서버 상태 확인
+        window.onload = function() {
+            checkServerStatus();
+        };
+    </script>
+</body>
+</html> 

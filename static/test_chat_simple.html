@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>채팅 API 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            overflow-y: auto;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #sendBtn {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #sendBtn:hover {
+            background: #0056b3;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .user {
+            background: #e3f2fd;
+            text-align: right;
+        }
+        .assistant {
+            background: #f5f5f5;
+        }
+        .status {
+            color: #666;
+            font-size: 12px;
+        }
+        .controls {
+            margin: 10px 0;
+            display: flex;
+            gap: 10px;
+        }
+        .clear-btn {
+            padding: 5px 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .clear-btn:hover {
+            background: #c82333;
+        }
+        .timestamp {
+            font-size: 10px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>채팅 API 테스트</h1>
+    <div class="status" id="status">서버 상태: 확인 중...</div>
+    
+    <div class="controls">
+        <button class="clear-btn" onclick="clearChat()">대화 초기화</button>
+        <span id="storageInfo">저장된 메시지: 0개</span>
+    </div>
+    
+    <div class="chat-container" id="chatContainer">
+        <div class="message assistant">
+            안녕하세요! 채팅 API 테스트 페이지입니다. 메시지를 입력하고 전송해보세요.
+            <div class="timestamp">지금</div>
+        </div>
+    </div>
+    
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." onkeypress="handleKeyPress(event)">
+        <button id="sendBtn" onclick="sendMessage()">전송</button>
+    </div>
+    
+    <div>
+        <h3>디버그 정보:</h3>
+        <div id="debugInfo"></div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        const STORAGE_KEY = 'test_chat_history';
+        
+        // 서버 상태 확인
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                document.getElementById('status').textContent = `서버 상태: ${data.status} (${data.version})`;
+                addDebugInfo('서버 상태 확인 성공', data);
+            } catch (error) {
+                document.getElementById('status').textContent = '서버 상태: 연결 실패';
+                addDebugInfo('서버 상태 확인 실패', error);
+            }
+        }
+        
+        // 채팅 기록 로드
+        function loadChatHistory() {
+            const savedChat = localStorage.getItem(STORAGE_KEY);
+            if (savedChat) {
+                const chatHistory = JSON.parse(savedChat);
+                const chatContainer = document.getElementById('chatContainer');
+                
+                // 기존 메시지 제거 (AI 환영 메시지 제외)
+                chatContainer.innerHTML = '';
+                
+                // 저장된 메시지들 추가
+                chatHistory.forEach(msg => {
+                    addMessageToChat(msg.content, msg.sender, msg.timestamp);
+                });
+                
+                updateStorageInfo();
+            }
+        }
+        
+        // 메시지 전송
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+            
+            addDebugInfo('메시지 전송 시작', { message });
+            
+            // 사용자 메시지 표시
+            addMessageToChat(message, 'user');
+            messageInput.value = '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: 'test_session'
+                    })
+                });
+                
+                addDebugInfo('API 응답 상태', { status: response.status });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addDebugInfo('API 응답 성공', data);
+                    addMessageToChat(data.response, 'assistant');
+                } else {
+                    const errorText = await response.text();
+                    addDebugInfo('API 응답 실패', { status: response.status, error: errorText });
+                    addMessageToChat('오류가 발생했습니다.', 'assistant');
+                }
+            } catch (error) {
+                addDebugInfo('네트워크 오류', error);
+                addMessageToChat('네트워크 오류가 발생했습니다.', 'assistant');
+            }
+        }
+        
+        // 메시지 추가 (localStorage 저장 포함)
+        function addMessageToChat(content, sender, timestamp = null) {
+            const container = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const time = timestamp || new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                ${content}
+                <div class="timestamp">${time}</div>
+            `;
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            // localStorage에 저장
+            saveChatToLocalStorage(content, sender, time);
+        }
+        
+        // 채팅 기록을 localStorage에 저장
+        function saveChatToLocalStorage(content, sender, timestamp) {
+            const savedChat = localStorage.getItem(STORAGE_KEY) || '[]';
+            const chatHistory = JSON.parse(savedChat);
+            
+            chatHistory.push({
+                content: content,
+                sender: sender,
+                timestamp: timestamp
+            });
+            
+            // 최대 50개 메시지까지만 저장
+            if (chatHistory.length > 50) {
+                chatHistory.splice(0, chatHistory.length - 50);
+            }
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
+            updateStorageInfo();
+        }
+        
+        // 저장된 메시지 개수 표시 업데이트
+        function updateStorageInfo() {
+            const savedChat = localStorage.getItem(STORAGE_KEY) || '[]';
+            const chatHistory = JSON.parse(savedChat);
+            document.getElementById('storageInfo').textContent = `저장된 메시지: ${chatHistory.length}개`;
+        }
+        
+        // 대화 초기화
+        function clearChat() {
+            if (confirm('정말로 대화 내용을 초기화하시겠습니까?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                const chatContainer = document.getElementById('chatContainer');
+                chatContainer.innerHTML = `
+                    <div class="message assistant">
+                        안녕하세요! 채팅 API 테스트 페이지입니다. 메시지를 입력하고 전송해보세요.
+                        <div class="timestamp">지금</div>
+                    </div>
+                `;
+                updateStorageInfo();
+            }
+        }
+        
+        // 디버그 정보 추가
+        function addDebugInfo(title, data) {
+            const debugDiv = document.getElementById('debugInfo');
+            const infoDiv = document.createElement('div');
+            infoDiv.innerHTML = `<strong>${title}:</strong> <pre>${JSON.stringify(data, null, 2)}</pre>`;
+            debugDiv.appendChild(infoDiv);
+        }
+        
+        // Enter 키 처리
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // 페이지 로드 시 서버 상태 확인 및 채팅 기록 로드
+        window.onload = function() {
+            checkServerStatus();
+            loadChatHistory();
+        };
+    </script>
+</body>
+</html> 

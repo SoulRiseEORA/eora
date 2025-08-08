@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EORA AI 학습 전용 페이지</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            padding: 32px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .section {
+            margin-bottom: 36px;
+        }
+
+        .section h2 {
+            color: #333;
+            font-size: 1.2em;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .log {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 250px;
+            max-height: 600px;
+            margin-top: 10px;
+            font-size: 0.95em;
+            overflow-y: auto;
+            border: 2px solid #dee2e6;
+            white-space: pre-wrap;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            line-height: 1.4;
+        }
+
+        .log:empty::before {
+            content: "📝 학습 로그가 여기에 표시됩니다...";
+            color: #6c757d;
+            font-style: italic;
+            display: block;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .back-link {
+            display: block;
+            margin-bottom: 24px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="/admin" class="back-link">← 관리자 페이지로 돌아가기</a>
+        <h1>📚 EORA AI 학습 전용 페이지</h1>
+        <div class="section">
+            <h2>문서 학습하기</h2>
+            <form id="uploadForm">
+                <div class="form-group">
+                    <label class="form-label">문서 파일 업로드 (txt, docx, md, py, xlsx, xls, pdf):</label>
+                    <input type="file" id="uploadFile" accept=".txt,.docx,.md,.py,.xlsx,.xls,.pdf" multiple required
+                        class="form-input">
+                </div>
+                <button type="submit" class="btn">업로드</button>
+            </form>
+            <div id="uploadedFilesSection" style="margin-top:20px;">
+                <h3 style="font-size:1em; color:#333; margin-bottom:8px;">업로드된 파일 목록</h3>
+                <ul id="uploadedFilesList" style="padding-left:18px;"></ul>
+                <button id="learnSelectedBtn" class="btn" style="background:#28a745; margin-top:10px;">선택 파일 학습
+                    시작</button>
+                <button id="stopLearningBtn" class="btn btn-danger"
+                    style="background:#dc3545; margin-top:10px; margin-left:8px;">학습 중지</button>
+            </div>
+            <div id="learningLog" class="log"></div>
+        </div>
+        <div class="section">
+            <h2>첨부파일학습(대화)</h2>
+            <form id="dialogUploadForm">
+                <div class="form-group">
+                    <label class="form-label">대화 파일 업로드 (txt, md, docx):</label>
+                    <input type="file" id="dialogUploadFile" accept=".txt,.md,.docx" required class="form-input">
+                </div>
+                <button type="submit" class="btn">업로드</button>
+            </form>
+            <div id="dialogUploadedFilesSection" style="margin-top:20px;">
+                <h3 style="font-size:1em; color:#333; margin-bottom:8px;">업로드된 대화 파일</h3>
+                <ul id="dialogUploadedFilesList" style="padding-left:18px;"></ul>
+                <button id="dialogLearnSelectedBtn" class="btn" style="background:#28a745; margin-top:10px;">선택 대화파일 학습
+                    시작</button>
+                <button id="dialogStopLearningBtn" class="btn btn-danger"
+                    style="background:#dc3545; margin-top:10px; margin-left:8px;">학습 중지</button>
+            </div>
+            <div id="dialogLearningLog" class="log"></div>
+        </div>
+    </div>
+    <script>
+        // 문서 파일 업로드 및 목록 관리
+        let uploadedFiles = [];
+        let stopLearning = false;
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadFileInput = document.getElementById('uploadFile');
+        const uploadedFilesList = document.getElementById('uploadedFilesList');
+        const learningLog = document.getElementById('learningLog');
+        const learnSelectedBtn = document.getElementById('learnSelectedBtn');
+        const stopLearningBtn = document.getElementById('stopLearningBtn');
+
+        uploadForm.onsubmit = function (e) {
+            e.preventDefault();
+            const files = uploadFileInput.files;
+            if (!files.length) return;
+            for (let i = 0; i < files.length; i++) {
+                uploadedFiles.push(files[i]);
+            }
+            renderUploadedFiles();
+            uploadFileInput.value = '';
+        };
+
+        function renderUploadedFiles() {
+            uploadedFilesList.innerHTML = '';
+            uploadedFiles.forEach((file, idx) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<input type='checkbox' class='file-checkbox' data-idx='${idx}' checked> ${file.name}`;
+                uploadedFilesList.appendChild(li);
+            });
+        }
+
+        learnSelectedBtn.onclick = async function () {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            const selectedIdxs = Array.from(checkboxes).filter(cb => cb.checked).map(cb => parseInt(cb.dataset.idx));
+            if (selectedIdxs.length === 0) {
+                learningLog.innerHTML = '선택된 파일이 없습니다.';
+                return;
+            }
+            learningLog.innerHTML = '학습 중...';
+            stopLearning = false;
+            stopLearningBtn.disabled = false;
+            for (const idx of selectedIdxs) {
+                if (stopLearning) {
+                    learningLog.innerHTML += '<div>⏹️ 학습이 중지되었습니다.</div>';
+                    break;
+                }
+                const file = uploadedFiles[idx];
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    learningLog.innerHTML += `<div style="margin-top: 20px; border-top: 2px solid #667eea; padding-top: 10px;"><strong>📚 ${file.name} 학습 시작...</strong></div>`;
+                    learningLog.scrollTop = learningLog.scrollHeight;
+
+                    console.log(`🔍 [DEBUG] ${file.name} 학습 요청 시작`);
+
+                    const res = await fetch('/api/admin/enhanced-learn-file', { method: 'POST', body: formData });
+                    console.log(`🔍 [DEBUG] API 응답 상태: ${res.status}`);
+
+                    if (!res.ok) {
+                        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                    }
+
+                    const data = await res.json();
+                    console.log(`🔍 [DEBUG] API 응답 데이터:`, data);
+                    console.log(`🔍 [DEBUG] 로그 개수: ${data.logs ? data.logs.length : 0}`);
+
+                    // 성공/실패에 따른 처리
+                    if (data.success) {
+                        // 성공 시 학습 결과 표시
+                        const details = data.details || {};
+                        learningLog.innerHTML += `
+                            <div style="border-left: 4px solid #27ae60; padding-left: 10px; margin: 10px 0; background: #f8fff8;">
+                                <strong>✅ ${file.name} 학습 완료</strong><br>
+                                <div style="font-size: 0.9em; color: #27ae60; margin-top: 5px;">
+                                    📊 <strong>학습 결과:</strong><br>
+                                    • 텍스트 길이: ${details.text_length?.toLocaleString() || '알 수 없음'} 문자<br>
+                                    • 생성된 청크: ${data.total_chunks || 0}개<br>
+                                    • 저장된 메모리: ${data.saved_memories || 0}개<br>
+                                    • 카테고리: ${data.category || '관리자_업로드'}<br>
+                                    • 파일 크기: ${details.file_size ? (details.file_size / 1024).toFixed(1) : '알 수 없음'} KB
+                                </div>
+                                <div style="margin-top: 8px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 0.85em;">
+                                    💡 <strong>성공:</strong> ${data.message}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // 실패 시 오류 정보 표시
+                        learningLog.innerHTML += `
+                            <div style="border-left: 4px solid #e74c3c; padding-left: 10px; margin: 10px 0; background: #fff5f5;">
+                                <strong>❌ ${file.name} 학습 실패</strong><br>
+                                <div style="margin-top: 8px; padding: 8px; background: #ffe8e8; border-radius: 4px; font-size: 0.85em;">
+                                    🚨 <strong>오류:</strong> ${data.message}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // 상세 로그 표시
+                    if (data.logs && data.logs.length > 0) {
+                        learningLog.innerHTML += `<div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;"><strong>📋 상세 로그 (총 ${data.logs.length}개)</strong></div>`;
+
+                        for (let i = 0; i < data.logs.length; i++) {
+                            const log = data.logs[i];
+                            learningLog.innerHTML += `<div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.3; margin: 1px 0; padding: 2px 5px; background: #ffffff; border-left: 3px solid #667eea;">${log}</div>`;
+
+                            // 로그가 많은 경우 스크롤을 자동으로 아래로
+                            learningLog.scrollTop = learningLog.scrollHeight;
+
+                            // 로그 출력 간격을 위한 약간의 지연
+                            if (i % 10 === 0) { // 10개마다 지연
+                                await new Promise(resolve => setTimeout(resolve, 30));
+                            }
+                        }
+                    } else {
+                        learningLog.innerHTML += `<div style="margin: 10px 0; padding: 10px; background: #fff3cd; color: #856404; border-radius: 5px;">⚠️ 상세 로그가 없습니다.</div>`;
+                        console.warn(`🔍 [DEBUG] 로그 데이터가 없음:`, data);
+                    }
+
+
+
+                    learningLog.scrollTop = learningLog.scrollHeight;
+
+                } catch (err) {
+                    console.error(`🔍 [DEBUG] 학습 오류:`, err);
+                    learningLog.innerHTML += `<div style="margin-top: 15px; padding: 15px; background: #f8d7da; color: #721c24; border-radius: 8px; border: 1px solid #f5c6cb;">❌ <strong>${file.name}</strong> 오류 발생<br/>💬 세부사항: ${err.message}</div>`;
+                    learningLog.scrollTop = learningLog.scrollHeight;
+                }
+            }
+            stopLearningBtn.disabled = true;
+        };
+
+        stopLearningBtn.onclick = function () {
+            stopLearning = true;
+            stopLearningBtn.disabled = true;
+        };
+
+        // 대화 파일 업로드 및 목록 관리
+        let dialogUploadedFiles = [];
+        let dialogStopLearning = false;
+        const dialogUploadForm = document.getElementById('dialogUploadForm');
+        const dialogUploadFileInput = document.getElementById('dialogUploadFile');
+        const dialogUploadedFilesList = document.getElementById('dialogUploadedFilesList');
+        const dialogLearningLog = document.getElementById('dialogLearningLog');
+        const dialogLearnSelectedBtn = document.getElementById('dialogLearnSelectedBtn');
+        const dialogStopLearningBtn = document.getElementById('dialogStopLearningBtn');
+
+        dialogUploadForm.onsubmit = function (e) {
+            e.preventDefault();
+            const file = dialogUploadFileInput.files[0];
+            if (!file) return;
+            dialogUploadedFiles.push(file);
+            renderDialogUploadedFiles();
+            dialogUploadFileInput.value = '';
+        };
+
+        function renderDialogUploadedFiles() {
+            dialogUploadedFilesList.innerHTML = '';
+            dialogUploadedFiles.forEach((file, idx) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<input type='checkbox' class='dialog-file-checkbox' data-idx='${idx}' checked> ${file.name}`;
+                dialogUploadedFilesList.appendChild(li);
+            });
+        }
+
+        dialogLearnSelectedBtn.onclick = async function () {
+            const checkboxes = document.querySelectorAll('.dialog-file-checkbox');
+            const selectedIdxs = Array.from(checkboxes).filter(cb => cb.checked).map(cb => parseInt(cb.dataset.idx));
+            if (selectedIdxs.length === 0) {
+                dialogLearningLog.innerHTML = '선택된 대화 파일이 없습니다.';
+                return;
+            }
+            dialogLearningLog.innerHTML = '학습 중...';
+            dialogStopLearning = false;
+            dialogStopLearningBtn.disabled = false;
+            for (const idx of selectedIdxs) {
+                if (dialogStopLearning) {
+                    dialogLearningLog.innerHTML += '<div>⏹️ 학습이 중지되었습니다.</div>';
+                    break;
+                }
+                const file = dialogUploadedFiles[idx];
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    dialogLearningLog.innerHTML += `<div style="margin-top: 20px; border-top: 2px solid #667eea; padding-top: 10px;"><strong>💬 ${file.name} 대화 학습 시작...</strong></div>`;
+                    dialogLearningLog.scrollTop = dialogLearningLog.scrollHeight;
+
+                    console.log(`🔍 [DEBUG] ${file.name} 대화 학습 요청 시작`);
+
+                    const res = await fetch('/api/admin/learn-dialog-file', { method: 'POST', body: formData });
+                    console.log(`🔍 [DEBUG] 대화 API 응답 상태: ${res.status}`);
+
+                    if (!res.ok) {
+                        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                    }
+
+                    const data = await res.json();
+                    console.log(`🔍 [DEBUG] 대화 API 응답 데이터:`, data);
+                    console.log(`🔍 [DEBUG] 대화 로그 개수: ${data.logs ? data.logs.length : 0}`);
+
+                    // 상세 로그 표시
+                    if (data.logs && data.logs.length > 0) {
+                        dialogLearningLog.innerHTML += `<div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;"><strong>📋 대화 학습 로그 (총 ${data.logs.length}개)</strong></div>`;
+
+                        for (let i = 0; i < data.logs.length; i++) {
+                            const log = data.logs[i];
+                            dialogLearningLog.innerHTML += `<div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.3; margin: 1px 0; padding: 2px 5px; background: #ffffff; border-left: 3px solid #667eea;">${log}</div>`;
+
+                            // 로그가 많은 경우 스크롤을 자동으로 아래로
+                            dialogLearningLog.scrollTop = dialogLearningLog.scrollHeight;
+
+                            // 로그 출력 간격을 위한 약간의 지연
+                            if (i % 10 === 0) { // 10개마다 지연
+                                await new Promise(resolve => setTimeout(resolve, 30));
+                            }
+                        }
+                    } else {
+                        dialogLearningLog.innerHTML += `<div style="margin: 10px 0; padding: 10px; background: #fff3cd; color: #856404; border-radius: 5px;">⚠️ 대화 학습 로그가 없습니다.</div>`;
+                        console.warn(`🔍 [DEBUG] 대화 로그 데이터가 없음:`, data);
+                    }
+
+                    if (data.success) {
+                        dialogLearningLog.innerHTML += `<div style="margin-top: 15px; padding: 15px; background: #d4edda; color: #155724; border-radius: 8px; border: 1px solid #c3e6cb;">🎉 <strong>${file.name}</strong> 대화 학습 완료<br/>💬 대화 턴: ${data.turns}턴 | 📝 텍스트: ${data.text_length || 0}자</div>`;
+                    } else {
+                        dialogLearningLog.innerHTML += `<div style="margin-top: 15px; padding: 15px; background: #f8d7da; color: #721c24; border-radius: 8px; border: 1px solid #f5c6cb;">❌ <strong>${file.name}</strong> 대화 학습 실패<br/>💬 메시지: ${data.message || '알 수 없는 오류'}</div>`;
+                    }
+
+                    dialogLearningLog.scrollTop = dialogLearningLog.scrollHeight;
+
+                } catch (err) {
+                    console.error(`🔍 [DEBUG] 대화 학습 오류:`, err);
+                    dialogLearningLog.innerHTML += `<div style="margin-top: 15px; padding: 15px; background: #f8d7da; color: #721c24; border-radius: 8px; border: 1px solid #f5c6cb;">❌ <strong>${file.name}</strong> 오류 발생<br/>💬 세부사항: ${err.message}</div>`;
+                    dialogLearningLog.scrollTop = dialogLearningLog.scrollHeight;
+                }
+            }
+            dialogStopLearningBtn.disabled = true;
+        };
+
+        dialogStopLearningBtn.onclick = function () {
+            dialogStopLearning = true;
+            dialogStopLearningBtn.disabled = true;
+        };
+    </script>
+</body>
+
+</html>

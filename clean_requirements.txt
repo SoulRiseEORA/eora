@@ -1,0 +1,10 @@
+PyQt5
+python-dotenv
+requests
+pymongo
+openai
+tqdm
+matplotlib
+scikit-learn
+pandas
+numpy

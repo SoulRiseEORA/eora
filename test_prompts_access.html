@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프롬프트 관리자 페이지 접근 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔧 프롬프트 관리자 페이지 접근 테스트</h1>
+
+    <div class="test-section">
+        <h2>1. 직접 링크 테스트</h2>
+        <a href="/prompts" class="btn" target="_blank">프롬프트 관리자 페이지 열기</a>
+        <a href="/admin" class="btn" target="_blank">관리자 페이지 열기</a>
+        <a href="/login" class="btn" target="_blank">로그인 페이지 열기</a>
+    </div>
+
+    <div class="test-section">
+        <h2>2. API 테스트</h2>
+        <button onclick="testPromptsAPI()" class="btn">프롬프트 API 테스트</button>
+        <button onclick="testAdminLogin()" class="btn">관리자 로그인 API 테스트</button>
+        <div id="apiResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 페이지 상태 확인</h2>
+        <button onclick="checkPageStatus()" class="btn">현재 페이지 상태 확인</button>
+        <div id="statusResult" class="result"></div>
+    </div>
+
+    <script>
+        async function testPromptsAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '테스트 중...';
+
+            try {
+                const response = await fetch('/api/prompts');
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <h4>프롬프트 API 응답:</h4>
+                    <p><strong>상태:</strong> ${response.status}</p>
+                    <p><strong>프롬프트 수:</strong> ${data.prompts ? data.prompts.length : 0}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">오류: ${error.message}</p>`;
+            }
+        }
+
+        async function testAdminLogin() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '관리자 로그인 테스트 중...';
+
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@eora.ai',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <h4>관리자 로그인 API 응답:</h4>
+                    <p><strong>상태:</strong> ${response.status}</p>
+                    <p><strong>성공:</strong> ${data.success}</p>
+                    <p><strong>메시지:</strong> ${data.message}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">오류: ${error.message}</p>`;
+            }
+        }
+
+        function checkPageStatus() {
+            const resultDiv = document.getElementById('statusResult');
+            const currentUrl = window.location.href;
+            const currentPath = window.location.pathname;
+
+            resultDiv.innerHTML = `
+                <h4>현재 페이지 정보:</h4>
+                <p><strong>전체 URL:</strong> ${currentUrl}</p>
+                <p><strong>경로:</strong> ${currentPath}</p>
+                <p><strong>호스트:</strong> ${window.location.host}</p>
+                <p><strong>프로토콜:</strong> ${window.location.protocol}</p>
+                <p><strong>쿠키:</strong> ${document.cookie || '없음'}</p>
+            `;
+        }
+
+        // 페이지 로드 시 상태 확인
+        window.onload = function () {
+            checkPageStatus();
+        };
+    </script>
+</body>
+
+</html>

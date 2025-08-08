@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>채팅 디버깅</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .debug-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .debug-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .debug-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .debug-button:hover {
+            background: #0056b3;
+        }
+
+        .debug-output {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .chat-iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="debug-container">
+        <h1>🔧 채팅 디버깅 도구</h1>
+
+        <div class="debug-section">
+            <h3>1️⃣ API 테스트</h3>
+            <button class="debug-button" onclick="testAPI()">API 연결 테스트</button>
+            <button class="debug-button" onclick="testSessions()">세션 목록 테스트</button>
+            <button class="debug-button" onclick="testMessages()">메시지 조회 테스트</button>
+            <div id="api-output" class="debug-output"></div>
+        </div>
+
+        <div class="debug-section">
+            <h3>2️⃣ 실제 채팅 페이지</h3>
+            <button class="debug-button" onclick="openChatPage()">채팅 페이지 열기</button>
+            <button class="debug-button" onclick="reloadChatPage()">채팅 페이지 새로고침</button>
+            <div id="chat-iframe-container">
+                <iframe id="chat-iframe" class="chat-iframe" src="http://127.0.0.1:8001/chat"></iframe>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <h3>3️⃣ 디버깅 정보</h3>
+            <button class="debug-button" onclick="checkConsole()">콘솔 로그 확인</button>
+            <button class="debug-button" onclick="clearOutput()">출력 지우기</button>
+            <div id="debug-output" class="debug-output"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://127.0.0.1:8001';
+
+        function log(message, type = 'info') {
+            const output = document.getElementById('debug-output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('debug-output').textContent = '';
+            document.getElementById('api-output').textContent = '';
+        }
+
+        async function testAPI() {
+            log('🔍 API 연결 테스트 시작...');
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/sessions`);
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ API 연결 성공 - 세션 수: ${data.sessions?.length || 0}`);
+                    document.getElementById('api-output').textContent = JSON.stringify(data, null, 2);
+                } else {
+                    log(`❌ API 연결 실패 - 상태: ${response.status}`);
+                }
+            } catch (error) {
+                log(`💥 API 연결 오류: ${error.message}`);
+            }
+        }
+
+        async function testSessions() {
+            log('🔍 세션 목록 테스트 시작...');
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/sessions`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const sessions = data.sessions || [];
+                    log(`✅ 세션 목록 조회 성공 - ${sessions.length}개 세션`);
+
+                    sessions.forEach((session, index) => {
+                        log(`  ${index + 1}. ${session.name} (${session.id})`);
+                    });
+
+                    if (sessions.length > 0) {
+                        // 첫 번째 세션의 메시지도 테스트
+                        await testMessages(sessions[0].id);
+                    }
+                } else {
+                    log(`❌ 세션 목록 조회 실패: ${response.status}`);
+                }
+            } catch (error) {
+                log(`💥 세션 목록 조회 오류: ${error.message}`);
+            }
+        }
+
+        async function testMessages(sessionId = null) {
+            if (!sessionId) {
+                log('❌ 세션 ID가 필요합니다. 먼저 세션 목록을 조회하세요.');
+                return;
+            }
+
+            log(`🔍 메시지 조회 테스트 시작 - 세션: ${sessionId}`);
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/sessions/${sessionId}/messages`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const messages = data.messages || [];
+                    log(`✅ 메시지 조회 성공 - ${messages.length}개 메시지`);
+
+                    messages.forEach((msg, index) => {
+                        log(`  ${index + 1}. [${msg.role}] ${msg.content.substring(0, 50)}...`);
+                    });
+                } else {
+                    log(`❌ 메시지 조회 실패: ${response.status}`);
+                }
+            } catch (error) {
+                log(`💥 메시지 조회 오류: ${error.message}`);
+            }
+        }
+
+        function openChatPage() {
+            log('🔗 채팅 페이지 열기...');
+            window.open('http://127.0.0.1:8001/chat', '_blank');
+        }
+
+        function reloadChatPage() {
+            log('🔄 채팅 페이지 새로고침...');
+            const iframe = document.getElementById('chat-iframe');
+            iframe.src = iframe.src;
+        }
+
+        function checkConsole() {
+            log('🔍 채팅 페이지 콘솔 로그 확인...');
+            log('💡 브라우저 개발자 도구(F12)를 열어서 콘솔 탭을 확인하세요.');
+            log('💡 채팅 페이지에서 다음을 확인하세요:');
+            log('  1. DOM 요소들이 제대로 로드되었는지');
+            log('  2. 세션 목록 로딩이 성공했는지');
+            log('  3. 메시지 로딩이 성공했는지');
+            log('  4. 오류 메시지가 있는지');
+        }
+
+        // 페이지 로드 시 자동 테스트
+        window.addEventListener('load', () => {
+            log('🚀 디버깅 도구 로드 완료');
+            log('💡 "API 연결 테스트" 버튼을 클릭하여 서버 상태를 확인하세요.');
+        });
+    </script>
+</body>
+
+</html>
