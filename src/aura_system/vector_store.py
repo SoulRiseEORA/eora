@@ -31,6 +31,30 @@ from asyncio import CancelledError
 
 logger = logging.getLogger(__name__)
 
+def _get_valid_openai_key():
+    """통합 API 키 검색 함수"""
+    # 여러 가능한 환경변수 이름 시도
+    possible_keys = [
+        "OPENAI_API_KEY",
+        "OPENAI_API_KEY_1", 
+        "OPENAI_API_KEY_2",
+        "OPENAI_API_KEY_3",
+        "OPENAI_API_KEY_4",
+        "OPENAI_API_KEY_5"
+    ]
+    
+    # 환경 변수에서 찾기
+    for key_name in possible_keys:
+        key_value = os.getenv(key_name)
+        if key_value and key_value.startswith("sk-") and len(key_value) > 50:
+            logger.info(f"✅ Vector Store - 유효한 API 키 발견: {key_name}")
+            # 환경변수에 강제로 설정하여 일관성 보장
+            os.environ["OPENAI_API_KEY"] = key_value
+            return key_value
+    
+    logger.warning("⚠️ Vector Store - 유효한 OpenAI API 키를 찾을 수 없습니다")
+    return os.getenv("OPENAI_API_KEY")  # 기본값으로 폴백
+
 class FaissIndex:
     """Faiss 인덱스 관리"""
     
@@ -96,7 +120,7 @@ def embed_text(text: str) -> np.ndarray:
         np.ndarray: 임베딩 벡터
     """
     try:
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        client = OpenAI(api_key=_get_valid_openai_key())
         response = client.embeddings.create(
             model="text-embedding-ada-002",
             input=text
@@ -139,7 +163,7 @@ def get_embedding(text: str) -> np.ndarray:
     
     def _generate_embedding(text: str):
         try:
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            client = OpenAI(api_key=_get_valid_openai_key())
             response = client.embeddings.create(
                 model="text-embedding-ada-002",
                 input=text

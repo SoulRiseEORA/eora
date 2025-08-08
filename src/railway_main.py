@@ -72,19 +72,46 @@ class EORACore:
         self.openai_client = None
         self._initialize_openai()
     
+    def _get_valid_api_key(self):
+        """통합 API 키 검색 로직"""
+        import os
+        
+        # 여러 가능한 환경변수 이름 시도
+        possible_keys = [
+            "OPENAI_API_KEY",
+            "OPENAI_API_KEY_1", 
+            "OPENAI_API_KEY_2",
+            "OPENAI_API_KEY_3",
+            "OPENAI_API_KEY_4",
+            "OPENAI_API_KEY_5"
+        ]
+        
+        # 환경 변수에서 찾기
+        for key_name in possible_keys:
+            key_value = os.getenv(key_name)
+            if key_value and key_value.startswith("sk-") and len(key_value) > 50:
+                logger.info(f"✅ Railway Core - 유효한 API 키 발견: {key_name}")
+                # 환경변수에 강제로 설정하여 일관성 보장
+                os.environ["OPENAI_API_KEY"] = key_value
+                return key_value
+        
+        logger.warning("⚠️ Railway Core - 유효한 OpenAI API 키를 찾을 수 없습니다")
+        return None
+
     def _initialize_openai(self):
-        """OpenAI 클라이언트 초기화"""
+        """OpenAI 클라이언트 초기화 (통합 키 검색 사용)"""
         try:
             from openai import OpenAI
-            import os
-            api_key = os.getenv("OPENAI_API_KEY")
+            api_key = self._get_valid_api_key()
             if api_key:
                 self.openai_client = OpenAI(api_key=api_key)
-                logger.info("✅ OpenAI 클라이언트 초기화 완료")
+                logger.info("✅ OpenAI 클라이언트 초기화 완료 (통합 키 검색)")
             else:
-                logger.warning("⚠️ OPENAI_API_KEY 환경변수가 설정되지 않았습니다.")
+                logger.warning("⚠️ 유효한 OpenAI API 키를 찾을 수 없습니다")
+                self.openai_client = None
         except Exception as e:
             logger.error(f"❌ OpenAI 클라이언트 초기화 실패: {e}")
+            self.openai_client = None
     
     def process_input(self, message: str, user_id: str = None) -> str:
         """사용자 입력 처리 - GPT API 사용"""
