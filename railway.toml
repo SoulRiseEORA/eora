@@ -1,0 +1,13 @@
+[build]
+# Railway 빌드 설정
+
+[deploy]
+# Railway 배포 설정
+startCommand = "uvicorn src.app:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "always"
+
+[env]
+# 환경변수 기본값
+PORT = "8080"
