@@ -4,7 +4,7 @@ buildCommand = "echo 'Railway.toml 강제 적용'"
 
 [deploy]
 # Railway 배포 설정 - 강제 적용
-startCommand = "cd /app/src && python app.py"
+startCommand = "uvicorn src.app:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "always"

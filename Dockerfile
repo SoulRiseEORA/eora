@@ -15,9 +15,9 @@ COPY . /app
 RUN pip install --upgrade pip setuptools wheel \
     && pip install --no-cache-dir -r requirements.txt
 
-WORKDIR /app/src
+WORKDIR /app
 
 EXPOSE 8080
 
-# Railway 강제 시작 - 모든 방법 시도
-CMD ["sh", "-c", "cd /app/src && python app.py || python -m uvicorn app:app --host 0.0.0.0 --port ${PORT:-8080} || python /app/railway_safe_server.py"]
+# Railway 강제 시작 - uvicorn 우선 사용 (WORKDIR /app 기준)
+CMD ["sh", "-c", "uvicorn src.app:app --host 0.0.0.0 --port ${PORT:-8080} || python railway_safe_server.py"]
