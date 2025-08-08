@@ -223,9 +223,11 @@ def initialize_openai():
             # 글로벌 API 키 설정
             openai.api_key = api_key
             
-            # 성능 최적화된 클라이언트 설정
+            # 성능 최적화된 클라이언트 설정 (프로젝트 ID 포함)
+            project_id = os.getenv("OPENAI_PROJECT_ID")
             openai_client = AsyncOpenAI(
                 api_key=api_key,
+                project=project_id,
                 timeout=30.0,  # 타임아웃 늘림 (10초 → 30초)
                 max_retries=2   # 재시도 횟수 증가
             )
@@ -603,8 +605,11 @@ async def generate_openai_response(message: str, history: List[Dict], memories: 
                     import openai
                     
                     openai.api_key = latest_key
+                    # 프로젝트 ID도 환경변수에서 가져오기
+                    project_id = os.getenv("OPENAI_PROJECT_ID")
                     openai_client = AsyncOpenAI(
                         api_key=latest_key,
+                        project=project_id,
                         timeout=30.0,
                         max_retries=2
                     )

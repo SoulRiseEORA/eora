@@ -761,7 +761,7 @@ class EORAAI:
             response_text = response.choices[0].message.content
             if self.turn_count % 10 == 0:
                 messages2 = messages + [{"role": "system", "content": "[리마인드/톤 분석용 추가 메시지]"}]
-                response2 = await self.client.chat.completions.create(model="gpt-3.5-turbo", messages=messages2, timeout=8)
+                response2 = await self.client.chat.completions.create(model="gpt-4o", messages=messages2, timeout=30)
         except asyncio.CancelledError:
             logger.error("❌ OpenAI API 호출이 취소되었습니다. (CancelledError)")
             return {
