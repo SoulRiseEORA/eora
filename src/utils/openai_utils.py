@@ -7,14 +7,25 @@ def load_openai_api_key():
         # .env 파일 로드
         load_dotenv()
         
-        # API 키 확인
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            raise ValueError("OpenAI API 키가 설정되지 않았습니다.")
-            
-        print("✅ OpenAI API 키 로드 완료")
-        return api_key
+        # 여러 가능한 환경변수 이름 시도
+        possible_keys = [
+            "OPENAI_API_KEY",
+            "OPENAI_API_KEY_1", 
+            "OPENAI_API_KEY_2",
+            "OPENAI_API_KEY_3",
+            "OPENAI_API_KEY_4",
+            "OPENAI_API_KEY_5"
+        ]
+        
+        for key_name in possible_keys:
+            api_key = os.getenv(key_name)
+            if api_key and api_key.startswith("sk-") and len(api_key) > 50:
+                print(f"✅ OpenAI API 키 로드 완료: {key_name}")
+                return api_key
+        
+        print("⚠️ OpenAI API 키를 찾을 수 없습니다. 서버는 제한된 기능으로 동작합니다.")
+        return None
         
     except Exception as e:
         print(f"❌ OpenAI API 키 로드 실패: {str(e)}")
-        raise 
+        return None 

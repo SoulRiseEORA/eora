@@ -69,12 +69,32 @@ class Config:
             # 로컬 환경
             return os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 
+    def _get_openai_api_key(self):
+        """여러 환경변수에서 OpenAI API 키를 찾습니다."""
+        possible_keys = [
+            "OPENAI_API_KEY",
+            "OPENAI_API_KEY_1", 
+            "OPENAI_API_KEY_2",
+            "OPENAI_API_KEY_3",
+            "OPENAI_API_KEY_4",
+            "OPENAI_API_KEY_5"
+        ]
+        
+        for key_name in possible_keys:
+            key_value = os.getenv(key_name)
+            if key_value and key_value.startswith("sk-") and len(key_value) > 50:
+                logger.info(f"✅ OpenAI API 키 발견: {key_name}")
+                return key_value
+        
+        logger.warning("⚠️ OpenAI API 키를 찾을 수 없습니다.")
+        return ""
+
     def _create_default_config(self):
         """기본 JSON 설정을 생성합니다."""
         try:
             self._json_config = {
                 "openai": {
-                    "api_key": os.getenv("OPENAI_API_KEY", ""),
+                    "api_key": self._get_openai_api_key(),
                     "base_url": "https://api.openai.com/v1",
                     "embedding_model": "text-embedding-3-small",
                     "embedding_dimensions": 1536,

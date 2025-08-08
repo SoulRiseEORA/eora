@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 # 전역 변수 선언
 eora_memory_system = None
 recall_engine = None
+aura_memory_system = None
+db_manager = None
 
 from fastapi import FastAPI, Request, HTTPException, File, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -73,10 +75,22 @@ try:
     from eora_memory_system import get_eora_memory_system
     from database import mongo_client, verify_connection, db_mgr
     
+    # 전역 변수 설정
+    db_manager = db_mgr
+    
     # EORA 메모리 시스템 초기화 - 지연 초기화 패턴 사용
     print("🔗 EORA 메모리 시스템 지연 초기화 시작...")
     eora_memory_system = get_eora_memory_system()
     print("✅ EORA 메모리 시스템 지연 초기화 완료")
+    
+    # Aura 메모리 시스템 초기화 시도
+    try:
+        from aura_memory_system import EORAMemorySystem
+        aura_memory_system = EORAMemorySystem()
+        print("✅ Aura 메모리 시스템 초기화 완료")
+    except ImportError as aura_error:
+        print(f"⚠️ Aura 메모리 시스템 로드 실패: {aura_error}")
+        aura_memory_system = None
     
     # 회상 엔진 초기화 (memory_manager와 함께)
     if hasattr(eora_memory_system, 'memory_manager') and eora_memory_system.memory_manager:
@@ -104,6 +118,8 @@ except ImportError as e:
     print(f"⚠️ EORA 고급 기능 모듈 로드 실패: {e}")
     eora_memory_system = None
     recall_engine = None
+    aura_memory_system = None
+    db_manager = None
     ADVANCED_FEATURES_AVAILABLE = False
 
 # 환경변수 로딩 및 Railway 환경 최적화
@@ -155,7 +171,7 @@ def load_environment_variables():
     return railway_env
 
 def get_openai_api_key():
-
+    """환경 변수에서만 API 키를 로드합니다 (보안 강화)"""
     
     # 먼저 환경 변수에서 시도 (최우선)
     possible_keys = [
@@ -336,8 +352,8 @@ from pathlib import Path
 
 # 현재 스크립트의 절대 경로 기준으로 디렉토리 설정
 current_dir = Path(__file__).parent
-static_dir = current_dir / "src" / "static"
-templates_dir = current_dir / "src" / "templates"
+static_dir = current_dir / "static"
+templates_dir = current_dir / "templates"
 
 # 경로가 존재하지 않으면 대체 경로 사용
 if not static_dir.exists():
