@@ -82,7 +82,8 @@ def do_task(
     messages=None,
     model="gpt-4o",
     temperature=0.7,
-    max_tokens=2048
+    max_tokens=2048,
+    stream: bool = False,
 ):
     """
     GPT 호출 함수 (상세 로깅 포함)
@@ -123,21 +124,52 @@ def do_task(
         messages = filtered_messages
 
     start_time = time.time()
-    response = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens
-    )
-    elapsed = time.time() - start_time
+    if stream:
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+        )
 
-    print(f"[Metrics] Request #{request_counter:<3} | "
-          f"Model={model:<8} | Temp={temperature:<4} | "
-          f"MaxTokens={max_tokens:<5} | "
-          f"InputTokens={total_tokens:<5} | "
-          f"Elapsed={elapsed:.3f}s")
+        def stream_generator():
+            for chunk in response:
+                try:
+                    delta = chunk.choices[0].delta
+                    if hasattr(delta, "content") and delta.content:
+                        yield delta.content
+                except Exception:
+                    # 조용히 넘어가 스트림 지속성 보장
+                    continue
 
-    return response.choices[0].message.content
+        elapsed = time.time() - start_time
+        print(
+            f"[Metrics] Request #{request_counter:<3} | "
+            f"Model={model:<8} | Temp={temperature:<4} | "
+            f"MaxTokens={max_tokens:<5} | "
+            f"InputTokens={total_tokens:<5} | "
+            f"Elapsed={elapsed:.3f}s | Stream=True"
+        )
+        return stream_generator()
+    else:
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        elapsed = time.time() - start_time
+
+        print(
+            f"[Metrics] Request #{request_counter:<3} | "
+            f"Model={model:<8} | Temp={temperature:<4} | "
+            f"MaxTokens={max_tokens:<5} | "
+            f"InputTokens={total_tokens:<5} | "
+            f"Elapsed={elapsed:.3f}s | Stream=False"
+        )
+
+        return response.choices[0].message.content
 
 # ──────────────────────────────────────────────────────────
 # 단순 호출 버전 (중복 정의 복원)

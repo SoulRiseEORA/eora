@@ -100,39 +100,34 @@ class GPTChatTab(QWidget):
         try:
             reply = ""
             buffer = ""
-            reply = ""
-            buffer = ""
-            reply = ""
-            buffer = ""
-            reply = ""
-            buffer = ""
+            header_printed = False
+
             for chunk in do_task(user_text, system_message=self.system_message, stream=True):
-                clean = chunk.replace('\n', ' ').strip()
-                if clean:
-                    buffer += clean + ' '
-                if not reply:
+                if not chunk:
+                    continue
+                # 줄바꿈을 공백으로 정규화하여 조각 단위 끊김 최소화
+                clean = str(chunk).replace('\n', ' ')
+                buffer += clean
+
+                # 첫 조각에서만 머리글 1회 출력
+                if not header_printed:
                     self.chat_display.append_markdown("🤖 EORA:")
-                    self.chat_display.append_markdown("🤖 EORA:")
-                line = buffer.strip()
-                if line:
-                    self.chat_display.append_markdown(line)
-                    reply += line
-                    buffer = ''
-                reply += buffer
-                buffer = ""
-                if not reply:
-                    self.chat_display.append_markdown("🤖 EORA:")
-                    self.chat_display.append_markdown("🤖 EORA:")
-                    self.chat_display.append_markdown(buffer.strip() + "\n")
-                    reply += buffer
+                    header_printed = True
+
+                # 버퍼가 일정 길이를 넘으면 출력 (지나친 잔떨림 방지)
+                if len(buffer) >= 40:
+                    out = buffer.strip()
+                    if out:
+                        self.chat_display.append_markdown(out)
+                        reply += out
                     buffer = ""
-            if buffer.strip():
-                line = buffer.replace("\n", " ").strip()
-                self.chat_display.append_markdown(line)
-                reply += line
-                reply += buffer
-                self.chat_display.append_markdown(buffer.strip() + "\n")
-                reply += buffer
+
+            # 스트림 종료 후 남은 버퍼 출력
+            tail = buffer.strip()
+            if tail:
+                self.chat_display.append_markdown(tail)
+                reply += tail
+
             if reply:
                 self.append_chat(user_text.strip(), reply.strip())
         except Exception as e:

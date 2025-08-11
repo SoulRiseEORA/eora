@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Optional, Dict, List, Any
 
 from fastapi import FastAPI, Request, HTTPException, File, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -134,6 +134,42 @@ def initialize_advanced_systems():
 
 # 시스템 초기화 실행
 advanced_systems_ready = initialize_advanced_systems()
+
+# ====== Vector API 라우터(점진적 추가, 기존 코드 무변경) ======
+try:
+    from api.vector_api import router as vector_router
+    app.include_router(vector_router)
+    print("✅ Vector API 라우터 등록 완료: /api/vector")
+except Exception as e:
+    print(f"⚠️ Vector API 라우터 등록 실패: {e}")
+
+try:
+    from api.memory_api import router as memory_router
+    app.include_router(memory_router)
+    print("✅ Memory API 라우터 등록 완료: /api/memory")
+except Exception as e:
+    print(f"⚠️ Memory API 라우터 등록 실패: {e}")
+
+try:
+    from api.retrieve_api import router as retrieve_router
+    app.include_router(retrieve_router)
+    print("✅ Retrieve API 라우터 등록 완료: /api/retrieve")
+except Exception as e:
+    print(f"⚠️ Retrieve API 라우터 등록 실패: {e}")
+
+try:
+    from api.chain_api import router as chain_router
+    app.include_router(chain_router)
+    print("✅ Chain API 라우터 등록 완료: /api/chain")
+except Exception as e:
+    print(f"⚠️ Chain API 라우터 등록 실패: {e}")
+
+try:
+    from api.edges_api import router as edges_router
+    app.include_router(edges_router)
+    print("✅ Edges API 라우터 등록 완료: /api/edges")
+except Exception as e:
+    print(f"⚠️ Edges API 라우터 등록 실패: {e}")
 
 # ==================== EORA 고급 응답 생성 ====================
 
