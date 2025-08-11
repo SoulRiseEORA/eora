@@ -10,6 +10,7 @@ import json
 import hashlib
 import io
 import re
+import asyncio
 import logging
 from datetime import datetime
 from typing import Optional, Dict, List, Any
@@ -838,7 +839,8 @@ async def save_conversation_to_memory(user_message: str, ai_response: str, user_
                 }
                 
                 if memories_collection is not None:
-                    result = memories_collection.insert_one(memory_data)
+                    # 블로킹 DB I/O를 스레드로 오프로딩하여 이벤트 루프 차단 방지
+                    result = await asyncio.to_thread(memories_collection.insert_one, memory_data)
                     print(f"💾 메모리 저장소 저장: {memory_id}")
                 
             except Exception as mongo_error:
@@ -2301,11 +2303,14 @@ async def chat(request: Request):
             print(f"⚠️ MongoDB 저장 실패: {mongo_error}")
         
         # EORA 메모리 시스템에 대화 저장 (학습 및 회상용)
-        await save_conversation_to_memory(
-            user_message=message,
-            ai_response=ai_response,
-            user_id=user["email"],
-            session_id=session_id
+        # 대화 저장을 비동기 백그라운드로 실행하여 응답 지연 제거
+        asyncio.create_task(
+            save_conversation_to_memory(
+                user_message=message,
+                ai_response=ai_response,
+                user_id=user["email"],
+                session_id=session_id
+            )
         )
         
         # 세션의 메시지 카운트 업데이트

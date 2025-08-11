@@ -2663,6 +2663,7 @@ async def call_gpt4o_api_optimized(message: str, request: Request) -> str:
         
         # 메모리 지시사항을 맨 앞에 배치
         system_prompt = f"{memory_instruction}{base_system_prompt}\n\n{lang_instruction}"
+        # 모델 고정: gpt-4o (타임아웃은 소폭 단축)
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -2716,8 +2717,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 user_message = message_data.get("content", "")
                 session_id = message_data.get("session_id", client_id)
                 
-                # GPT-4o 응답 생성
-                response = await generate_eora_response(user_message, session_id, request)
+                # GPT-4o 응답 생성 (웹소켓 컨텍스트에서는 Request 미제공)
+                response = await generate_eora_response(user_message, session_id, None)
                 
                 # 응답 전송
                 await manager.send_personal_message(json.dumps({

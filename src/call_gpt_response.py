@@ -57,9 +57,10 @@ async def call_gpt_response(
             {"role": "user", "content": user_input}
         ]
         
+        # 모델 고정: gpt-4o
         response = await asyncio.to_thread(
             client.chat.completions.create,
-            model="gpt-4",
+            model="gpt-4o",
             messages=messages
         )
         return response.choices[0].message.content

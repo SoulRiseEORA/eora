@@ -23,7 +23,11 @@ from aura_system.recall_engine import RecallEngine
 from aura_system.insight_engine import InsightEngine
 from aura_system.config import get_config
 sys.path.append(os.path.join(os.path.dirname(__file__), '../EORA/eora_modular'))
-from evaluate_eora_turn import evaluate_eora_turn
+try:
+    from evaluate_eora_turn import evaluate_eora_turn
+except Exception:
+    def evaluate_eora_turn(*args, **kwargs):
+        return None
 from EORA.prompt_storage_modifier import handle_prompt_save_command
 from aura_system.file_loader import load_file_and_store_memory, split_text_into_chunks
 import glob
@@ -773,6 +777,7 @@ class EORAAI:
         # LLM API 호출 (timeout 최적화: 30초 → 12초)
         t4 = time.perf_counter()
         try:
+            # 모델 고정: gpt-4o (타임아웃은 약간 보수적으로)
             response = await self.client.chat.completions.create(model="gpt-4o", messages=messages, timeout=12)
             response_text = response.choices[0].message.content
             # 10턴마다 추가 호출은 응답 SLA에 영향 주지 않도록 백그라운드로 전환
