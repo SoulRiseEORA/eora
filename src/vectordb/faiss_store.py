@@ -25,14 +25,37 @@ class EmbeddingClient:
         self.api_key = api_key or os.getenv("OPENAI_API_KEY", "").strip()
         self.model = model
         self._client = OpenAI(api_key=self.api_key) if self.api_key else None
+        self._cache: Dict[str, np.ndarray] = {}
+        self._cache_order: List[str] = []
+        self._cache_cap = 256
 
     def embed(self, texts: List[str]) -> np.ndarray:
         if not self._client:
             raise RuntimeError("OpenAI API 키가 필요합니다.")
-        response = self._client.embeddings.create(model=self.model, input=texts)
-        vectors = [item.embedding for item in response.data]
-        array = np.array(vectors, dtype=np.float32)
-        return array
+        # 간단 LRU 캐시: 완전 일치 텍스트에 한함
+        cached: List[np.ndarray] = []
+        to_query: List[str] = []
+        for t in texts:
+            if t in self._cache:
+                cached.append(self._cache[t])
+            else:
+                cached.append(None)  # placeholder
+                to_query.append(t)
+        if to_query:
+            resp = self._client.embeddings.create(model=self.model, input=to_query)
+            idx = 0
+            for i, t in enumerate(texts):
+                if cached[i] is None:
+                    vec = np.array(resp.data[idx].embedding, dtype=np.float32)
+                    self._cache[t] = vec
+                    self._cache_order.append(t)
+                    if len(self._cache_order) > self._cache_cap:
+                        old = self._cache_order.pop(0)
+                        self._cache.pop(old, None)
+                    cached[i] = vec
+                    idx += 1
+        # 모두 numpy로 스택
+        return np.vstack(cached)
 
 
 @dataclass
