@@ -41,13 +41,33 @@ def _dedup(items: List[Tuple[float, Dict[str, Any]]]) -> List[Tuple[float, Dict[
     return out
 
 
-async def hybrid_candidates(query: str, entities: List[str]) -> List[Tuple[float, Dict[str, Any]]]:
-    vec_coro = vector_search(query, top_k=50)
-    kw_coro = keyword_search(query, top_k=50)
-    kg_coro = graph_expand(entities, hops=2)
-    vec, kw, kg = await asyncio.gather(vec_coro, kw_coro, kg_coro)
-    merged = vec + kw + kg
-    return _dedup(merged)
+async def hybrid_candidates(query: str, entities: List[str], timeout_sec: float = 0.7) -> List[Tuple[float, Dict[str, Any]]]:
+    tasks = [
+        asyncio.create_task(vector_search(query, top_k=50)),
+        asyncio.create_task(keyword_search(query, top_k=50)),
+        asyncio.create_task(graph_expand(entities, hops=2)),
+    ]
+    done, pending = await asyncio.wait(tasks, timeout=timeout_sec, return_when=asyncio.FIRST_COMPLETED)
+    results: List[Tuple[float, Dict[str, Any]]] = []
+    try:
+        # 우선 완료된 결과 수집
+        for d in done:
+            try:
+                results += (await d) if asyncio.iscoroutine(d) else d.result()
+            except Exception:
+                continue
+        # 남은 태스크도 바로 수집 시도(시간 내 완료분)
+        for p in pending:
+            if p.done():
+                try:
+                    results += p.result()
+                except Exception:
+                    pass
+    finally:
+        # 지연 태스크 취소로 리소스 회수
+        for p in pending:
+            p.cancel()
+    return _dedup(results)
 
 
 def rerank_score(

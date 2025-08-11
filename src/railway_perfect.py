@@ -82,6 +82,36 @@ print(f"📂 Templates 디렉토리: {templates_dir}")
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 templates = Jinja2Templates(directory=str(templates_dir))
 
+# ====== 스타트업 워밍 (토글형) ======
+@app.on_event("startup")
+async def _eora_startup_warmup():
+    try:
+        import os, asyncio
+        if os.getenv("EORA_WARMUP", "1") != "1":
+            return
+        async def _warm():
+            try:
+                # FAISS 인덱스 프리로드
+                from vectordb import FaissVectorStore, EmbeddingClient
+                store = FaissVectorStore(base_path="data/faiss/eora_main", dimension=1536)
+                # 가벼운 검색(메타/인덱스 메모리 적재)
+                try:
+                    _ = await store.search("warmup", 1, EmbeddingClient())
+                except Exception:
+                    pass
+                # 임베딩 워밍(토글)
+                if os.getenv("EORA_WARMUP_OPENAI", "0") == "1":
+                    emb = EmbeddingClient()
+                    try:
+                        _ = emb.embed(["warmup"])
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        asyncio.create_task(_warm())
+    except Exception:
+        pass
+
 # 데이터 파일 경로
 DATA_DIR = "data"
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
@@ -1060,6 +1090,21 @@ async def chat(request: Request):
                 content={"success": False, "error": "세션 ID와 메시지가 필요합니다."}
             )
         
+        # 중복 호출 감지(단기)
+        import hashlib, time
+        key_src = f"{session_id}|{message}".encode("utf-8")
+        req_key = hashlib.md5(key_src).hexdigest()
+        global _recent_chat_keys
+        try:
+            _recent_chat_keys
+        except NameError:
+            _recent_chat_keys = {}
+        now = time.time()
+        last = _recent_chat_keys.get(req_key)
+        if last and (now - last) < 2.0:
+            print(f"[TRACE] Duplicate /api/chat within 2s, session={session_id}")
+        _recent_chat_keys[req_key] = now
+
         # 세션이 없으면 자동 생성
         if session_id not in sessions_db:
             sessions_db[session_id] = {
@@ -1086,6 +1131,29 @@ async def chat(request: Request):
         messages_db[session_id].append(user_message)
         
         # AI 응답 생성 - EORA 고급 기능 활용
+        start_ts = datetime.now().timestamp()
+        call_counters = {"llm_calls": 0, "embedding_calls": 0}
+        try:
+            # 간단 후킹: 환경변수로 계측 on/off
+            import os
+            if os.getenv("EORA_TRACE_CALLS", "0") == "1":
+                # openai 호출 래핑 (전역 영향 최소한)
+                import builtins
+                from openai import OpenAI
+                _orig_create = None
+                try:
+                    _client = None
+                    def _wrap_create(*args, **kwargs):
+                        call_counters["llm_calls"] += 1
+                        return _orig_create(*args, **kwargs)
+                    # 안전 시도: 동기 클라이언트 경로만 래핑
+                    _client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+                    _orig_create = _client.chat.completions.create
+                    _client.chat.completions.create = _wrap_create  # type: ignore
+                except Exception:
+                    pass
+        except Exception:
+            pass
         ai_response = await generate_advanced_response(
             message=message,
             user_id=user["email"],
@@ -1109,6 +1177,10 @@ async def chat(request: Request):
             user_id=user["email"],
             session_id=session_id
         )
+
+        # 호출 계측 로그
+        duration = datetime.now().timestamp() - start_ts
+        print(f"[TRACE] /api/chat duration={duration:.3f}s, calls={call_counters}")
         
         # 세션의 메시지 카운트 업데이트
         sessions_db[session_id]["message_count"] = len(messages_db[session_id])
