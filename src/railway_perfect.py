@@ -1545,6 +1545,9 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
         add_log(f"🔍 6단계: 임베딩 생성 및 메모리 저장")
         successful_chunks = 0
         failed_chunks = 0
+        # 벡터DB 업서트를 위한 배치 수집
+        upsert_texts = []
+        upsert_metas = []
         
         for i, chunk in enumerate(chunks):
             try:
@@ -1578,6 +1581,16 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
                     "timestamp": datetime.now().isoformat()
                 })
                 
+                # 벡터 인덱싱 메타 수집 (점진적 추가, 실패 무시)
+                upsert_texts.append(chunk)
+                upsert_metas.append({
+                    "source": "file_learning",
+                    "filename": file.filename,
+                    "chunk_index": i,
+                    "user_id": user.get("email"),
+                    "time": datetime.now().isoformat()
+                })
+
                 successful_chunks += 1
                 add_log(f"   ✅ 청크 {i+1} 저장 완료")
                 
@@ -1585,13 +1598,24 @@ async def learn_file(request: Request, file: UploadFile = File(...)):
                 failed_chunks += 1
                 add_log(f"   ❌ 청크 {i+1} 저장 실패: {chunk_error}")
         
-        # 7단계: 결과 요약
+        # 7단계: 벡터 인덱스 업서트 (있을 경우)
+        try:
+            if upsert_texts:
+                from vectordb import FaissVectorStore, EmbeddingClient
+                store = FaissVectorStore(base_path="data/faiss/eora_main", dimension=1536)
+                embedder = EmbeddingClient()
+                _ = await store.add_texts(upsert_texts, upsert_metas, embedder)
+                add_log(f"   🔎 벡터 인덱스 업서트 완료: {len(upsert_texts)}개")
+        except Exception as ve:
+            add_log(f"   ⚠️ 벡터 인덱스 업서트 건너뜀/실패: {ve}")
+
+        # 8단계: 결과 요약
         add_log(f"🔍 7단계: 학습 결과 요약")
         add_log(f"   ✅ 성공적으로 학습된 청크: {successful_chunks}개")
         add_log(f"   ❌ 실패한 청크: {failed_chunks}개")
         add_log(f"   📊 성공률: {(successful_chunks/len(chunks)*100):.1f}%")
         
-        # 8단계: 완료
+        # 9단계: 완료
         add_log("=" * 60)
         add_log("🎉 문서 학습 완료!")
         add_log("=" * 60)
@@ -1703,6 +1727,9 @@ async def learn_dialog_file(request: Request, file: UploadFile = File(...)):
         add_log(f"🔍 6단계: 대화 패턴 학습 및 메모리 저장")
         successful_turns = 0
         failed_turns = 0
+        # 벡터DB 업서트를 위한 배치 수집
+        upsert_texts = []
+        upsert_metas = []
         
         for i, turn in enumerate(dialog_turns):
             try:
@@ -1737,6 +1764,17 @@ async def learn_dialog_file(request: Request, file: UploadFile = File(...)):
                     "timestamp": datetime.now().isoformat()
                 })
                 
+                # 벡터 인덱싱 메타 수집 (점진적 추가, 실패 무시)
+                upsert_texts.append(turn.get('content', '') or '')
+                upsert_metas.append({
+                    "source": "dialog_learning",
+                    "filename": file.filename,
+                    "speaker": turn.get('speaker'),
+                    "turn_index": i,
+                    "user_id": user.get("email"),
+                    "time": datetime.now().isoformat()
+                })
+
                 successful_turns += 1
                 add_log(f"   ✅ 대화 턴 {i+1} 학습 완료")
                 
@@ -1744,7 +1782,18 @@ async def learn_dialog_file(request: Request, file: UploadFile = File(...)):
                 failed_turns += 1
                 add_log(f"   ❌ 대화 턴 {i+1} 학습 실패: {turn_error}")
         
-        # 7단계: 결과 요약
+        # 7단계: 벡터 인덱스 업서트 (있을 경우)
+        try:
+            if upsert_texts:
+                from vectordb import FaissVectorStore, EmbeddingClient
+                store = FaissVectorStore(base_path="data/faiss/eora_main", dimension=1536)
+                embedder = EmbeddingClient()
+                _ = await store.add_texts(upsert_texts, upsert_metas, embedder)
+                add_log(f"   🔎 벡터 인덱스 업서트 완료: {len(upsert_texts)}개")
+        except Exception as ve:
+            add_log(f"   ⚠️ 벡터 인덱스 업서트 건너뜀/실패: {ve}")
+
+        # 8단계: 결과 요약
         add_log(f"🔍 7단계: 대화 학습 결과 요약")
         add_log(f"   ✅ 성공적으로 학습된 대화 턴: {successful_turns}턴")
         add_log(f"   ❌ 실패한 대화 턴: {failed_turns}턴")
