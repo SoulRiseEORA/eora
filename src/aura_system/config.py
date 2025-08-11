@@ -114,7 +114,36 @@ class Config:
                 "memory": {
                     "recall_threshold": 0.7,
                     "min_response_length": 50,
-                    "max_context_size": 2000
+                    "max_context_size": 2000,
+                    "vector_upsert_on_learn": True,
+                    "edge_builder": {
+                        "enabled": False,
+                        "sim_th": 0.82,
+                        "win_hours": 2,
+                        "k_emb": 50,
+                        "top_m": 5,
+                        "degree_cap": 12,
+                        "w_sim": 0.6,
+                        "w_time": 0.2,
+                        "w_topic": 0.2
+                    }
+                },
+                "recall": {
+                    "hybrid": {
+                        "topk_engine": 30,
+                        "topk_chain": 20,
+                        "expand_depth": 2,
+                        "return_n": 12,
+                        "use_cross_encoder": False
+                    }
+                },
+                "alerts": {
+                    "enabled": False,
+                    "webhook_url": ""
+                },
+                "backups": {
+                    "enabled": False,
+                    "schedule": "daily"
                 },
                 "logging": {
                     "level": "INFO",
