@@ -54,12 +54,26 @@ class FaissVectorStore:
         self._index = None  # type: Optional[faiss.Index]
         self._next_id = 0
         self._lock = asyncio.Lock()
+        self._meta_map: Dict[int, Dict[str, Any]] = {}
         self._load_or_init()
 
     def _load_or_init(self) -> None:
         if os.path.exists(self.index_path) and os.path.exists(self.meta_path):
             self._index = faiss.read_index(self.index_path)
-            self._next_id = self._count_metadata_lines()
+            # 메타 맵 적재 (메모리 상주)
+            self._meta_map.clear()
+            try:
+                with open(self.meta_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        try:
+                            row = json.loads(line)
+                            vid = int(row.get("id"))
+                            self._meta_map[vid] = row.get("meta", {})
+                        except Exception:
+                            continue
+            except FileNotFoundError:
+                pass
+            self._next_id = len(self._meta_map)
         else:
             # Inner Product with normalized vectors approximates cosine similarity
             self._index = faiss.IndexFlatIP(self.dimension)
@@ -81,6 +95,8 @@ class FaissVectorStore:
                 f.write(json.dumps({"id": vector_id, "meta": meta}, ensure_ascii=False) + "\n")
                 assigned_ids.append(vector_id)
                 self._next_id += 1
+                # 메모리 맵 즉시 갱신
+                self._meta_map[vector_id] = meta
         return assigned_ids
 
     async def add_texts(self, texts: List[str], metadatas: Optional[List[Dict[str, Any]]], embedder: EmbeddingClient) -> List[int]:
@@ -110,24 +126,12 @@ class FaissVectorStore:
             query_vec = _normalize_rows(query_vec)
             distances, indices = await asyncio.to_thread(self._index.search, query_vec, top_k)
 
-            id_to_meta: Dict[int, Dict[str, Any]] = {}
-            try:
-                with open(self.meta_path, "r", encoding="utf-8") as f:
-                    for line in f:
-                        try:
-                            row = json.loads(line)
-                            id_to_meta[int(row["id"])] = row.get("meta", {})
-                        except Exception:
-                            continue
-            except FileNotFoundError:
-                pass
-
             results: List[Tuple[int, float, Dict[str, Any]]] = []
             for rank, idx in enumerate(indices[0]):
                 if idx == -1:
                     continue
                 score = float(distances[0][rank])
-                meta = id_to_meta.get(int(idx), {})
+                meta = self._meta_map.get(int(idx), {})
                 # 메타정보가 없으면 최소한 id라도 포함
                 if not meta:
                     meta = {"id": int(idx)}
