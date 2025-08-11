@@ -236,8 +236,16 @@ class EORAAI:
         # 통합 API 키 검색 사용
         api_key = self._get_valid_api_key()
         if api_key:
-            self.client = AsyncOpenAI(api_key=api_key)
-            logger.info("✅ AURA AI OpenAI 클라이언트 초기화 완료 (통합 키 검색)")
+            try:
+                # 싱글톤 우선 사용
+                from aura_system.openai_client import get_openai_client
+                # get_openai_client는 async 함수이므로 초기에는 None으로 두고, respond_async에서 보장
+                self.client = None
+                logger.info("✅ AURA AI OpenAI 클라이언트는 싱글톤 사용 예정")
+            except Exception:
+                # 폴백: 개별 클라이언트
+                self.client = AsyncOpenAI(api_key=api_key)
+                logger.info("✅ AURA AI OpenAI 클라이언트 초기화 완료 (로컬)")
         else:
             logger.error("❌ 유효한 OpenAI API 키를 찾을 수 없습니다")
             self.client = None
@@ -273,6 +281,14 @@ class EORAAI:
             else:
                 user_input = str(user_input)
         
+        # OpenAI 클라이언트 보장(싱글톤 우선)
+        if self.client is None:
+            try:
+                from aura_system.openai_client import get_openai_client
+                self.client = await get_openai_client()
+            except Exception as _e:
+                logger.warning(f"⚠️ OpenAI 싱글톤 획득 실패, 기존 클라이언트 사용 시도: {_e}")
+
         # 날짜/요일 파싱 유틸리티
         import re
         import datetime
@@ -759,9 +775,15 @@ class EORAAI:
         try:
             response = await self.client.chat.completions.create(model="gpt-4o", messages=messages, timeout=12)
             response_text = response.choices[0].message.content
+            # 10턴마다 추가 호출은 응답 SLA에 영향 주지 않도록 백그라운드로 전환
             if self.turn_count % 10 == 0:
+                async def _bg_refine(_msgs):
+                    try:
+                        await self.client.chat.completions.create(model="gpt-4o", messages=_msgs, timeout=30)
+                    except Exception:
+                        pass
                 messages2 = messages + [{"role": "system", "content": "[리마인드/톤 분석용 추가 메시지]"}]
-                response2 = await self.client.chat.completions.create(model="gpt-4o", messages=messages2, timeout=30)
+                asyncio.create_task(_bg_refine(messages2))
         except asyncio.CancelledError:
             logger.error("❌ OpenAI API 호출이 취소되었습니다. (CancelledError)")
             return {

@@ -1,0 +1,2 @@
+  main       [m a553bfa [[34morigin/main[m: ahead 16, behind 7] ✅ Railway 배포 최적화: Root Procfile + railway_start.py 사용
+* [32mrailway-fix[m 6b94afb perf(chat): 스타트업 워밍/복제요청 감지/호출 트레이싱 추가; perf(recall): 하이브리드 타임박스 조기반환
