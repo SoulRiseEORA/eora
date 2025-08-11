@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect, Depends
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -2663,24 +2663,35 @@ async def call_gpt4o_api_optimized(message: str, request: Request) -> str:
         
         # 메모리 지시사항을 맨 앞에 배치
         system_prompt = f"{memory_instruction}{base_system_prompt}\n\n{lang_instruction}"
-        # 모델 고정: gpt-4o (타임아웃은 소폭 단축)
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": message}
-            ],
-            max_tokens=400,
-            temperature=0.6,
-            timeout=5,
-            stream=False,
-            presence_penalty=0.0,
-            frequency_penalty=0.0,
-            top_p=0.8,
-            n=1
-        )
+        # 스트리밍으로 받아 누적 후 반환 (엔드포인트는 비스트리밍 유지)
+        def _collect_stream():
+            stream = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message}
+                ],
+                max_tokens=400,
+                temperature=0.6,
+                stream=True,
+                timeout=30,
+                presence_penalty=0.0,
+                frequency_penalty=0.0,
+                top_p=0.8,
+                n=1
+            )
+            parts = []
+            for chunk in stream:
+                try:
+                    delta = chunk.choices[0].delta
+                    if delta and getattr(delta, "content", None):
+                        parts.append(delta.content)
+                except Exception:
+                    continue
+            return "".join(parts)
+        full_text = _collect_stream()
         print(f"✅ GPT-4o API 응답 생성 완료")
-        return response.choices[0].message.content
+        return full_text
     except Exception as api_error:
         print(f"❌ GPT-4o API 호출 실패: {api_error}")
         raise RuntimeError(f"GPT-4o API 호출 실패: {api_error}")
@@ -3997,10 +4008,11 @@ def start_mongodb_monitor():
             try:
                 if mongo_client:
                     check_mongodb_connection()
-                time.sleep(30)  # 30초마다 확인
+                # 과도한 sleep 방지: 10초 주기, 오류 시 별도 백오프
+                time.sleep(10)
             except Exception as e:
                 print(f"⚠️ MongoDB 모니터링 오류: {e}")
-                time.sleep(60)  # 오류 시 1분 대기
+                time.sleep(20)
     
     # 백그라운드에서 모니터링 시작
     monitor_thread = threading.Thread(target=monitor_loop, daemon=True)

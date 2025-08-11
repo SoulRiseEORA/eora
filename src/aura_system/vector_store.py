@@ -28,6 +28,8 @@ from pymongo import MongoClient, ASCENDING, DESCENDING
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
 from asyncio import CancelledError
+import hashlib
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -252,6 +254,55 @@ class VectorStore:
         except Exception as e:
             logger.error(f"❌ 인덱스 생성 실패: {str(e)}")
             
+    # ===== 임베딩 캐시 및 라우팅 유틸 =====
+    def _norm(self, text: str) -> str:
+        return " ".join((text or "").split()).strip()
+
+    def _emb_cache_key(self, text: str) -> str:
+        return f"emb:{hashlib.sha256(self._norm(text).encode('utf-8')).hexdigest()}"
+
+    @lru_cache(maxsize=8192)
+    def _local_cache_get(self, key: str):
+        return None
+
+    async def get_or_create_embedding(self, text: str) -> list:
+        """임베딩 캐시: Redis → 메모리 LRU → 생성"""
+        key = self._emb_cache_key(text)
+        # 1) Redis 캐시
+        if self._redis_client:
+            try:
+                cached = await self._redis_client.get(key)
+                if cached:
+                    return json.loads(cached)
+            except Exception:
+                pass
+        # 2) 프로세스 LRU
+        local = self._local_cache_get(key)
+        if local:
+            return local
+        # 3) 실제 생성 (기존 임베딩 래퍼 사용)
+        vec = await self.embeddings.embed(self._norm(text)) if hasattr(self, 'embeddings') else None
+        if vec is None:
+            try:
+                vec = await embed_text_async(self._norm(text))
+            except Exception:
+                vec = []
+        # 4) 저장
+        try:
+            if self._redis_client and vec:
+                await self._redis_client.set(key, json.dumps(vec), ex=60*60*24*7)
+        except Exception:
+            pass
+        return vec or []
+
+    def should_use_rag(self, user_query: str) -> bool:
+        q = (self._norm(user_query) or "").lower()
+        if len(q) < 10:
+            return False
+        trigger = any(t in q for t in [
+            "어디", "언제", "무엇", "누가", "근거", "참조", "출처", "문서", "파일", "설명서", "error", "에러", "traceback"
+        ])
+        return trigger or q.endswith("?")
     async def store_vector(
         self,
         vector_id: str,

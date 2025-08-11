@@ -1,4 +1,74 @@
 import os
+import threading
+from typing import Optional, List
+from dotenv import load_dotenv
+from openai import OpenAI
+
+# 프로세스 시작 시 1회 로딩 (.env는 로컬에서만)
+if not os.getenv("RAILWAY_ENVIRONMENT"):
+    try:
+        load_dotenv()
+    except Exception:
+        pass
+
+
+def get_clean_key(key: Optional[str]) -> Optional[str]:
+    if not key:
+        return None
+    key = key.strip()
+    return key if key.startswith("sk-") and len(key) > 60 else None
+
+
+def _collect_keys() -> List[str]:
+    names = [
+        "OPENAI_API_KEY",
+        "OPENAI_API_KEY_1",
+        "OPENAI_API_KEY_2",
+        "OPENAI_API_KEY_3",
+        "OPENAI_API_KEY_4",
+        "OPENAI_API_KEY_5",
+    ]
+    keys: List[str] = []
+    for n in names:
+        k = get_clean_key(os.getenv(n))
+        if k:
+            keys.append(k)
+    # 단일 키가 환경 변수에만 있는 경우도 지원
+    if not keys and get_clean_key(os.getenv("OPENAI_API_KEY")):
+        keys.append(os.getenv("OPENAI_API_KEY"))
+    return keys
+
+
+_client_lock = threading.Lock()
+_clients: List[OpenAI] = []
+_rr_idx = 0
+
+
+def _build_clients_if_needed():
+    global _clients
+    if _clients:
+        return
+    keys = _collect_keys()
+    if not keys:
+        print("⚠️ OpenAI API 키 없음")
+        return
+    # 타임아웃/재시도는 보수적으로 설정
+    _clients = [OpenAI(api_key=k, timeout=30.0, max_retries=2) for k in keys]
+    print(f"✅ OpenAI 클라이언트 준비: {len(_clients)}개")
+
+
+def get_openai_client() -> OpenAI:
+    """재사용 가능한 클라이언트 하나를 반환 (키가 여러 개면 라운드로빈)"""
+    global _rr_idx
+    with _client_lock:
+        _build_clients_if_needed()
+        if not _clients:
+            raise RuntimeError("OpenAI 키/클라이언트가 준비되지 않았습니다.")
+        cli = _clients[_rr_idx % len(_clients)]
+        _rr_idx += 1
+        return cli
+
+import os
 from dotenv import load_dotenv
 
 def load_openai_api_key():
